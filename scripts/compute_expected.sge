@@ -1,0 +1,74 @@
+#!/bin/bash
+
+
+bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/alignments/hTR-DS14702.hg19.bam
+fasta_file=/home/jvierstra/data/genomes/hg19/hg.ribo.all.fa
+bias_model_file=/home/jvierstra/proj/dnase-perspective/cleavage_model/vierstra_et_al.txt
+interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/hotspots/hTR-DS14702.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
+
+chunksize=1000
+output_dir=/home/jvierstra/proj/dnase-perspective/test
+
+mkdir -p ${output_dir}/logs
+
+cat <<__SCRIPT__ > ${output_dir}/sge.learn_dispersion_model
+#/bin/bash
+#$ -e ${output_dir}/logs/\$JOB_NAME.err
+#$ -o ${output_dir}/logs/\$JOB_NAME.out
+
+set -o pipefail
+
+zcat -f ${interval_file} > \${TMPDIR}/intervals.bed
+
+cat \${TMPDIR}/intervals.bed | random-lines --seed=1 --num=10000 --max=\`wc -l < \${TMPDIR}/intervals.bed\` > \${TMPDIR}/intervals.sampled.bed
+
+python /home/jvierstra/proj/code/footprint-tools/scripts/learn_dispersion_model.py \
+	--half_win_width 10 --procs \${NSLOTS} \
+	${bam_file} ${fasta_file} ${bias_model_file} \${TMPDIR}/intervals.sampled.bed \
+> ${output_dir}/dm.json
+__SCRIPT__
+
+qsub -N fps.learn_dm -pe threads 4-8 -V -S /bin/bash ${output_dir}/sge.learn_dispersion_model
+
+cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_chunk
+#!/bin/bash
+#$ -e ${output_dir}/logs/\$JOB_NAME.\$TASK_ID.err
+#$ -o ${output_dir}/logs/\$JOB_NAME.\$TASK_ID.out
+
+set -o pipefail
+
+INPUTS=(\`cat ${output_dir}/sge.compute_expected_chunk.params | head -n \${SGE_TASK_ID} | tail -n 1\`)
+
+python /home/jvierstra/proj/code/footprint-tools/scripts/compute_expected.py \
+	--half_win_width 10 --smooth_tmean \
+	${bam_file} ${fasta_file} ${bias_model_file} \${INPUTS[0]} \
+| sort --buffer-size=4G -k1,1 -k2,2n > \${INPUTS[0]}.out
+__SCRIPT__
+
+zcat -f ${interval_file} | split -l ${chunksize} -a 4 -d - ${output_dir}/interval.
+ls ${output_dir}/interval.* > ${output_dir}/sge.compute_expected_chunk.params
+
+qsub -N fps.sge -t 1-$(wc -l < ${output_dir}/sge.compute_expected_chunk.params) -V -S /bin/bash ${output_dir}/sge.compute_expected_chunk
+
+cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_merge_sort
+#!/bin/bash
+#$ -e ${output_dir}/logs/\$JOB_NAME.err
+#$ -o ${output_dir}/logs/\$JOB_NAME.out
+
+set -o pipefail
+
+INPUTS=(\`cat ${output_dir}/sge.compute_expected.chunks`)
+INPUT_CHUNKS=("\${INPUTS[@]/%/_.out")
+
+sort -k1,1 -k2,2n -m $INPUT_CHUNKS > ${output_dir}/interval.all.bedgraph
+
+rm -f \${INPUTS} ${INPUT_CHUNKS}
+__SCRIPT__
+
+cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_merge_sort
+
+__SCRIPT__
+
+
+# cut -f1-3,7 interval.all.bed > interval.all.diff.bedgraph
+# bedGraphToBigWig interval.all.diff.bedgraph ~/data/genomes/hg19/hg.all.chrom.sizes interval.diff.bw
