@@ -34,14 +34,16 @@ class dispersion_model:
 		res += "r: y = %0.4f + %0.4fx" % (self.r_params[0], self.r_params[1])
 		return res
 
-	def p_value(self, exp, obs):
+	def p_value(self, exp, obs, greater = False):
 
 		mu = self.mu(exp)
 		r = self.r(exp)
 		p = r/(r+mu)
 
-		#print exp, obs, r, p, mu
-		return stats.nbinom.cdf(obs, 1-p, r)
+		if greater:
+			return 1.0 - stats.nbinom.cdf(obs-1, 1-p, r)
+		else:
+			return stats.nbinom.cdf(obs, 1-p, r)
 
 '''
  Functions to create histogram of expected vs. observed cleavages	

@@ -34,6 +34,10 @@ def reverse_complement(seq):
 
 def predict_interval(reads, faidx, interval, bm, half_window_width = 10, smoothing_class = None):
 
+	'''
+
+	'''
+
 	obs_counts = {'+': None, '-': None}
 	exp_counts = {'+': None, '-': None}
 	win_counts = {'+': None, '-': None}

@@ -23,12 +23,14 @@ zcat -f ${interval_file} > \${TMPDIR}/intervals.bed
 cat \${TMPDIR}/intervals.bed | random-lines --seed=1 --num=10000 --max=\`wc -l < \${TMPDIR}/intervals.bed\` > \${TMPDIR}/intervals.sampled.bed
 
 python /home/jvierstra/proj/code/footprint-tools/scripts/learn_dispersion_model.py \
+	--kmer ${bias_model_file} \
 	--half_win_width 10 --procs \${NSLOTS} \
-	${bam_file} ${fasta_file} ${bias_model_file} \${TMPDIR}/intervals.sampled.bed \
+	${bam_file} ${fasta_file} \${TMPDIR}/intervals.sampled.bed \
 > ${output_dir}/dm.json
 __SCRIPT__
 
-qsub -N fps.learn_dm -pe threads 4-8 -V -S /bin/bash ${output_dir}/sge.learn_dispersion_model
+qsub -N fps.learn_dm -pe threads 8 -V -S /bin/bash ${output_dir}/sge.learn_dispersion_model
+exit
 
 cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_chunk
 #!/bin/bash
@@ -37,18 +39,18 @@ cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_chunk
 
 set -o pipefail
 
-INPUTS=(\`cat ${output_dir}/sge.compute_expected_chunk.params | head -n \${SGE_TASK_ID} | tail -n 1\`)
+INPUT_FILES=(\`cat ${output_dir}/sge.compute_expected_chunk.params | head -n \${SGE_TASK_ID} | tail -n 1\`)
 
 python /home/jvierstra/proj/code/footprint-tools/scripts/compute_expected.py \
-	--half_win_width 10 --smooth_tmean \
-	${bam_file} ${fasta_file} ${bias_model_file} \${INPUTS[0]} \
-| sort --buffer-size=4G -k1,1 -k2,2n > \${INPUTS[0]}.out
+	--kmer ${bias_model_file} --disp_model ${output_dir}/dm.json --half_win_width 10 --smooth_tmean \
+	${bam_file} ${fasta_file} \${INPUT_FILES[0]} \
+| sort --buffer-size=4G -k1,1 -k2,2n > \${INPUT_FILES[0]}.out
 __SCRIPT__
 
 zcat -f ${interval_file} | split -l ${chunksize} -a 4 -d - ${output_dir}/interval.
 ls ${output_dir}/interval.* > ${output_dir}/sge.compute_expected_chunk.params
 
-qsub -N fps.sge -t 1-$(wc -l < ${output_dir}/sge.compute_expected_chunk.params) -V -S /bin/bash ${output_dir}/sge.compute_expected_chunk
+qsub -N fps.compute_expected -t 1-$(wc -l < ${output_dir}/sge.compute_expected_chunk.params) -hold_jid fps.learn_dm -V -S /bin/bash ${output_dir}/sge.compute_expected_chunk
 
 cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_merge_sort
 #!/bin/bash
@@ -57,17 +59,16 @@ cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_merge_sort
 
 set -o pipefail
 
-INPUTS=(\`cat ${output_dir}/sge.compute_expected.chunks`)
-INPUT_CHUNKS=("\${INPUTS[@]/%/_.out")
+INPUT_FILES=(\`cat ${output_dir}/sge.compute_expected_chunk.params\`)
+OUTPUT_FILES=("\${INPUT_FILES[@]/%/.out}")
 
-sort -k1,1 -k2,2n -m $INPUT_CHUNKS > ${output_dir}/interval.all.bedgraph
+sort -k1,1 -k2,2n -m \${OUTPUT_FILES[@]} > ${output_dir}/interval.all.bedgraph
 
-rm -f \${INPUTS} ${INPUT_CHUNKS}
+#rm -f \${INPUT_FILES[@]} \${OUTPUT_FILES[@]}
 __SCRIPT__
 
-cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_merge_sort
+qsub -N fps.compute_expected_merge_sort -hold_jid fps.compute_expected -V -S /bin/bash ${output_dir}/sge.compute_expected_merge_sort
 
-__SCRIPT__
 
 
 # cut -f1-3,7 interval.all.bed > interval.all.diff.bedgraph

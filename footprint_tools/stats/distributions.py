@@ -38,10 +38,17 @@ class _nbinom(object):
 
 	def pmf(self, k, p, r):
 
-		return np.float64( mp.gamma(k+r) / (mp.gamma(k+1) * mp.gamma(r)) * np.power(1-p, r) * np.power(p, k) )
+		if k < 0.0:
+			return 0.0
+		else:
+			return np.float64( mp.gamma(k+r) / (mp.gamma(k+1) * mp.gamma(r)) * np.power(1-p, r) * np.power(p, k) )
 
 	def cdf(self, k, p, r):
-		return 1.0 - np.float64( mp.betainc(k+1, r, x1 = 0, x2 = p, regularized = True) )
+	
+		if k < 0.0:
+			return 0.0
+		else:
+			return 1.0 - np.float64( mp.betainc(k+1, r, x1 = 0, x2 = p, regularized = True) )
 		
 	def mean(self, p, r):
 
