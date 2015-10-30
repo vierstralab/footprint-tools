@@ -26,6 +26,7 @@ class bamfile(object):
 		self.cache = { i: {"+": {}, "-": {}} for i in self.samfile.references }
 		self.lookup = { i: [] for i in self.samfile.references }
 
+		self.offset = -1
 		self.CHUNK_SIZE = chunksize
 
 	def __add(self, chrom, start, end):
@@ -36,11 +37,11 @@ class bamfile(object):
 					continue
 
 				if alignedread.is_reverse:
-					a = int(alignedread.aend) - 1
+					a = int(alignedread.aend) - 1 - self.offset
 					if a < end:	
 						self.cache[chrom]["-"][a] = self.cache[chrom]["-"].get(a, 0.0) + 1.0
 				else:
-					a = int(alignedread.pos) # pysam is zero-based!
+					a = int(alignedread.pos) + self.offset # pysam is zero-based!
 					if a >= start:
 						self.cache[chrom]["+"][a] = self.cache[chrom]["+"].get(a, 0.0) + 1.0
 		

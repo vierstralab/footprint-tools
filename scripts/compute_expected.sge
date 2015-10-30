@@ -1,13 +1,20 @@
 #!/bin/bash
 
+prefix=K562-DS9767
+output_dir=/home/jvierstra/proj/dnase-perspective/fps/${prefix}
+bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/100607/alignments/K562-DS9767.hg19.bam
+interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/100607/hotspots/K562-DS9767.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
 
-bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/alignments/hTR-DS14702.hg19.bam
+#bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/alignments/hTR-DS14702.hg19.bam
+#interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/hotspots/hTR-DS14702.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
+
+
 fasta_file=/home/jvierstra/data/genomes/hg19/hg.ribo.all.fa
 bias_model_file=/home/jvierstra/proj/dnase-perspective/cleavage_model/vierstra_et_al.txt
-interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/hotspots/hTR-DS14702.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
 
+chrom_sizes_file=/home/jvierstra/data/genomes/hg19/hg.all.chrom.sizes
 chunksize=1000
-output_dir=/home/jvierstra/proj/dnase-perspective/test
+
 
 mkdir -p ${output_dir}/logs
 
@@ -29,8 +36,7 @@ python /home/jvierstra/proj/code/footprint-tools/scripts/learn_dispersion_model.
 > ${output_dir}/dm.json
 __SCRIPT__
 
-qsub -N fps.learn_dm -pe threads 8 -V -S /bin/bash ${output_dir}/sge.learn_dispersion_model
-exit
+qsub -N ${prefix}.learn_dm -pe threads 8 -V -S /bin/bash ${output_dir}/sge.learn_dispersion_model
 
 cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_chunk
 #!/bin/bash
@@ -50,7 +56,7 @@ __SCRIPT__
 zcat -f ${interval_file} | split -l ${chunksize} -a 4 -d - ${output_dir}/interval.
 ls ${output_dir}/interval.* > ${output_dir}/sge.compute_expected_chunk.params
 
-qsub -N fps.compute_expected -t 1-$(wc -l < ${output_dir}/sge.compute_expected_chunk.params) -hold_jid fps.learn_dm -V -S /bin/bash ${output_dir}/sge.compute_expected_chunk
+qsub -N ${prefix}.compute_expected -t 1-$(wc -l < ${output_dir}/sge.compute_expected_chunk.params) -hold_jid ${prefix}.learn_dm -V -S /bin/bash ${output_dir}/sge.compute_expected_chunk
 
 cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_merge_sort
 #!/bin/bash
@@ -64,12 +70,44 @@ OUTPUT_FILES=("\${INPUT_FILES[@]/%/.out}")
 
 sort -k1,1 -k2,2n -m \${OUTPUT_FILES[@]} > ${output_dir}/interval.all.bedgraph
 
-#rm -f \${INPUT_FILES[@]} \${OUTPUT_FILES[@]}
+rm -f \${INPUT_FILES[@]} \${OUTPUT_FILES[@]}
 __SCRIPT__
 
-qsub -N fps.compute_expected_merge_sort -hold_jid fps.compute_expected -V -S /bin/bash ${output_dir}/sge.compute_expected_merge_sort
+qsub -N ${prefix}.compute_expected_merge_sort -hold_jid ${prefix}.compute_expected -V -S /bin/bash ${output_dir}/sge.compute_expected_merge_sort
 
+cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_browser_tracks
+#!/bin/bash
+#$ -e ${output_dir}/logs/\$JOB_NAME.err
+#$ -o ${output_dir}/logs/\$JOB_NAME.out
 
+set -o pipefail
 
-# cut -f1-3,7 interval.all.bed > interval.all.diff.bedgraph
-# bedGraphToBigWig interval.all.diff.bedgraph ~/data/genomes/hg19/hg.all.chrom.sizes interval.diff.bw
+cut -f1-3,4 ${output_dir}/interval.all.bedgraph | awk '\$4 > 0 { print; }' > \${TMPDIR}/interval.all.obs.bedgraph
+bedGraphToBigWig \${TMPDIR}/interval.all.obs.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.obs.bw
+
+cut -f1-3,5 ${output_dir}/interval.all.bedgraph | awk '\$4 > 0 { print; }' > \${TMPDIR}/interval.all.exp.bedgraph
+bedGraphToBigWig \${TMPDIR}/interval.all.exp.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.exp.bw
+
+cut -f1-3,6 ${output_dir}/interval.all.bedgraph > \${TMPDIR}/interval.all.lnpval.bedgraph
+bedGraphToBigWig \${TMPDIR}/interval.all.lnpval.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.lnpval.bw
+
+cut -f1-3,7 ${output_dir}/interval.all.bedgraph > \${TMPDIR}/interval.all.chisq.bedgraph
+bedGraphToBigWig \${TMPDIR}/interval.all.chisq.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.chisq.bw
+__SCRIPT__
+
+cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_working_tracks
+#!/bin/bash
+#$ -e ${output_dir}/logs/\$JOB_NAME.err
+#$ -o ${output_dir}/logs/\$JOB_NAME.out
+
+set -o pipefail
+
+sort-bed --tmpdir \${TMPDIR} --max-mem 8G ${output_dir}/interval.all.bedgraph | starch - > ${output_dir}/interval.all.bed.starch
+
+bgzip -c ${output_dir}/interval.all.bedgraph > ${output_dir}/interval.all.bedgraph.gz
+tabix -0 -p bed ${output_dir}/interval.all.bedgraph.gz
+__SCRIPT__
+
+qsub -N ${prefix}.compute_expected_browser_tracks -hold_jid ${prefix}.compute_expected_merge_sort -V -S /bin/bash ${output_dir}/sge.compute_expected_browser_tracks
+qsub -N ${prefix}.compute_expected_working_tracks -pe threads 2 -hold_jid ${prefix}.compute_expected_merge_sort -V -S /bin/bash ${output_dir}/sge.compute_expected_working_tracks
+

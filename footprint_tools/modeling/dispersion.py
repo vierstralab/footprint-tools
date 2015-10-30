@@ -239,7 +239,7 @@ def load_dispersion_model(filename):
 	res = dispersion_model()
 
 	with open(filename) as f:
-	
+
 		params = json.load(f)
 
 		res.mu_params = params["mu_params"]

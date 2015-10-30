@@ -28,7 +28,7 @@ grp = parser.add_mutually_exclusive_group(required = True)
 grp.add_argument("--kmer", metavar = "MODEL_FILE", dest = "bias_model", nargs = 1, action = kmer_action, help = "Use a k-mer model for local bias")
 grp.add_argument("--uniform", dest = "bias_model", action = "store_const", const = bias.uniform_model(), help = "Use a uniform model for local bias")
 
-parser.add_argument("--half_win_width", metavar = "N", type = int, help = "Half window width (nt) to apply bias model (default: %(default)s)", default = 10)
+parser.add_argument("--half_win_width", metavar = "N", type = int, help = "Half window width (nt) to apply bias model (default: %(default)s)", default = 5)
 
 parser.add_argument("--procs", metavar = "N", type = int, help = "Number of available processors (default: %(default)s)", default = 8)
 parser.add_argument("--chunksize", metavar = "N", type = int, help ="Number of intervals to process per chunk (default: %(default)s", default = 500)

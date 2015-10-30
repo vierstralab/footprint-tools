@@ -38,9 +38,9 @@ grp_bm.add_argument("--uniform", dest = "bias_model", action = "store_const", co
 grp_smooth = parser.add_mutually_exclusive_group()
 grp_smooth.add_argument("--smooth_tmean", dest = "smoothing_class", action = "store_const", const = smoothing.moving_trimmed_mean(), help = "Trimmed mean smoothing of expected window counts", default = None)
 
-parser.add_argument("--half_win_width", metavar = "N", type = int, help = "Half window width (nt) to apply bias model (default: %(default)s)", default = 10)
+parser.add_argument("--half_win_width", metavar = "N", type = int, help = "Half window width (nt) to apply bias model (default: %(default)s)", default = 5)
 
-parser.add_argument("--disp_model", metavar = "MODEL_FILE", dest = "dispersion_model", action = dispersion_model_action, help = "Compute p-values using a custom dispersion model (JSON format)", default = None)
+parser.add_argument("--disp_model", nargs = 1, metavar = "MODEL_FILE", dest = "dispersion_model", action = dispersion_model_action, help = "Compute p-values using a custom dispersion model (JSON format)", default = None)
 
 args = parser.parse_args()
 
