@@ -1,3 +1,1 @@
-import sys
-
-sys.path.append('/home/jvierstra/proj/code/footprint-tools')
+__all__ = ["cutcounts", "bed", "genomic_interval"]

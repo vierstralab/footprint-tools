@@ -17,7 +17,6 @@ import random
 class bias_model(object):
 
 	def __init__(self):
-
 		self.model = {}
 		self.offset = 0
 
@@ -28,79 +27,49 @@ class bias_model(object):
 			return 1e-6
 
 	def shuffle(self):
-		shuffled = sorted(self.model.values(), key=lambda k: random.random())
-		
 		ret = bias_model()
-		ret.model = { x: y for (x, y) in zip(self.model.keys(), shuffled) }
+		ret.model = { x: y for (x, y) in zip(self.model.keys(), sorted(self.model.values(), key = lambda k: random.random())) }
 		ret.offset = self.offset
-
-	# Note: fw and rv are already oriented to the strand (see cutcounts.py)
-	# Also assumed that the sequence is correctly oriented (reverse complement)
-	# for negative strand
-	
-	# New more generalizable function
+		return ret
 
 	def predict(self, probs, n = 100):
-		
-		#res = np.zeros(len(probs))
-		#for i in np.random.choice(len(probs), size = n, p = probs/np.sum(probs)):
-		#	res[i] += 1.0
-		#return res
+		"""Compute cleavage propensities from sequence
+		Args:
 
+		Return:
+		"""
+		# Random sampling
 		#x = np.random.choice(len(probs), size = n, p = probs/np.sum(probs))
 		#return np.bincount(x, minlength = len(probs))
-
+		
+		# Deterministic
 		return np.around(probs/np.sum(probs) * n)
 
 class kmer_model(bias_model):
 
 	def __init__(self, filepath):
-
 		bias_model.__init__(self)
-
 		self.offset = 3
 		self.k = 6
-
 		self.read_model(filepath)
 	
 	def read_model(self, filepath):
-
 		try:
-			file = open(filepath, 'r')
+			for line in open(filepath, 'r'):
+				(seq, prob) = line.strip().split('\t')
+				self.model[seq.upper()] = float(prob)
 		except IOError:
 			raise IOError("Cannot open file: %s" % filepath)
-
-		for line in file:
-			(seq, prob) = line.strip().split('\t')
-			self.model[seq.upper()] = float(prob)
 	
-
-	# returns an array of probabilities values that is smaller the the sequence
 	def probs(self, seq):
-
 		return np.array([ self.get_value( seq[(i-self.offset):(i+(self.k-self.offset))] ) for i in range(self.offset, len(seq)-(self.k-self.offset)) ])
-
-		#p = np.zeros(len(seq))
-
-		#for i in range(self._offset, len(seq) - self._k - self.offset + 1):
-		#	try:
-		#		p[i] = self.model[ seq[(i-self._offset):(i+self._k-self._offset)] ]
-		#	except KeyError:
-		#		p[i] = 1e-6
-
-		#return p
 
 class uniform_model(bias_model):
 
 	def __init__(self):
-
 		bias_model.__init__(self)
-
 		for seq in itertools.product('ATCG', repeat=6):
 			self.model[''.join(seq)] = 1.0
 
 	def probs(self, seq):
-
-		probs = np.ones( len(seq) )
-
-		return probs
+		return np.ones( len(seq) )

@@ -1,5 +1,3 @@
-import sys 
-
 from footprint_tools import genomic_interval
 
 def bed3_iterator(file_handle):

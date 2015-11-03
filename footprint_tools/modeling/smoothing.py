@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.stats
 
 class moving_trimmed_mean(object):
 

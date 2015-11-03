@@ -1,11 +1,9 @@
 
-''' '''
 import numpy as np
 
 class genomic_interval(object):
 
 	def __init__(self, chrom, start, end, name = '.', strand = '+'):
-
 		self.chrom = str(chrom)
 		self.start = int(start)
 		self.end = int(end)
@@ -13,41 +11,32 @@ class genomic_interval(object):
 		self.strand = str(strand)
 		
 	def __len__(self):
-
 		return self.end - self.start
 	
 	def __str__(self):
-	
 		return '\t'.join( [ str(x) for x in [self.chrom, self.start, self.end] ] )
 
 	def widen(self, w):
-
 		return genomic_interval(self.chrom, self.start - w, self.end + w, self.name, self.strand)
 
 class genomic_interval_set(object):
 
 	def __init__(self, iterator):
-
 		self.intervals = []
-
 		for interval in iterator:
 			self.intervals.append(interval)
 	
 	def __len__(self):
-
 		return len(self.intervals)
 
 	def __iter__(self):
-
 		for x in self.intervals:
 			yield x
 
 	def __getitem__(self, i):
-
 		return self.intervals[i]
 
 	def __add__(self, other):
-
 		if type(other) == genomic_interval_set:
 			self.intervals.extend(other.intervals)
 		else:

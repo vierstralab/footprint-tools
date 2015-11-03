@@ -1,4 +1,4 @@
-__all__ = ["bias", "dispersion"]
+__all__ = ["bias", "dispersion", "smoothing"]
 
 '''
 JDV Aug.2015
@@ -13,81 +13,78 @@ smoothing functions into a separate class.
 '''
 
 import numpy as np
-import scipy.stats
-
-import pyfaidx
 
 def reverse_complement(seq):
+	"""Function that computes the reverse complement of a genomic sequence
+	Args:
+		seq (str): A DNA sequence
+	Returns:
+		str: A reverse complemented version of seq
+	"""
 
-		compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
+	compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
+	return ''.join([ compl[base] for base in seq ])[::-1]
 
-		res = ''.join([ compl[base] for base in seq ])
-
-		return res[::-1]
-
-'''
-    0  1  2  3  4  5
-5'-[]-[]-[]-[]-[]-[]-3'
-3'-[]-[]-[]-[]-[]-[]-5'
-    5  4  3  2  1  0
-'''
-
-def predict_interval(reads, faidx, interval, bm, half_window_width = 10, smoothing_class = None):
-
-	'''
-
-	'''
-
+def predict_interval(reads, seq, interval, bm, half_window_width = 10, smoothing_class = None):
+	"""Creates an expected distribution of cleavage counts within a genomic interval
+		using observed data, a sequence preference model (bias), and a windowed smoothing
+		function.
+	Args:
+		reads:
+		seq:
+		interval:
+		bm:
+		half_window_width (optional:
+		smoothing_class (optional):
+	Returns:
+		A dictionary
+	"""
 	obs_counts = {'+': None, '-': None}
 	exp_counts = {'+': None, '-': None}
 	win_counts = {'+': None, '-': None}
 
-	# get sequence (adding extra tails depending on the bias model)
-	seq = faidx[interval.chrom][interval.start-half_window_width-bm.offset:interval.end+half_window_width+bm.offset].seq.upper()
+	# Pad the interval sequence by the half-windown width and the bm model offset
+	padding = half_window_width + bm.offset
+	interval_seq = seq[interval.chrom][interval.start-padding:interval.end+padding].seq.upper()
 
-	# 
+	# Pad the cut counts by the half window width, and the smoothing class half window width
 	padding = half_window_width
 	if smoothing_class:
 		padding = padding + smoothing_class.half_window_width
 
 	counts = reads[interval.widen(padding)]
 
+	# Generalized function to predict a cleavage count
 	predict_func = lambda x: bm.predict(x[1:], x[0])[half_window_width]
 
 	for strand in ['+', '-']:
 
-		# Pre-calculate the sequence bias probability table
+		# Pre-calculate the sequence bias propensity table from bias model
 		if strand == '+':
-			probs = bm.probs(seq)#[bm.offset:-bm.offset]
+			probs = bm.probs(interval_seq)
 		else:
-			probs = bm.probs(reverse_complement(seq))[::-1]
+			probs = bm.probs(reverse_complement(interval_seq))[::-1]
 
-		#print len(interval), len(seq), len(probs)
-		#print probs
+		# Get indicies for overlaping 1-bp stepped windows
+		win_idx = np.vstack( np.arange(i-half_window_width, i+half_window_width+1) for i in np.arange(half_window_width, len(counts[strand])-half_window_width) )
 
-		# get indicies for windowns
-		idx = np.vstack( np.arange(i-half_window_width, i+half_window_width+1) for i in np.arange(half_window_width, len(counts[strand])-half_window_width) )
+		# Count tags in window
+		w_counts = np.apply_along_axis(np.sum, 1, counts[strand][win_idx])
 
-		# count tags in window
-		w_counts = np.apply_along_axis(np.sum, 1, counts[strand][idx])
-
-		# smooth windows if necesary
+		# Smooth windows if necesary
 		if smoothing_class:
-			
-			sm_w_counts = smoothing_class.smooth(w_counts, half_window_width)
-			win_counts[strand] = sm_w_counts
-
-			z = np.concatenate((sm_w_counts[:, np.newaxis], probs[idx[0:len(interval),:]]), axis = 1)
-
+			win_counts[strand] = smoothing_class.smooth(w_counts, half_window_width)
+			#sm_w_counts = smoothing_class.smooth(w_counts, half_window_width)
+			#win_counts[strand] = sm_w_counts
+			#z = np.concatenate((sm_w_counts[:, np.newaxis], probs[idx[0:len(interval),:]]), axis = 1)
 		else:
-
 			win_counts[strand] = w_counts
-			z = np.concatenate((w_counts[:, np.newaxis], probs[idx[0:len(interval),:]]), axis = 1)
+			#z = np.concatenate((w_counts[:, np.newaxis], probs[idx[0:len(interval),:]]), axis = 1)
+
+		z = np.concatenate((win_counts[strand][:, np.newaxis], probs[win_idx[0:len(interval), :]]), axis = 1)
 
 		obs_counts[strand] = counts[strand][padding:-padding]
 		exp_counts[strand] = np.apply_along_axis(predict_func, 1, z)
 
-	return { "obs": obs_counts, "exp": exp_counts, "smoothed": win_counts }
-
-
+	return { "obs": obs_counts, "exp": exp_counts, "win": win_counts }
 

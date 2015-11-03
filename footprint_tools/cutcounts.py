@@ -26,7 +26,7 @@ class bamfile(object):
 		self.cache = { i: {"+": {}, "-": {}} for i in self.samfile.references }
 		self.lookup = { i: [] for i in self.samfile.references }
 
-		self.offset = -1
+		self.offset = -1 # a hack for the mis-aligned data from 2010
 		self.CHUNK_SIZE = chunksize
 
 	def __add(self, chrom, start, end):
