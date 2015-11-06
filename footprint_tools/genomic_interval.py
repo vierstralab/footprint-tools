@@ -3,12 +3,13 @@ import numpy as np
 
 class genomic_interval(object):
 
-	def __init__(self, chrom, start, end, name = '.', strand = '+'):
+	def __init__(self, chrom, start, end, name = '.', score = None, strand = None):
 		self.chrom = str(chrom)
 		self.start = int(start)
 		self.end = int(end)
 		self.name = str(name)
-		self.strand = str(strand)
+		self.score = score
+		self.strand = strand
 		
 	def __len__(self):
 		return self.end - self.start

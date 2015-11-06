@@ -9,6 +9,9 @@ from footprint_tools.modeling import bias, smoothing, dispersion
 # numpy
 import numpy as np
 
+#scipy
+import scipy.stats
+
 # fasta index
 import pyfaidx
 
@@ -54,16 +57,18 @@ faidx = pyfaidx.Fasta(args.fasta_file)
 intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
 
 def windowed_chi_squared(x, w = 3):
-   
-    '''
+    """
     Compute chi-squared values from groups of ln p-values
-    '''
+    """
 
-    ret = np.zeros(len(x))
+    chi = np.zeros(len(x))
+    p = np.zeros(len(x))
     for i in np.arange(w, len(x)-w+1):
-        s = sorted(x[i-w:i+w+1])
-    	ret[i] = -2 * np.sum(s[1:-2])
-    return ret
+        #s = sorted(x[i-w:i+w+1])
+    	#ret[i] = -2 * np.sum(s[1:-2])
+        chi[i] = -2 * np.sum(x[i-w:i+w+1])
+        p[i] = scipy.stats.chi2.logsf(chi[i], 6)
+    return (chi, p)
 
 #
 for interval in intervals:
@@ -74,24 +79,21 @@ for interval in intervals:
     obs = res["obs"]['+'][1:] + res["obs"]['-'][:-1]
     
     if args.dispersion_model:
-
-        '''
+        """
         If user supplies a negative binomial fit, calculate 
         p-values and smoothed chi-squared scores
-        '''
+        """
 
-        lnpvals_down = np.log( [ args.dispersion_model.p_value(e, o) for e, o in zip(exp, obs) ] )   
-        chisqvals = windowed_chi_squared(lnpvals_down)
+        lnpvals_down = np.array([args.dispersion_model.log_p_value(e, o) for e, o in zip(exp, obs)]) 
+        chisq_vals, chisq_lnpvals = windowed_chi_squared(lnpvals_down)
 
         for i in range(len(obs)):
-            sys.stdout.write("%s\t%d\t%d\t%d\t%d\t%0.4f\t%0.4f\n" % (interval.chrom, interval.start + i + 1, interval.start + i + 2, obs[i], exp[i], lnpvals_down[i], chisqvals[i]))
-
+            sys.stdout.write("%s\t%d\t%d\t%d\t%d\t%0.4f\t%0.4f\t%0.4f\n" % (interval.chrom, interval.start + i + 1, interval.start + i + 2, obs[i], exp[i], lnpvals_down[i], chisq_vals[i], chisq_lnpvals[i]))
     else:
-
-        '''
+        """
         If not, ouput just the observed and expected counts 
         as per bias model and smoothing strategy
-        '''
+        """
 
         for i in range(len(obs)):
             sys.stdout.write("%s\t%d\t%d\t%d\t%d\n" % (interval.chrom, interval.start + i + 1, interval.start + i + 2, obs[i], exp[i]))

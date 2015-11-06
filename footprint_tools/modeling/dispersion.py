@@ -4,11 +4,9 @@ import numpy as np
 import pyfaidx
 
 class dispersion_model:
-
-	'''
+	"""
 	Dispersion model base class
-
-	'''
+	"""
 
 	def __init__(self):
 		self.h = None		
@@ -16,35 +14,47 @@ class dispersion_model:
 		self.r_params = None
 
 	def mu(self, x):
+		"""Computes the mu term for the negative binomial.
+
+		Returns:
+		(float): mu
+		"""
 		return self.mu_params[0] + self.mu_params[1] * x
 
 	def r(self, x):
-		return (self.r_params[0] + (self.r_params[1] * x))
+		"""Computes the dispersion term for the negative binomial.
+		Note that the model parameters estimate the inverse.
+
+		Returns:
+		(float): dispersion term r
+		"""
+		return 1.0 / (self.r_params[0] + (self.r_params[1] * x))
 
 	def __str__(self):
 		res = "mu = %0.4f + %0.4fx\n" % (self.mu_params[0], self.mu_params[1])
 		res += "r = %0.4f + %0.4fx" % (self.r_params[0], self.r_params[1])
 		return res
 
-	def p_value(self, exp, obs, greater = False):
+	def log_p_value(self, exp, obs, greater = False):
+		"""Computes log p-value from negative binomial
+		"""
+		
 		mu = self.mu(exp)
 		r = self.r(exp)
 		p = r/(r+mu)
 		if greater:
-			return 1.0 - stats.nbinom.cdf(obs-1, 1-p, r)
+			ret = 1.0 - stats.nbinom.cdf(obs-1, 1-p, r)
 		else:
-			return stats.nbinom.cdf(obs, 1-p, r)
+			ret = stats.nbinom.cdf(obs, 1-p, r)
+
+		return np.log(ret)
 
 def build_histogram(reads, seq, intervals, bm, half_window_width = 5, size = (200, 1000)):
-	
-	'''
- 	Functions to create histogram of expected vs. observed cleavages	
-	Creates a histogram of the observed data at each of the the expected
-	counts within a set of intervals
+	"""Creates a histogram of expected vs. observed cleavages
 
 	Returns:
-	A (m,n) matrix that holds counts used to fit the dispersion model
-	'''
+	(np.matrix): matrix of size (m, n) that holds counts used to fit the dispersion model
+	"""
 
 	h = np.zeros(size)
 	for interval in intervals:
@@ -62,10 +72,9 @@ def build_histogram(reads, seq, intervals, bm, half_window_width = 5, size = (20
 	return h
 
 def build_histogram_parallel_wrapper(intervals, read_filepath, fa_filepath, bm, half_window_width, size):
-	
-	'''
-	Helper function to create a new bamfile instance in the multicore/gridmap case
-	'''
+	"""	Helper function to create a new bamfile instance
+	in the multicore/gridmap case
+	"""
 	
 	#open a bamfile instance
 	reads = cutcounts.bamfile(read_filepath)
@@ -74,19 +83,16 @@ def build_histogram_parallel_wrapper(intervals, read_filepath, fa_filepath, bm, 
 	return build_histogram(reads, seq, intervals, bm, half_window_width, size)
 
 def chunks_list(x, chunksize):
-	
-	'''
-	Helper function to chunk the intervals
-	'''
+	"""Chunk a list into a list of lists
+	"""
 	
 	n = max(1, chunksize)
 	return [ x[i:i+n] for i in range(0, len(x), n) ]
 
 
 def build_histogram_multicore(read_filepath, fa_filepath, intervals, bm, half_window_width = 5, size = (200, 1000), processes = 8, chunksize = 250):
-	'''
-	Multiprocessing parallel implementation
-	'''
+	"""Multiprocessing parallel implementation
+	"""
 	
 	# make a partial function to wrap arguments
 	from functools import partial
@@ -109,10 +115,8 @@ def build_histogram_multicore(read_filepath, fa_filepath, intervals, bm, half_wi
 	return res
 
 def build_histogram_gridmap(read_filepath, intervals, bm, half_window_width = 5, size = (200, 1000), processes = 8, chunksize = 250):
-	
-	'''
-	Gridmap parallel implementation
-	'''
+	"""Gridmap parallel implementation
+	"""
 
 	# make a partial function to wrap arguments
 	from functools import partial
@@ -135,10 +139,9 @@ def build_histogram_gridmap(read_filepath, intervals, bm, half_window_width = 5,
 	return res
 
 def learn_dispersion_model(h, cutoff = 100, trim = [2.5, 97.5]):
-	
-	'''
-	Function to learn the dispersion model from the expected vs. observed histogram
-	'''
+	"""Learn a dispersion model from the
+	expected vs. observed histogram
+	"""
 
 	size = h.shape[0]
 	n = np.zeros(size)
@@ -177,8 +180,12 @@ def learn_dispersion_model(h, cutoff = 100, trim = [2.5, 97.5]):
 	import statsmodels.api as sm
 
 	x = sm.add_constant(np.arange(size))
+
+	# 
 	model_mu = sm.WLS(mus[thresholded], x[thresholded], n[thresholded]).fit()
-	model_r = sm.OLS(r[thresholded], x[thresholded]).fit()
+
+	# Kind of a 'hacked' solution to fit the dispersion values; remove the first 5 thresholded datapoints
+	model_r = sm.OLS(1/r[thresholded[5:]], x[thresholded[5:]]).fit()
 
 	# Create a dispersion model class
 	res = dispersion_model()

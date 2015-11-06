@@ -12,6 +12,21 @@ def bed3_iterator(file_handle):
 
 		yield genomic_interval.genomic_interval(chrom, start, end)
 
+def bed5_iterator(file_handle):
+
+	for line in file_handle:
+		
+		fields = line.strip().split()
+		
+		chrom = fields[0]
+		start = int(fields[1])
+		end = int(fields[2])
+		name = fields[3]
+		score = float(fields[4])
+
+		yield genomic_interval.genomic_interval(chrom, start, end, name, score)
+
+
 def bed6_iterator(file_handle):
 
 	for line in file_handle:
@@ -22,7 +37,7 @@ def bed6_iterator(file_handle):
 		start = int(fields[1])
 		end = int(fields[2])
 		name = fields[3]
-		strand = fields[4]
-		score = fields[5]
+		score = float(fields[4])
+		strand = fields[5]
 
-		yield genomic_interval.genomic_interval(chrom, start, end, name, strand)
+		yield genomic_interval.genomic_interval(chrom, start, end, name, score, strand)

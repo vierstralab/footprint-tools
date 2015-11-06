@@ -1,7 +1,7 @@
 #!/bin/bash
 
 prefix=K562-DS9767
-output_dir=/home/jvierstra/proj/dnase-perspective/fps/${prefix}
+output_dir=/home/jvierstra/proj/ftd/results/${prefix}
 bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/100607/alignments/K562-DS9767.hg19.bam
 interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/100607/hotspots/K562-DS9767.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
 
@@ -93,6 +93,9 @@ bedGraphToBigWig \${TMPDIR}/interval.all.lnpval.bedgraph ${chrom_sizes_file} ${o
 
 cut -f1-3,7 ${output_dir}/interval.all.bedgraph > \${TMPDIR}/interval.all.chisq.bedgraph
 bedGraphToBigWig \${TMPDIR}/interval.all.chisq.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.chisq.bw
+
+cut -f1-3,8 ${output_dir}/interval.all.bedgraph > \${TMPDIR}/interval.all.chisq_lnpval.bedgraph
+bedGraphToBigWig \${TMPDIR}/interval.all.chisq.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.chisq_lnpval.bw
 __SCRIPT__
 
 cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_working_tracks
