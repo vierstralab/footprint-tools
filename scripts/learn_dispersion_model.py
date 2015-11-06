@@ -31,7 +31,7 @@ grp.add_argument("--uniform", dest = "bias_model", action = "store_const", const
 parser.add_argument("--half_win_width", metavar = "N", type = int, help = "Half window width (nt) to apply bias model (default: %(default)s)", default = 5)
 
 parser.add_argument("--procs", metavar = "N", type = int, help = "Number of available processors (default: %(default)s)", default = 8)
-parser.add_argument("--chunksize", metavar = "N", type = int, help ="Number of intervals to process per chunk (default: %(default)s", default = 500)
+parser.add_argument("--chunksize", metavar = "N", type = int, help ="Number of intervals to process per chunk (default: %(default)s)", default = 500)
 
 args = parser.parse_args()
 
