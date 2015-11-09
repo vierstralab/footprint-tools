@@ -5,6 +5,8 @@ model combined with tag smoothing. Statistical significance of
 per-nucleotide cleavages are computed from an emperically fit 
 negative binomial distribution.
 
+## Introduction
+
 ## Requirements
 
 FTD requires Python (>=2.7) and depends on the following additional packages:
@@ -21,15 +23,21 @@ Detecting footprints with FTD is easy and requires the execution of two scripts.
 
 ### Step 1: Align sequenced DNase I cleavages
 
+FTD requires an alignment file in BAM format which can be made using any sequence alignment tool. FTD uses all reads with a MAPQ > 0.
+
 ### Step 2: Create an index of the reference genome FASTA file
 
-### Step 3: Call DNase I hotspots
+The software uses an indexed FASTA file to enable rapid lookups of genomic sequences utilized by the sequence bias model. A FASTA file can be indexed using `samtools`.
+
+	[jvierstra@rotini footprint-tools]$ samtools faidx hg19.all.fasta
 
 ### Step 4: Download or create a 6-mer cleavage bias model
 
+The sequence bias model is the basis of FTD.
+
 ### Step 5: Create a dispersion (error) model
 
-FTD using a negative binomial to compute the significance of per-nucleotide cleavage devations from the expected. The negative binomial has two parameters, mu and r. The script `learn_dispersion_model.py` emperically fits mu and r from the observed cleavage data and then interpolates all values using linear regression.
+FTD using a negative binomial to compute the significance of per-nucleotide cleavage devations from the expected. The negative binomial has two parameters, mu and r. The script `learn_dispersion_model.py` emperically fits mu and r from the observed cleavage data and then interpolates all values using linear regression. `learn_dispersion_model.py` writes a dispersion model in JSON format to standard out which can then be used with all FTD analyses.
 
 	[jvierstra@rotini footprint-tools]$ python scripts/learn_dispersion_model.py -h
 	usage: learn_dispersion_model.py [-h] (--kmer MODEL_FILE | --uniform)

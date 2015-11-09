@@ -1,6 +1,12 @@
 from footprint_tools import genomic_interval
 
 def bed3_iterator(file_handle):
+	"""
+	Generator that parses BED3 format from a string iterator
+
+	Returns:
+		genomic_interval
+	"""
 
 	for line in file_handle:
 		
@@ -13,6 +19,12 @@ def bed3_iterator(file_handle):
 		yield genomic_interval.genomic_interval(chrom, start, end)
 
 def bed5_iterator(file_handle):
+	"""
+	Generator that parses BED5 format from a string iterator
+	
+	Returns:
+		genomic_interval
+	"""
 
 	for line in file_handle:
 		
@@ -28,6 +40,12 @@ def bed5_iterator(file_handle):
 
 
 def bed6_iterator(file_handle):
+	"""
+	Generator that parses BED6 format from a string iterator
+	
+	Returns:
+		genomic_interval
+	"""
 
 	for line in file_handle:
 		

@@ -1,44 +1,50 @@
 __all__ = ["bias", "dispersion", "smoothing"]
 
-'''
-JDV Aug.2015
-
-footprint toolkit/cleavage_model
-
-Class used to perform various shufflings of cleavage data
-in larger windows (e.g., hotspots). These functions aid in
-generating shuffled data combining a local bias model and
-a smoothing function. At some point I should put the data
-smoothing functions into a separate class.
-'''
-
 import numpy as np
 
 def reverse_complement(seq):
-	"""Function that computes the reverse complement of a genomic sequence
-	Args:
-		seq (str): A DNA sequence
-	Returns:
-		str: A reverse complemented version of seq
+	"""
+	Computes the reverse complement of a genomic sequence
+	
+	Parameters
+	----------
+	seq : string 
+		FASTA DNA sequence
+	
+	Returns
+	-------
+	value: string
+		Reverse complement of input sequence
 	"""
 
 	compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
 	return ''.join([ compl[base] for base in seq ])[::-1]
 
 def predict_interval(reads, seq, interval, bm, half_window_width = 10, smoothing_class = None):
-	"""Creates an expected distribution of cleavage counts within a genomic interval
-		using observed data, a sequence preference model (bias), and a windowed smoothing
-		function.
-	Args:
-		reads:
-		seq:
-		interval:
-		bm:
-		half_window_width (optional:
-		smoothing_class (optional):
-	Returns:
-		A dictionary
 	"""
+	Creates an expected distribution of cleavage counts within a genomic interval
+	using observed data, a sequence preference model (bias), and a windowed smoothing
+	function.
+	
+	Parameters
+	----------
+	reads :	bamfile (or equivalent class)
+		Raw sequence alignment file
+	seq : faidx
+		FASTA index instance	
+	interval : genomic_interval
+		Genomic interval 
+	bm : bias_model
+
+	half_window_width : int
+
+	smoothing_class : smoothing class or None
+
+	Returns
+	-------
+	A dictionary
+	"""
+	
 	obs_counts = {'+': None, '-': None}
 	exp_counts = {'+': None, '-': None}
 	win_counts = {'+': None, '-': None}

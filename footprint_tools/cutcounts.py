@@ -1,13 +1,3 @@
-'''
-JDV Aug.2015
-
-footprint toolkit/cutcouts
-
-Class used to get per-nucleotide cleavage counts directly from
-a BAM alignment file using the pysam library. Largely inspired
-by Piper et al. Wellington algorithm.
-'''
-
 import pysam
 import numpy as np
 
@@ -26,7 +16,7 @@ class bamfile(object):
 		self.cache = { i: {"+": {}, "-": {}} for i in self.samfile.references }
 		self.lookup = { i: [] for i in self.samfile.references }
 
-		self.offset = -1 # a hack for the mis-aligned data from 2010
+		self.offset = 0 #-1 # a hack for the mis-aligned data from 2010
 		self.CHUNK_SIZE = chunksize
 
 	def __add(self, chrom, start, end):

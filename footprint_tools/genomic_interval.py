@@ -42,3 +42,19 @@ class genomic_interval_set(object):
 			self.intervals.extend(other.intervals)
 		else:
 			self.intervals.append(other)
+
+def bin_intervals(intervals, bins):
+	"""Bin genomic intervals by score thresholds
+
+	Args:
+		intervals (genomic_interval_set): a set of genomic intervals
+						that contain a score value
+		bins (array): a list of values comprising desired bins
+						(must by monotonically increasing or decreasing)
+	Returns:
+		(list): a list of indices for each input interval to a corresponding bin
+	"""
+	scores = np.zeros(len(intervals))
+	for i in range(len(intervals)):
+		scores[i] = intervals[i].score
+	return np.digitize(scores, thresh)
