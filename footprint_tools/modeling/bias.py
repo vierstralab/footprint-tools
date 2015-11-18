@@ -27,6 +27,8 @@ class bias_model(object):
 			return 1e-6
 
 	def shuffle(self):
+		"""Randomly shuffle the bias model
+		"""
 		ret = bias_model()
 		ret.model = { x: y for (x, y) in zip(self.model.keys(), sorted(self.model.values(), key = lambda k: random.random())) }
 		ret.offset = self.offset

@@ -1,4 +1,4 @@
-from footprint_tools import genomic_interval
+from . import genomic_interval
 
 def bed3_iterator(file_handle):
 	"""

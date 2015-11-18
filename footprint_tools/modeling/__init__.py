@@ -1,6 +1,9 @@
 __all__ = ["bias", "dispersion", "smoothing"]
 
+from .. import cutcounts
+
 import numpy as np
+import pyfaidx
 
 def reverse_complement(seq):
 	"""
@@ -80,13 +83,9 @@ def predict_interval(reads, seq, interval, bm, half_window_width = 10, smoothing
 		# Smooth windows if necesary
 		if smoothing_class:
 			win_counts[strand] = smoothing_class.smooth(w_counts, half_window_width)
-			#sm_w_counts = smoothing_class.smooth(w_counts, half_window_width)
-			#win_counts[strand] = sm_w_counts
-			#z = np.concatenate((sm_w_counts[:, np.newaxis], probs[idx[0:len(interval),:]]), axis = 1)
 		else:
 			win_counts[strand] = w_counts
-			#z = np.concatenate((w_counts[:, np.newaxis], probs[idx[0:len(interval),:]]), axis = 1)
-
+		
 		z = np.concatenate((win_counts[strand][:, np.newaxis], probs[win_idx[0:len(interval), :]]), axis = 1)
 
 		obs_counts[strand] = counts[strand][padding:-padding]
@@ -94,3 +93,93 @@ def predict_interval(reads, seq, interval, bm, half_window_width = 10, smoothing
 
 	return { "obs": obs_counts, "exp": exp_counts, "win": win_counts }
 
+
+def build_histogram(reads, seq, intervals, bm, half_window_width = 5, size = (200, 1000)):
+	"""Creates a histogram of expected vs. observed cleavages
+
+	Returns
+	-------
+	(np.matrix): matrix of size (m, n) that holds counts used to fit the dispersion model
+	"""
+
+	h = np.zeros(size)
+	for interval in intervals:
+		res = modeling.predict_interval(reads, seq, interval, bm, half_window_width)
+
+		obs = res["obs"]['+'][1:] + res["obs"]['-'][:-1]
+		exp = res["exp"]['+'][1:] + res["exp"]['-'][:-1]
+
+		for o, e in zip(obs, exp):
+			try:
+				h[e, o] += 1.0
+			except IndexError:
+				pass
+
+	return h
+
+
+def chunks_list(x, chunksize):
+	"""Chunk a list into a list of lists
+	"""
+	
+	n = max(1, chunksize)
+	return [ x[i:i+n] for i in range(0, len(x), n) ]
+
+def build_histogram_parallel_wrapper(intervals, read_filepath, fa_filepath, bm, half_window_width, size):
+	"""	Helper function to create a new bamfile instance
+	in the multicore/gridmap case
+	"""
+	
+	#open a bamfile instance
+	reads = cutcounts.bamfile(read_filepath)
+	seq = pyfaidx.Fasta(fa_filepath)
+	#canonical function
+	return build_histogram(reads, seq, intervals, bm, half_window_width, size)
+
+def build_histogram_multicore(read_filepath, fa_filepath, intervals, bm, half_window_width = 5, size = (200, 1000), processes = 8, chunksize = 250):
+	"""Multiprocessing parallel implementation
+	"""
+	
+	# make a partial function to wrap arguments
+	from functools import partial
+	wrapper_func = partial(build_histogram_parallel_wrapper, read_filepath = read_filepath, fa_filepath = fa_filepath, bm = bm, half_window_width = half_window_width, size = size)
+
+	# chunk the intervals
+	chunks = chunks_list(intervals, chunksize)
+
+	# run a pool of threads
+	import multiprocessing
+
+	pool = multiprocessing.Pool(processes = processes)
+	res_chunks = pool.map(wrapper_func, chunks)
+
+	# combine the chunks
+	res = res_chunks[0]
+	for i in np.arange(1, len(res_chunks)):
+		res += res_chunks[i]
+
+	return res
+
+def build_histogram_gridmap(read_filepath, intervals, bm, half_window_width = 5, size = (200, 1000), processes = 8, chunksize = 250):
+	"""Gridmap parallel implementation
+	"""
+
+	# make a partial function to wrap arguments
+	from functools import partial
+	wrapper_func = partial(build_histogram_parallel_wrapper, read_filepath = read_filepath, bm = bm, half_window_width = half_window_width, size = size)
+
+	# chunk the intervals
+	chunks = chunks_list(intervals, chunksize)
+
+	# run a pool of threads
+	import gridmap
+
+	joblist = [ gridmap.Job(wrapper_func, [chunk]) for chunk in chunks ]
+	res_chunks = gridmap.process_jobs(joblist)
+
+	# combine the chunks
+	res = res_chunks[0]
+	for i in np.arange(1, len(res_chunks)):
+		res += res_chunks[i]
+
+	return res

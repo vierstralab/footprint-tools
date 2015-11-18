@@ -21,7 +21,6 @@ output_dir=/home/jvierstra/proj/ftd/results/${prefix}
 bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/alignments/hTH1-DS18015.hg19.bam
 interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/hotspots/hTH1-DS18015.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
 
-
 fasta_file=/home/jvierstra/data/genomes/hg19/hg.ribo.all.fa
 bias_model_file=/home/jvierstra/proj/dnase-perspective/cleavage_model/vierstra_et_al.txt
 
@@ -34,7 +33,7 @@ fps_thresh=(0.05 0.01 1e-3 1e-4 1e-5 1e-6)
 mkdir -p ${output_dir}/logs
 
 cat <<__SCRIPT__ > ${output_dir}/sge.learn_dispersion_model
-#/bin/bash
+#!/bin/bash
 #$ -e ${output_dir}/logs/\$JOB_NAME.err
 #$ -o ${output_dir}/logs/\$JOB_NAME.out
 
@@ -143,6 +142,15 @@ unstarch ${output_dir}/interval.all.bedgraph.starch \
 	| awk -v OFS="\t" -v thresh="\${thresh}" '{ \$4="."; \$5=thresh; print; }' \
 > ${output_dir}/interval.all.fps.\${thresh}.bed
 __SCRIPT__
+
+cat <<__SCRIPT__ > ${output_dir}/sge.compute_expected_cleanup
+#!/bin/bash
+
+set -o pipefail
+
+rm -f ${output_dir}/interval.all.bedgraph
+__SCRIPT__
+
 
 qsub -N ${prefix}.compute_expected_browser_tracks -hold_jid ${prefix}.compute_expected_merge_sort -V -S /bin/bash ${output_dir}/sge.compute_expected_browser_tracks
 qsub -N ${prefix}.compute_expected_working_tracks -pe threads 2 -hold_jid ${prefix}.compute_expected_merge_sort -V -S /bin/bash ${output_dir}/sge.compute_expected_working_tracks

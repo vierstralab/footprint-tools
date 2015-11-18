@@ -3,7 +3,7 @@ import argparse
 
 # import footprint_tools
 sys.path.append('/home/jvierstra/proj/code/footprint-tools')
-from footprint_tools import bed, genomic_interval, cutcounts, modeling
+from footprint_tools import bed, genomic_interval, cutcounts, modeling, stats
 from footprint_tools.modeling import bias, smoothing, dispersion
 
 # numpy
@@ -56,20 +56,6 @@ faidx = pyfaidx.Fasta(args.fasta_file)
 # read the intervals BED file
 intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
 
-def windowed_chi_squared(x, w = 3):
-    """
-    Compute chi-squared values from groups of ln p-values
-    """
-
-    chi = np.zeros(len(x))
-    p = np.zeros(len(x))
-    for i in np.arange(w, len(x)-w+1):
-        #s = sorted(x[i-w:i+w+1])
-    	#ret[i] = -2 * np.sum(s[1:-2])
-        chi[i] = -2 * np.sum(x[i-w:i+w+1])
-        p[i] = scipy.stats.chi2.logsf(chi[i], 6)
-    return (chi, p)
-
 #
 for interval in intervals:
 
@@ -85,7 +71,7 @@ for interval in intervals:
         """
 
         lnpvals_down = np.array([args.dispersion_model.log_p_value(e, o) for e, o in zip(exp, obs)]) 
-        chisq_vals, chisq_lnpvals = windowed_chi_squared(lnpvals_down)
+        chisq_vals, chisq_lnpvals = stats.windowed_chi_squared(lnpvals_down)
 
         for i in range(len(obs)):
             sys.stdout.write("%s\t%d\t%d\t%d\t%d\t%0.4f\t%0.4f\t%0.4f\n" % (interval.chrom, interval.start + i + 1, interval.start + i + 2, obs[i], exp[i], lnpvals_down[i], chisq_vals[i], chisq_lnpvals[i]))

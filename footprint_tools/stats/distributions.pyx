@@ -1,9 +1,16 @@
 import scipy.special
 import scipy.optimize
 import numpy as np
-import mpmath as mp
  
-class _nbinom(object):
+cimport cython
+cimport numpy as np
+
+ctypedef np.float64_t data_type_t
+
+cdef extern from "cephes.h":
+	double incbet(double, double, double)
+
+cdef class _nbinom(object):
 
 	def MLE(self, par, data, sm):
 		
@@ -37,21 +44,17 @@ class _nbinom(object):
 
 		return (x[0], x[1])
 
-	def pmf(self, k, p, r):
-		try:
-			p = np.float64(mp.gamma(k+r) / (mp.gamma(k+1) * mp.gamma(r)) * np.power(1-p, r) * np.power(p, k))
-		except:
-			p = 0.0
-		return p
+	cpdef pmf(self, int k, data_type_t p, data_type_t r):
+		#return negbinom_pmf(k, p, r)
+		return 0
 
-	def cdf(self, k, p, r):
-		try:
-			p = 1.0 - np.float64(mp.betainc(k+1, r, x1 = 0, x2 = p, regularized = True))
-		except:
-			p = 0.0
-		return p
+	cpdef cdf(self, int k, data_type_t p, data_type_t r):
+		return incbet(r, k+1, p)
 
-	def mean(self, p, r):
+	cpdef mean(self, data_type_t p, data_type_t r):
 		return p*r/(1-p)
+
+	cpdef rvs(self, data_type_t p, data_type_t r, int n = 1):
+		return np.random.negative_binomial(r, p, n)
 
 nbinom = _nbinom()
