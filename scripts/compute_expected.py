@@ -4,7 +4,7 @@ import argparse
 # import footprint_tools
 sys.path.append('/home/jvierstra/proj/code/footprint-tools')
 from footprint_tools import bed, genomic_interval, cutcounts, modeling, stats
-from footprint_tools.modeling import bias, smoothing, dispersion
+from footprint_tools.modeling import bias, smoothing, dispersion, predict
 
 # numpy
 import numpy as np
@@ -59,7 +59,7 @@ intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.in
 #
 for interval in intervals:
 
-    res = modeling.predict_interval(reads, faidx, interval, args.bias_model, half_window_width = args.half_win_width, smoothing_class = args.smoothing_class)
+    res = predict.predict_interval(reads, faidx, interval, args.bias_model, half_window_width = args.half_win_width, smoothing_class = args.smoothing_class)
     
     exp = res["exp"]['+'][1:] + res["exp"]['-'][:-1]
     obs = res["obs"]['+'][1:] + res["obs"]['-'][:-1]

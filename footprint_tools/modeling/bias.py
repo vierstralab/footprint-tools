@@ -64,7 +64,7 @@ class kmer_model(bias_model):
 			raise IOError("Cannot open file: %s" % filepath)
 	
 	def probs(self, seq):
-		return np.array([ self.get_value( seq[(i-self.offset):(i+(self.k-self.offset))] ) for i in range(self.offset, len(seq)-(self.k-self.offset)) ])
+		return np.array([ self.get_value( seq[(i-self.offset):(i+(self.k-self.offset))] ) for i in range(self.offset, len(seq)-(self.k-self.offset)) ], dtype = np.float64)
 
 class uniform_model(bias_model):
 

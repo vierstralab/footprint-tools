@@ -7,9 +7,20 @@ Declaration for functions called (in)directly by Cython libraries
 2015-11-18: Initial commit and function definitions
 */
 
-// calls to some of cephes library overlap math.h
-// 
-#define gamma c_gamma
+// calls to some of cephes library overlap math.h and 
+// cause erratic behavoir when used with cython and numpy
+
+#define round	c_round
+#define sqrt 	c_sqrt
+#define gamma	c_gamma
+#define incbet	c_incbet
+#define chdtr	c_chdtr
+#define ndtr 	c_ndtr
+#define ndtri	c_ndtri
+
+//math
+extern double round ( double );
+extern double sqrt ( double );
 
 //special functions
 extern double polevl ( double, void *, int );

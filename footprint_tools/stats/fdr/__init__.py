@@ -1,19 +1,25 @@
+from bisect import bisect
+
 import numpy as np
 
-from .windowing import *
-from .bisect import *
+def sample_null(arr, model, windowed_pval_func, times):
+	"""Sample data from the expected distribution for emperical FDR
 
-def sample(arr, model, times):
+	Parameters
+	----------
+		arr (array): 
+			Expected counts
+	Returns
+	-------
 	"""
-	"""
+
+	# Sample counts
 	sampled_counts = np.vstack([ model.resample(arr) for i in range(times)])
 	
-	# compute pvals
-	pval_func = lambda x: model.p_value(arr, x)
-	pvals = np.apply_along_axis(pval_func, 1, sampled_counts)
-
-	# compute windowed pvals
-	windowed_pval_func = lambda x: windowed_p_value(x, 3, stouffers_z)[1]
+	# Compute P-values
+	pvals = np.apply_along_axis(lambda x: model.p_value(arr, x), 1, sampled_counts)
+	
+	# Compute windowed pvals
 	w_pvals = np.apply_along_axis(windowed_pval_func, 1, pvals)
 
 	return w_pvals
@@ -30,7 +36,3 @@ def emperical_fpr(arr, pvals):
 	false_positive_rates = np.median(counts, axis = 0) / n
 
 	return false_positive_rates[np.argsort(sorted_pvals_idx)]
-
-def segment(arr, threshold):
-
-	pass

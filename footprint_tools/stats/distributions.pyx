@@ -8,7 +8,7 @@ cimport numpy as np
 ctypedef np.float64_t data_type_t
 
 cdef extern from "cephes.h":
-	double incbet(double, double, double)
+	double c_incbet(double, double, double)
 
 cdef class _nbinom(object):
 
@@ -49,7 +49,7 @@ cdef class _nbinom(object):
 		return 0
 
 	cpdef cdf(self, int k, data_type_t p, data_type_t r):
-		return incbet(r, k+1, p)
+		return c_incbet(r, k+1, p)
 
 	cpdef mean(self, data_type_t p, data_type_t r):
 		return p*r/(1-p)

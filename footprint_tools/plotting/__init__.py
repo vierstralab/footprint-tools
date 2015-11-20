@@ -29,21 +29,7 @@ def gradient_step_plot(arr, lim, ax, **kwargs):
 	im = ax.imshow(x.reshape(y.size, 1), interpolation = "bicubic", origin = "lower", cmap = "Purples",
 					aspect = "auto", clip_path = p, clip_on = True,  extent = [0, len(arr), lim[0], lim[-1]], **kwargs)
 
-def segment(arr, thresh):
-	"""Segment an array into continuous elements passing a threshhold
-	"""
-
-	ret = []
-	curr_start = -1
-	for i in np.arange(len(arr)):
-		if curr_start < 0:
-			if arr[i] >= thresh:
-				curr_start = i-3
-		else:
-			if arr[i] < thresh:
-				ret.append((curr_start, i-1+3))
-				curr_start = -1
-	return ret
+from ..stats import segment
 
 def segments_plot(arr, thresholds, labels, ax, **kwargs):
 

@@ -5,7 +5,6 @@
 from .. import cutcounts, stats, modeling
 
 import numpy as np
-import pyfaidx
 
 cimport cython
 cimport numpy as np
@@ -40,37 +39,55 @@ cdef class dispersion_model:
 			self._r_params_a = x[0]
 			self._r_params_b = x[1]
 
-	cdef _mu(self, np.ndarray[data_type_t, ndim = 1] x):
-		return self._mu_params_a + self._mu_params_b * x
+	cdef _mu(self, data_type_t [:] x):
+		cdef int i, n = x.shape[0]
+		cdef data_type_t [:] res = np.empty(n, dtype = np.float64)
+		for i in range(n):
+			res[i] = self._mu_params_a + self._mu_params_b * x[i]
+		return res
 
 	def mu(self, x):
 		"""Computes the mu term for the negative binomial.
-
-		Returns:
+		
+		Parameters
+		----------
+		
+		Returns
+		-------
 		(float): mu
 		"""
 		return self._mu(x)
 
-	cdef _r(self, np.ndarray[data_type_t, ndim = 1] x):
-		return 1. / (self._r_params_a + self._r_params_b * x)
+	cdef _r(self, data_type_t [:] x):
+		cdef int i, n = x.shape[0]
+		cdef data_type_t [:] res = np.empty(n, dtype = np.float64)
+		for i in range(n):
+			res[i] = 1.0 / (self._r_params_a + self._r_params_b * x[i])
+		return res
 
 	def r(self, x):
+		
 		"""Computes the dispersion term for the negative binomial.
 		Note that the model parameters estimate the inverse.
 
-		Returns:
-		(float): dispersion term r
+		Parameters
+		----------
+
+		Returns
+		-------
+		r : float
+			Dispersion term r
 		"""
 		return self._r(x)
-	
-	
+
 	def __str__(self):
+		
 		res = "mu = %0.4f + %0.4fx\n" % (self.mu_params)
 		res += "r = %0.4f + %0.4fx" % (self.r_params)
 		return res
-	
 
-	cpdef p_value(self, np.ndarray[data_type_t, ndim = 1] exp, np.ndarray[data_type_t, ndim = 1] obs):
+	cpdef p_value(self, data_type_t [:] exp, data_type_t [:] obs):
+		
 		"""Computes log p-value from negative binomial
 		
 		Parameters
@@ -80,20 +97,25 @@ cdef class dispersion_model:
 		-------
 
 		"""
-		cdef np.ndarray[data_type_t, ndim = 1] mu = self._mu(exp)
-		cdef np.ndarray[data_type_t, ndim = 1] r = self._r(exp)
-		cdef np.ndarray[data_type_t, ndim = 1] p = r/(r+mu)
+		cdef data_type_t [:] mu = self._mu(exp)
+		cdef data_type_t [:] r = self._r(exp)
 		
-		cdef int i, n = mu.shape[0]
+		cdef int i, n = exp.shape[0]
+		cdef data_type_t [:] p = np.empty(n, dtype = np.float64)
+
+		for i in range(n):
+			p[i] = r[i]/(r[i]+mu[i])
 
 		cdef np.ndarray[data_type_t, ndim = 1] pvals = np.ones(n, dtype = np.float64)
+		cdef data_type_t [:] pvals_view = pvals
 
-		for i in range(0, n):
-			pvals[i] = stats.nbinom.cdf(obs[i], p[i], r[i])
+		for i in range(n):
+			pvals_view[i] = stats.nbinom.cdf(obs[i], p[i], r[i])
 
 		return pvals
 
-	cpdef resample(self, np.ndarray[data_type_t, ndim = 1] x):
+	cpdef resample(self, data_type_t [:] x):
+		
 		"""Resamples cleavage counts from negative binomial
 		
 		Parameters
@@ -107,16 +129,19 @@ cdef class dispersion_model:
 		Replace numpy RVS with a home-made solution for speed
 
 		"""
-		cdef np.ndarray[data_type_t, ndim = 1] mu = self._mu(x)
-		cdef np.ndarray[data_type_t, ndim = 1] r = self._r(x)
-		cdef np.ndarray[data_type_t, ndim = 1] p = r/(r+mu)
+		cdef data_type_t [:] mu = self._mu(x)
+		cdef data_type_t [:] r = self._r(x)
 		
-		cdef int i, n = mu.shape[0]
+		cdef int i, n = x.shape[0]
+		cdef data_type_t [:] p = np.empty(n, dtype = np.float64)
+		for i in range(n):
+			p[i] = r[i]/(r[i]+mu[i])
 
 		cdef np.ndarray[data_type_t, ndim = 1] samp = np.zeros(n, dtype = np.float64)
+		cdef data_type_t [:] samp_view = samp
 
-		for i in range(0, n):
-			samp[i] = stats.nbinom.rvs(p[i], r[i], 1)[0]
+		for i in range(n):
+			samp_view[i] = stats.nbinom.rvs(p[i], r[i], 1)[0]
 		
 		return samp
 
@@ -179,15 +204,15 @@ def learn_dispersion_model(h, cutoff = 100, trim = [2.5, 97.5]):
 	return res
 
 # Read and write functions for making a portable dispersion model
+
+import json
+import base64
+
 def base64encode(x):
-	
-	import base64
 	
 	return [str(x.dtype), base64.b64encode(x), x.shape]
 
 def base64decode(x):
-	
-	import base64
 
 	dtype = np.dtype(x[0])
 	arr = np.frombuffer(base64.decodestring(x[1]), dtype)

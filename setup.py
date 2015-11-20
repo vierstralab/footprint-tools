@@ -11,14 +11,18 @@ cephes_include = "cephes"
 cephes_src = glob("cephes/*.c")
 cehpes_lib = ('cephes', { 'sources': cephes_src })
 ext_modules = [
+	Extension("footprint_tools.modeling.predict", 
+		sources = ["footprint_tools/modeling/predict.pyx"]),
 	Extension("footprint_tools.modeling.dispersion", 
 		sources = ["footprint_tools/modeling/dispersion.pyx"]),
 	Extension("footprint_tools.stats.windowing", 
 		sources = ["footprint_tools/stats/windowing.pyx"]),
 	Extension("footprint_tools.stats.distributions",
 		 sources = ["footprint_tools/stats/distributions.pyx"]),
-	Extension("footprint_tools.stats.bisect",
-		 sources = ["footprint_tools/stats/bisect.pyx"])
+	Extension("footprint_tools.stats.segment",
+		 sources = ["footprint_tools/stats/segment.pyx"]),
+	Extension("footprint_tools.stats.fdr.bisect",
+		 sources = ["footprint_tools/stats/fdr/bisect.pyx"])
 ]
 
 setup(
