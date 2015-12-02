@@ -8,7 +8,6 @@ typedef struct result
 	double *win;
 } result_t;
 
-
 void free_result_t(result_t* res)
 {
 	free(res->exp);
@@ -16,7 +15,7 @@ void free_result_t(result_t* res)
 	free(res);
 }
 
-result_t* fast_predict(double const *obs, double const *probs, int l, int half_window_width)
+result_t* fast_predict(double const *obs, double const *probs, int l, int half_window_width, int smoothing_half_window_width, double smoothing_clip)
 {
 	//probs = l
 	int i, j;
@@ -37,10 +36,14 @@ result_t* fast_predict(double const *obs, double const *probs, int l, int half_w
 		}
 	}
 
-	// Smooth windows
-	double *smoothed_win_counts = windowed_trimmed_mean(&win_counts[0], l, 50, 0.05);
-	memcpy(&win_counts[0], &smoothed_win_counts[0], l*sizeof(double));
-	free(smoothed_win_counts);
+	if (smoothing_half_window_width > 0)
+	{
+		double *smoothed_win_counts = windowed_trimmed_mean(&win_counts[0], l, smoothing_half_window_width, smoothing_clip);
+		// free
+		free(win_counts);
+		// set
+		win_counts = smoothed_win_counts;
+	}
 
 	// Compute expected
 	for (i = half_window_width; i < l-half_window_width; i++)

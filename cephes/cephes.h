@@ -10,15 +10,18 @@ Declaration for functions called (in)directly by Cython libraries
 // calls to some of cephes library overlap math.h and 
 // cause erratic behavoir when used with cython and numpy
 
+#define log		c_log
 #define round	c_round
 #define sqrt 	c_sqrt
 #define gamma	c_gamma
 #define incbet	c_incbet
 #define chdtr	c_chdtr
+#define chdtrc	c_chdtrc
 #define ndtr 	c_ndtr
 #define ndtri	c_ndtri
 
 //math
+extern double log ( double );
 extern double round ( double );
 extern double sqrt ( double );
 
@@ -38,6 +41,7 @@ extern double incbet( double, double, double );
 
 // chi-sq   
 extern double chdtr( double, double );
+extern double chdtrc( double, double); //complemented
 
 // normal
 extern double ndtr( double );

@@ -1,13 +1,14 @@
+
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
 
-from .. import cutcounts, stats, modeling
+import distributions
 
 import numpy as np
+cimport numpy as np
 
 cimport cython
-cimport numpy as np
 
 ctypedef np.float64_t data_type_t
 
@@ -16,14 +17,21 @@ cdef class dispersion_model:
 	Dispersion model base class
 	"""
 
+	cdef np.ndarray _h
 	cdef data_type_t _mu_params_a, _mu_params_b
 	cdef data_type_t _r_params_a, _r_params_b
 
 	def __init__(self):
-		#self.h = None		
+		self._h = None		
 		self._mu_params_a = self._mu_params_b = 0.0
 		self._r_params_a = self._r_params_b = 0.0
 		pass
+
+	property h:
+		def __get__(self):
+			return self._h
+		def __set__(self, x):
+			self._h = x
 
 	property mu_params:
 		def __get__(self):
@@ -39,14 +47,7 @@ cdef class dispersion_model:
 			self._r_params_a = x[0]
 			self._r_params_b = x[1]
 
-	cdef _mu(self, data_type_t [:] x):
-		cdef int i, n = x.shape[0]
-		cdef data_type_t [:] res = np.empty(n, dtype = np.float64)
-		for i in range(n):
-			res[i] = self._mu_params_a + self._mu_params_b * x[i]
-		return res
-
-	def mu(self, x):
+	cpdef mu(self, data_type_t x):
 		"""Computes the mu term for the negative binomial.
 		
 		Parameters
@@ -56,17 +57,11 @@ cdef class dispersion_model:
 		-------
 		(float): mu
 		"""
-		return self._mu(x)
 
-	cdef _r(self, data_type_t [:] x):
-		cdef int i, n = x.shape[0]
-		cdef data_type_t [:] res = np.empty(n, dtype = np.float64)
-		for i in range(n):
-			res[i] = 1.0 / (self._r_params_a + self._r_params_b * x[i])
+		cdef double res = self._mu_params_a + self._mu_params_b * x
 		return res
 
-	def r(self, x):
-		
+	cpdef r(self, data_type_t x):
 		"""Computes the dispersion term for the negative binomial.
 		Note that the model parameters estimate the inverse.
 
@@ -78,7 +73,9 @@ cdef class dispersion_model:
 		r : float
 			Dispersion term r
 		"""
-		return self._r(x)
+
+		cdef double res = 1.0 / (self._r_params_a + self._r_params_b * x)
+		return res
 
 	def __str__(self):
 		
@@ -86,8 +83,7 @@ cdef class dispersion_model:
 		res += "r = %0.4f + %0.4fx" % (self.r_params)
 		return res
 
-	cpdef p_value(self, data_type_t [:] exp, data_type_t [:] obs):
-		
+	cpdef p_values(self, data_type_t [:] exp, data_type_t [:] obs):
 		"""Computes log p-value from negative binomial
 		
 		Parameters
@@ -97,25 +93,19 @@ cdef class dispersion_model:
 		-------
 
 		"""
-		cdef data_type_t [:] mu = self._mu(exp)
-		cdef data_type_t [:] r = self._r(exp)
 		
 		cdef int i, n = exp.shape[0]
-		cdef data_type_t [:] p = np.empty(n, dtype = np.float64)
+		cdef double r, mu
+		cdef data_type_t [:] res = np.ones(n, dtype = np.float64, order = 'c')
 
 		for i in range(n):
-			p[i] = r[i]/(r[i]+mu[i])
+			r = self.r(exp[i])
+			mu = self.mu(exp[i])
+			res[i] = distributions.nbinom.cdf(obs[i], r/(r+mu), r)
 
-		cdef np.ndarray[data_type_t, ndim = 1] pvals = np.ones(n, dtype = np.float64)
-		cdef data_type_t [:] pvals_view = pvals
-
-		for i in range(n):
-			pvals_view[i] = stats.nbinom.cdf(obs[i], p[i], r[i])
-
-		return pvals
+		return res
 
 	cpdef resample(self, data_type_t [:] x):
-		
 		"""Resamples cleavage counts from negative binomial
 		
 		Parameters
@@ -127,24 +117,37 @@ cdef class dispersion_model:
 		Todo
 		----
 		Replace numpy RVS with a home-made solution for speed
-
 		"""
-		cdef data_type_t [:] mu = self._mu(x)
-		cdef data_type_t [:] r = self._r(x)
-		
+
 		cdef int i, n = x.shape[0]
-		cdef data_type_t [:] p = np.empty(n, dtype = np.float64)
-		for i in range(n):
-			p[i] = r[i]/(r[i]+mu[i])
-
-		cdef np.ndarray[data_type_t, ndim = 1] samp = np.zeros(n, dtype = np.float64)
-		cdef data_type_t [:] samp_view = samp
+		cdef double r, mu
+		cdef data_type_t [:] res = np.zeros(n, dtype = np.float64, order = 'c')
 
 		for i in range(n):
-			samp_view[i] = stats.nbinom.rvs(p[i], r[i], 1)[0]
+			r = self.r(x[i])
+			mu = self.mu(x[i])
+			res[i] = np.random.negative_binomial(r, r/(r+mu), 1)[0]
 		
-		return samp
+		return res
 
+	cpdef resample_p_values(self, data_type_t [:] x, int times):
+
+		cdef int i, j, n = x.shape[0]
+		cdef data_type_t r, mu, k
+
+		cdef long [:] vals
+		cdef data_type_t [:,:] res = np.ones((n, times), dtype = np.float64, order = 'c')
+
+		for i in range(n):
+			r = self.r(x[i])
+			mu = self.mu(x[i])
+		
+			vals = np.random.negative_binomial(r, r/(r+mu), times)
+			
+			for j in range(times):
+				res[i, j] = distributions.nbinom.cdf(vals[j], r/(r+mu), r)
+
+		return res
 
 def learn_dispersion_model(h, cutoff = 100, trim = [2.5, 97.5]):
 	"""Learn a dispersion model from the
@@ -164,22 +167,27 @@ def learn_dispersion_model(h, cutoff = 100, trim = [2.5, 97.5]):
 		pos = 0
 		x = np.zeros(np.sum(h[i,:]))
 		for j in np.arange(len(h[i,:])):
-			num = float(h[i, j])
+			num = int(h[i, j])
 			x[pos:pos+num] = j
 			pos += num 
 
-		lower = np.floor(pos*(trim[0]/100.0))
-		upper = np.ceil(pos*(trim[1]/100.0))
+		lower = int(np.floor(pos*(trim[0]/100.0)))
+		upper = int(np.ceil(pos*(trim[1]/100.0)))
 
 		n[i] = len(x)
 
 		if n[i] >= cutoff:
+			
 			thresholded.append(i)
 			mu = np.mean(x[lower:upper])
 			var = np.var(x[lower:upper])
+
 			est_r = (mu * mu) / (var - mu)
+			if est_r <= 0.0: est_r = 1.0
+
 			est_p = est_r / (est_r + mu)
-			(p[i], r[i]) = stats.nbinom.fit(x[lower:upper], p = est_p, r = est_r)
+			
+			(p[i], r[i]) = distributions.nbinom.fit(x[lower:upper], p = est_p, r = est_r)
 
 	# Back-compute the mean values from the negative binomial parameters
 	mus = p*r/(1-p)
@@ -229,7 +237,7 @@ def load_dispersion_model(filename):
 		params = json.load(f)
 		model.mu_params = params["mu_params"]
 		model.r_params = params["r_params"]
-		#model.h = base64decode(params["h"])
+		model.h = base64decode(params["h"])
 	return model
 
 def write_dispersion_model(model):
@@ -238,6 +246,6 @@ def write_dispersion_model(model):
 
 	out = { "mu_params": [model.mu_params[0], model.mu_params[1]], 
 			"r_params": [model.r_params[0], model.r_params[1]],
-			"h": base64encode(model.h) }
+			"h": base64encode(np.asarray(model.h)) }
 	return json.dumps(out, indent = 4)
 

@@ -5,56 +5,55 @@
 import numpy as np
 import scipy.stats
 
-cimport cython
+from libc.stdlib cimport free, malloc
 cimport numpy as np
 
 ctypedef np.float64_t data_type_t
 
-cdef extern from "cephes.h":
-    double c_chdtr(double, double)
-    double c_ndtri(double)
-    double c_ndtr(double)
-    double c_sqrt(double)
+ctypedef double (*func_t)(const double *, int);
 
-cpdef fishers_combined(data_type_t [:] x):
+cdef extern from "windowing.h":
+    double fast_fishers_combined(const double* const, int)
+    double fast_stouffers_z(const double* const, int)
+    double* fast_windowing_func(const double* const, int, int, func_t)
+
+cdef windowing_func(data_type_t [:] x, int w, func_t func_ptr):
     
-    cdef data_type_t chi, p
-  
-    chi = -2.0 * np.sum(np.log(x))
-    p = 1.0-c_chdtr(2*x.shape[0], chi)
+    cdef int i
+    cdef int n = x.shape[0]
 
-    return p
-
-cpdef stouffers_z(data_type_t [:] x):
+    cdef double* res = fast_windowing_func(&x[0], n, w, func_ptr)
+    cdef data_type_t [:] win = np.ones(n, dtype = np.float64, order = 'c')
     
-    cdef int i, n = x.shape[0]
-    cdef data_type_t z, p, s = 0.0
-
-    for i in range(n):
-        s += c_ndtri(1.0-x[i])
+    for i in range(w, n-w):
+        win[i] = res[i]
     
-    z = s / c_sqrt(n)
-    p = 1.0-c_ndtr(z)
+    free(res)
 
-    return p
+    return win
 
-cpdef windowed_p_value(data_type_t [:] x, int w, func_ptr):
-
-    """Compute z-scores from groups of p-values
+cpdef stouffers_z(data_type_t [:] x, int w):
+    
+    """Compute p-value for a window using
+        Stouffer's method
     Args:
         x (array): p-values
-        w (int): window size to smooth
-        func: test statistic function
+        w (int): half window size to smooth
+    Returns:
+        p (float): p-values
+    """ 
+
+    return windowing_func(x, w, fast_stouffers_z)
+
+cpdef fishers_combined(data_type_t [:] x, int w):
+    
+    """Compute p-value for a window using
+        Fisher combined method
+    Args:
+        x (array): p-values
+        w (int): half window size to smooth
     Returns:
         p (float): p-values
     """
-    
-    cdef int i, n = x.shape[0]
-    cdef np.ndarray[data_type_t, ndim = 1] p = np.ones(n, dtype = np.float64)
-    cdef data_type_t [:] p_view = p
-    
-    for i in range(w, n-w+1):
-        p_view[i] = func_ptr(x[i-w:i+w+1])
-    
-    return p
 
+    return windowing_func(x, w, fast_fishers_combined)

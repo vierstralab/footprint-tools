@@ -17,18 +17,30 @@ import random
 class bias_model(object):
 
 	def __init__(self):
-		self.model = {}
-		self.offset = 0
 
-	def get_value(self, key):
-		try:
-			return self.model[key]
-		except:
-			return 1e-6
+		self.model = {}
+		
+		self.k = 6
+		self.mid = 3
+
+	def __getitem__(self, key):
+		
+		return self.model.get(key, 1e-6)
+
+	def __setitem__(self, key, value):
+
+		self.model[key] = value
+
+	def offset(self):
+
+		return max(self.k-self.mid, self.mid)
 
 	def shuffle(self):
 		"""Randomly shuffle the bias model
+
+		:returns: 
 		"""
+
 		ret = bias_model()
 		ret.model = { x: y for (x, y) in zip(self.model.keys(), sorted(self.model.values(), key = lambda k: random.random())) }
 		ret.offset = self.offset
@@ -36,41 +48,56 @@ class bias_model(object):
 
 	def predict(self, probs, n = 100):
 		"""Compute cleavage propensities from sequence
-		Args:
-
-		Return:
-		"""
-		# Random sampling
-		#x = np.random.choice(len(probs), size = n, p = probs/np.sum(probs))
-		#return np.bincount(x, minlength = len(probs))
 		
-		# Deterministic
-		return np.around(probs/np.sum(probs) * n)
+		:param probs: an array of probilities (relative values)
+		:type probs: numpy array (float64)
+		:param n: number tags to distrbute
+		:type n: integer
+
+		:returns: integer array of relative cleavage counts
+		"""
+
+		return np.around( probs / np.sum(probs) * n )
 
 class kmer_model(bias_model):
 
 	def __init__(self, filepath):
-		bias_model.__init__(self)
-		self.offset = 3
-		self.k = 6
+		
+		bias_model.__init__(self)		
 		self.read_model(filepath)
 	
 	def read_model(self, filepath):
+		"""Read the k-mer model from a file.
+
+		:param filepath: the path to a 6-model
+		:type filepath: string
+		"""
+
 		try:
+
 			for line in open(filepath, 'r'):
 				(seq, prob) = line.strip().split('\t')
 				self.model[seq.upper()] = float(prob)
+
 		except IOError:
+			
 			raise IOError("Cannot open file: %s" % filepath)
 	
 	def probs(self, seq):
-		return np.array([ self.get_value( seq[(i-self.offset):(i+(self.k-self.offset))] ) for i in range(self.offset, len(seq)-(self.k-self.offset)) ], dtype = np.float64)
+
+		k = self.k
+		mid = self.mid
+		ofst = self.offset()
+
+		return np.array([ self.__getitem__( seq[(i-mid):(i+(k-mid))] ) for i in range(ofst, len(seq)-ofst) ], dtype = np.float64)
 
 class uniform_model(bias_model):
 
 	def __init__(self):
+
 		bias_model.__init__(self)
-		for seq in itertools.product('ATCG', repeat=6):
+
+		for seq in itertools.product('ATCG', repeat = self.k):
 			self.model[''.join(seq)] = 1.0
 
 	def probs(self, seq):

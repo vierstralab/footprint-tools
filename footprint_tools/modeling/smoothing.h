@@ -102,19 +102,19 @@ double trimmed_mean(double x[], int n, int k)
 }
 
 
-double* windowed_trimmed_mean(double* win, int l, int half_window_width, double trim)
+double* windowed_trimmed_mean(double* win, int l, int half_window_width, double clip)
 {
     int i, j, k;
     int w = (half_window_width * 2) + 1;
 
-    k = (int)( (double)w * trim );
+    k = (int)( (double)w * clip );
 
     double *tmp = malloc(w * sizeof(double));
-
     double *res = calloc(l, sizeof(double));
     
     for (i = half_window_width; i < l-half_window_width; i++)
     {
+        // index to start
         j = i - half_window_width;
 
         // copy data into new memory location

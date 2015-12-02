@@ -1,2 +1,2 @@
-__all__ = ["bias", "dispersion", "smoothing", "predict"]
+__all__ = ["bias", "predict"]
 

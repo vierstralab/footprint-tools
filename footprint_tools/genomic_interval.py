@@ -22,7 +22,7 @@ class genomic_interval(object):
 
 class genomic_interval_set(object):
 
-	def __init__(self, iterator):
+	def __init__(self, iterator = []):
 		self.intervals = []
 		for interval in iterator:
 			self.intervals.append(interval)

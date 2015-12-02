@@ -13,8 +13,8 @@ cehpes_lib = ('cephes', { 'sources': cephes_src })
 ext_modules = [
 	Extension("footprint_tools.modeling.predict", 
 		sources = ["footprint_tools/modeling/predict.pyx"]),
-	Extension("footprint_tools.modeling.dispersion", 
-		sources = ["footprint_tools/modeling/dispersion.pyx"]),
+	Extension("footprint_tools.stats.dispersion", 
+		sources = ["footprint_tools/stats/dispersion.pyx"]),
 	Extension("footprint_tools.stats.windowing", 
 		sources = ["footprint_tools/stats/windowing.pyx"]),
 	Extension("footprint_tools.stats.distributions",

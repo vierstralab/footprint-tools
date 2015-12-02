@@ -29,10 +29,9 @@ def gradient_step_plot(arr, lim, ax, **kwargs):
 	im = ax.imshow(x.reshape(y.size, 1), interpolation = "bicubic", origin = "lower", cmap = "Purples",
 					aspect = "auto", clip_path = p, clip_on = True,  extent = [0, len(arr), lim[0], lim[-1]], **kwargs)
 
-from ..stats import segment
-
 def segments_plot(arr, thresholds, labels, ax, **kwargs):
 
+	from ..stats import segment
 	from matplotlib.patches import Rectangle
 
 	levels = [segment(arr, thresh) for thresh in thresholds]
