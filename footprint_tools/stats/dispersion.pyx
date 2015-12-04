@@ -27,6 +27,20 @@ cdef class dispersion_model:
 		self._r_params_a = self._r_params_b = 0.0
 		pass
 
+	# Pickling function
+	def __reduce__(self):
+		x = {}
+		#x['h'] = self.h
+		x['mu_params'] = self.mu_params
+		x['r_params'] = self.r_params
+		return (dispersion_model, (), x)
+
+	# Pickling function
+	def __setstate__(self, x):
+		#self.h = x['h']
+		self.mu_params = x['mu_params']
+		self.r_params = x['r_params']
+
 	property h:
 		def __get__(self):
 			return self._h
@@ -228,7 +242,7 @@ def base64decode(x):
 		return arr.reshape(x[2])
 	return arr
 
-def load_dispersion_model(filename):
+def read_dispersion_model(filename):
 	
 	import json
 
@@ -238,6 +252,7 @@ def load_dispersion_model(filename):
 		model.mu_params = params["mu_params"]
 		model.r_params = params["r_params"]
 		model.h = base64decode(params["h"])
+		
 	return model
 
 def write_dispersion_model(model):

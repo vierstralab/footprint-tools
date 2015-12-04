@@ -1,4 +1,6 @@
-import sys
+from __future__ import print_function, division
+
+import sys, signal
 
 from argparse import ArgumentParser, Action, ArgumentError
 
@@ -15,6 +17,9 @@ import pyfaidx
 #numpy
 import numpy as np
 
+#
+import multiprocessing as mp
+
 class kmer_action(Action):
     def __call__(self, parser, namespace, values, option_string = None):
         try:
@@ -25,7 +30,7 @@ class kmer_action(Action):
 class dispersion_model_action(Action):
     def __call__(self, parser, namespace, values, option_string = None):
         try:
-            setattr(namespace, self.dest, dispersion.load_dispersion_model(values[0]))
+            setattr(namespace, self.dest, dispersion.read_dispersion_model(values[0]))
         except IOError, e:
              raise ArgumentError(self, str(e))
 
@@ -46,7 +51,8 @@ def parse_options(args):
 
     parser.add_argument("fasta_file", metavar = "fasta_file", type = str, 
                         help = "File path to genome FASTA file (requires associated"
-                        " FA index in same folder)")
+                        " FASTA index in same folder; see documentation on how"
+                        " to create an index)")
 
     parser.add_argument("interval_file", metavar = "interval_file", type = str, 
                         help = "File path to BED file")
@@ -87,13 +93,75 @@ def parse_options(args):
     #                     action = list_parse_action, default = [],
     #                     help = "FDR cutoff at which to report footprints.")
 
-    grp_st.add_argument("--fdr_shuffle", nargs = 1, metavar = "N", type = int,
-                        dest = "fdr_shuffle", default = 25,
+    grp_st.add_argument("--fdr_shuffle_n", metavar = "N", type = int,
+                        dest = "fdr_shuffle_n", default = 25,
                         help = "Number of times to shuffle data for FDR calculation."
                         " (default: %(default)s)")
 
+    grp_ot = parser.add_argument_group("other options")
+
+    grp_ot.add_argument("--processors", metavar = "N", type = int,
+                        dest = "processors", default = mp.cpu_count(),
+                        help = "Number of processors to use."
+                        " (default: all available processors)")
+
     return parser.parse_args(args)
 
+def process_func(region, dm, fdr_shuffle_n):
+
+    """Main processing function"""
+
+    (obs_counts, exp_counts, win_counts) = region.compute()
+    
+    obs = obs_counts['+'][1:] + obs_counts['-'][:-1]
+    exp = exp_counts['+'][1:] + exp_counts['-'][:-1]
+
+    if dm:
+
+        win_pvals_func = lambda z: stats.stouffers_z(np.ascontiguousarray(z), 3)
+
+        pvals = dm.p_values(exp, obs)
+        pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
+
+        win_pvals = win_pvals_func(pvals)
+        win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
+    
+        fpr = fdr.emperical_fpr(win_pvals_null, win_pvals)
+
+        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), fpr))
+
+    else:
+
+        data = np.column_stack((exp, obs))
+
+    return (region.interval, out)
+
+class process_callback(object):
+
+    """Writer class used as a callback"""
+
+    def __init__(self, filehandle = sys.stdout):
+        
+        self.filehandle = filehandle
+
+    def __call__(self, res):
+
+        (interval, data) = res
+
+        chrom = interval.chrom
+        start = interval.start
+
+        fmtr = "\t{:0.0f}\t{:0.0f}"
+
+        if data.shape[1] > 2:
+            fmtr += ''.join(["\t{:0.4f}"] * (data.shape[1] - 2))
+
+        out = '\n'.join([
+                    "{}\t{:d}\t{:d}".format(chrom, start+i, start+i+1) + 
+                    fmtr.format(*(data[i,:])) 
+                for i in np.arange(data.shape[0])])
+
+        print(out, file = self.filehandle)
 
 def main(argv = sys.argv[1:]):
 
@@ -103,45 +171,21 @@ def main(argv = sys.argv[1:]):
     fasta = pyfaidx.Fasta(args.fasta_file)
     intervals = bed.bed3_iterator(open(args.interval_file))
 
-    bm = args.bias_model
-    dm = args.dispersion_model
+    write_func = process_callback()
 
-    win_pvals_func = lambda x: stats.stouffers_z(np.ascontiguousarray(x), 3)
+    pool = mp.Pool(args.processors)
 
-    formatter = fmt = "\t{:0.0f}\t{:0.0f}"
-    if args.dispersion_model:
-        formatter += "\t{:0.4g}\t{:0.4g}\t{:0.4g}"
-    
-    for interval in intervals:
+    for interval in genomic_interval.genomic_interval_set(intervals):
 
-        counts = predict.predict_interval(reads, fasta, interval, args.bias_model, args.half_win_width, args.smooth_half_win_width, args.smooth_clip)
-        exp = counts["exp"]['+'][1:] + counts["exp"]['-'][:-1]
-        obs = counts["obs"]['+'][1:] + counts["obs"]['-'][:-1]
+        region = predict.region(reads, fasta, interval, args.bias_model, args.half_win_width, args.smooth_half_win_width, args.smooth_clip)
 
-        if args.dispersion_model:
+        pool.apply_async(process_func, args = (region, args.dispersion_model, args.fdr_shuffle_n,), callback = write_func)
+        
+        while pool._taskqueue.qsize() > 1000:
+            pass
 
-            pvals = dm.p_values(exp, obs)
-            win_pvals = win_pvals_func(pvals)
-
-            # Re-shuffle data
-            pvals_null = dm.resample_p_values(exp, args.fdr_shuffle)
-            win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
-
-            # False-positive rate at each base
-            fpr = fdr.emperical_fpr(win_pvals_null, win_pvals)
-
-            # Segment FPR cutoffs
-            # for cutoff in args.fdr_cutoffs:
-            #    pass
-
-            out = np.column_stack((exp, obs, pvals, win_pvals, fpr))
-
-        else:
-
-            out = np.column_stack((exp, obs))
-
-        for i in range(out.shape[0]):
-            print '{}\t{}\t{}'.format(interval.chrom, interval.start+i, interval.start+i+1) + formatter.format(*(out[i,:]))
+    pool.close()
+    pool.join()
 
     return 0
     

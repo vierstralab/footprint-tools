@@ -58,7 +58,49 @@ def reverse_complement(seq):
 	compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
 	return ''.join([ compl[base] for base in seq ])[::-1]
 
-def predict_interval(reads, fasta, interval, bm, half_window_width = 10, smoothing_half_window_width = 50, smoothing_clip = 0.05):
+class region(object):
+
+	def __init__(self, reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.0):
+		
+		self.bm = bm
+		self.half_window_width = half_window_width
+		self.smoothing_half_window_width = smoothing_half_window_width
+		self.smoothing_clip = smoothing_clip
+
+		# Note: Plus one for the proper alignment of positive and negative strands
+		self.padding = self.half_window_width + smoothing_half_window_width + 1
+
+		self.interval = interval
+
+		pad_interval = interval.widen(self.padding)
+		self.counts = reads[pad_interval]
+		self.seq = fasta[pad_interval.chrom][pad_interval.start-bm.offset():pad_interval.end+bm.offset()].seq.upper()
+
+	def compute(self):
+
+		obs_counts = {'+': None, '-': None}
+		exp_counts = {'+': None, '-': None}
+		win_counts = {'+': None, '-': None}
+
+		for strand in ['+', '-']:
+
+			# Pre-calculate the sequence bias propensity table from bias model
+			if strand == '+':
+				probs = self.bm.probs(self.seq)
+			else:
+				probs = self.bm.probs(reverse_complement(self.seq))[::-1]
+
+			exp, win = predict(np.ascontiguousarray(self.counts[strand]), np.ascontiguousarray(probs), self.half_window_width, self.smoothing_half_window_width, self.smoothing_clip)
+
+			w = self.counts[strand].shape[0] - self.padding
+
+			obs_counts[strand] = self.counts[strand][self.padding:w]
+			exp_counts[strand] = exp[self.padding:w]
+			win_counts[strand] = win[self.padding:w]
+
+		return (obs_counts, exp_counts, win_counts)
+
+def predict_interval(reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 50, smoothing_clip = 0.05):
 	"""
 	Creates an expected distribution of cleavage counts within a genomic interval
 	using observed data, a sequence preference model (bias), and a windowed smoothing
@@ -87,7 +129,6 @@ def predict_interval(reads, fasta, interval, bm, half_window_width = 10, smoothi
 	obs_counts = {'+': None, '-': None}
 	exp_counts = {'+': None, '-': None}
 	win_counts = {'+': None, '-': None}
-	win_probs = {'+': None, '-': None}
 
 	padding = half_window_width + smoothing_half_window_width
 	# Pad the interval sequence by the half-windown width and the bm model offset

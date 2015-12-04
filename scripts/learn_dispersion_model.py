@@ -1,3 +1,5 @@
+from __future__ import print_function, division
+
 import sys
 
 from argparse import ArgumentParser, Action, ArgumentError
@@ -17,7 +19,8 @@ import numpy as np
 
 #mp
 import multiprocessing as mp
-from functools import partial
+
+#from functools import partial
 
 class kmer_action(Action):
     def __call__(self, parser, namespace, values, option_string = None):
@@ -35,7 +38,8 @@ def parse_options(args):
 
     parser.add_argument("fasta_file", metavar = "fasta_file", type = str, 
                         help = "File path to genome FASTA file (requires associated"
-                        " FA index in same folder)")
+                        " FASTA index in same folder; see documentation on how"
+                        " to create an index)")
 
     parser.add_argument("interval_file", metavar = "interval_file", type = str, 
                         help = "File path to BED file")
@@ -52,16 +56,16 @@ def parse_options(args):
                         help = "Half window width to apply bias model."
                         " (default: %(default)s)")
 
-    grp_st = parser.add_argument_group("other options")
+    grp_ot = parser.add_argument_group("other options")
 
-    grp_st.add_argument("--processors", metavar = "N", type = int,
+    grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = 8,
                         help = "Number of processors to use."
                         " (default: all available processors)")
 
     return parser.parse_args(args)
 
-
+'''
 def chunks_list(x, chunksize):
 
 	"""Chunk data for parallelization"""
@@ -92,31 +96,66 @@ def build_histogram(intervals, bam_file, fasta_file, bm, half_window_width, size
 				pass
 
 	return h
+'''
+
+def process_func(region, size):
+	
+	(obs_counts, exp_counts, win_counts) = region.compute()
+
+	obs = obs_counts['+'][1:] + obs_counts['-'][:-1]
+	exp = exp_counts['+'][1:] + exp_counts['-'][:-1]
+
+	res = np.zeros(size)
+
+	for o, e in zip(obs, exp):
+		try:
+			res[e, o] += 1.0
+		except IndexError:
+			pass
+
+	return res
+
+class process_callback(object):
+
+	def __init__(self, size):
+
+		self.res = np.zeros(size)
+
+	def __call__(self, res):
+
+		self.res += res
 
 def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
 
-	# Make a partial function to wrap arguments
-	wrapper_func = partial(build_histogram, bam_file = args.bam_file, fasta_file = args.fasta_file, bm = args.bias_model, half_window_width = args.half_win_width, size = (200, 1000))
+	reads = cutcounts.bamfile(args.bam_file)
+	fasta = pyfaidx.Fasta(args.fasta_file)
+	intervals = bed.bed3_iterator(open(args.interval_file))
 
-	# Read intervals into memory
-	intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
+	size = (200, 1000)
 
-    # Run pool of threads
-	pool = mp.Pool(processes = args.processors)
-	res_chunks = pool.map(wrapper_func, chunks_list(intervals, len(intervals) / args.processors))
+	hist_func = process_callback(size)
 
-	# Combine the histograms
-	res = res_chunks[0]
-	for i in np.arange(1, len(res_chunks)):
-		res += res_chunks[i]
+	pool = mp.Pool(args.processors)
 
-	# Learn histogram
-	dm = dispersion.learn_dispersion_model(res)
+	for interval in genomic_interval.genomic_interval_set(intervals):
 
-	# Save it
-	print >> sys.stdout, dispersion.write_dispersion_model(dm)
+		region = predict.region(reads, fasta, interval, args.bias_model, args.half_win_width, 0, 0)
+
+		pool.apply_async(process_func, args = (region, size,), callback = hist_func)
+
+		while pool._taskqueue.qsize() > 1000:
+			pass
+
+	pool.close()
+	pool.join()
+
+	# Learn model from histogram
+	model = dispersion.learn_dispersion_model(hist_func.res)
+
+	# Write model
+	print(dispersion.write_dispersion_model(model), file = sys.stdout)
 
 	# Success!
 	return 0
