@@ -59,7 +59,7 @@ def parse_options(args):
 
     grp_bm = parser.add_argument_group("bias modeling options")
 
-    grp_bm.add_argument("--kmer", metavar = "MODEL_FILE", dest = "bias_model", 
+    grp_bm.add_argument("--bm", metavar = "MODEL_FILE", dest = "bias_model", 
                         nargs = 1, action = kmer_action, default = bias.uniform_model(),
                         help = "Use a k-mer model for local bias (supplied by file). If"
                         " argument is not provided the model defaults to uniform sequence"
@@ -81,7 +81,7 @@ def parse_options(args):
 
     grp_st = parser.add_argument_group("statistics options")
 
-    grp_st.add_argument("--disp_model", nargs = 1, metavar = "MODEL_FILE", 
+    grp_st.add_argument("--dm", nargs = 1, metavar = "MODEL_FILE", 
                         dest = "dispersion_model", action = dispersion_model_action, default = None,
                         help = "Dispersion model for negative binomial tests. If argument"
                         " is not provided then no stastical output is provided. File is in"
@@ -107,11 +107,11 @@ def parse_options(args):
 
     return parser.parse_args(args)
 
-def process_func(region, dm, fdr_shuffle_n):
+def process_func(pred, dm, fdr_shuffle_n):
 
     """Main processing function"""
 
-    (obs_counts, exp_counts, win_counts) = region.compute()
+    (obs_counts, exp_counts, win_counts) = pred.compute()
     
     obs = obs_counts['+'][1:] + obs_counts['-'][:-1]
     exp = exp_counts['+'][1:] + exp_counts['-'][:-1]
@@ -134,7 +134,7 @@ def process_func(region, dm, fdr_shuffle_n):
 
         data = np.column_stack((exp, obs))
 
-    return (region.interval, out)
+    return (pred.interval, data)
 
 class process_callback(object):
 
@@ -177,7 +177,7 @@ def main(argv = sys.argv[1:]):
 
     for interval in genomic_interval.genomic_interval_set(intervals):
 
-        region = predict.region(reads, fasta, interval, args.bias_model, args.half_win_width, args.smooth_half_win_width, args.smooth_clip)
+        region = predict.prediction(reads, fasta, interval, args.bias_model, args.half_win_width, args.smooth_half_win_width, args.smooth_clip)
 
         pool.apply_async(process_func, args = (region, args.dispersion_model, args.fdr_shuffle_n,), callback = write_func)
         

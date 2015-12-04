@@ -31,7 +31,7 @@ class kmer_action(Action):
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute expected DNase I per-nucleotide cleavages")
+    parser = ArgumentParser(description = "Learn a negative binomial dispersion model")
 
     parser.add_argument("bam_file", metavar = "bam_file", type = str,
                         help = "File path to BAM-format tag sequence file")
@@ -46,7 +46,7 @@ def parse_options(args):
 
     grp_bm = parser.add_argument_group("bias modeling options")
 
-    grp_bm.add_argument("--kmer", metavar = "MODEL_FILE", dest = "bias_model", 
+    grp_bm.add_argument("--bm", metavar = "MODEL_FILE", dest = "bias_model", 
                         nargs = 1, action = kmer_action, default = bias.uniform_model(),
                         help = "Use a k-mer model for local bias (supplied by file). If"
                         " argument is not provided the model defaults to uniform sequence"
@@ -65,42 +65,9 @@ def parse_options(args):
 
     return parser.parse_args(args)
 
-'''
-def chunks_list(x, chunksize):
-
-	"""Chunk data for parallelization"""
-
-	n = max(1, chunksize)
-	return [ x[i:i+n] for i in range(0, len(x), n) ]
-
-def build_histogram(intervals, bam_file, fasta_file, bm, half_window_width, size):
+def process_func(pred, size):
 	
-	"""Build histogram"""
-
-	reads = cutcounts.bamfile(bam_file)
-	fasta = pyfaidx.Fasta(fasta_file)
-
-	h = np.zeros(size)
-
-	for interval in intervals:
-		
-		res = predict.predict_interval(reads, fasta, interval, bm, half_window_width, 0, 0.0)
-		
-		obs = res["obs"]['+'][1:] + res["obs"]['-'][:-1]
-		exp = res["exp"]['+'][1:] + res["exp"]['-'][:-1]
-		
-		for o, e in zip(obs, exp):
-			try:
-				h[e, o] += 1.0
-			except IndexError:
-				pass
-
-	return h
-'''
-
-def process_func(region, size):
-	
-	(obs_counts, exp_counts, win_counts) = region.compute()
+	(obs_counts, exp_counts, win_counts) = pred.compute()
 
 	obs = obs_counts['+'][1:] + obs_counts['-'][:-1]
 	exp = exp_counts['+'][1:] + exp_counts['-'][:-1]
@@ -141,7 +108,7 @@ def main(argv = sys.argv[1:]):
 
 	for interval in genomic_interval.genomic_interval_set(intervals):
 
-		region = predict.region(reads, fasta, interval, args.bias_model, args.half_win_width, 0, 0)
+		region = predict.prediction(reads, fasta, interval, args.bias_model, args.half_win_width, 0, 0)
 
 		pool.apply_async(process_func, args = (region, size,), callback = hist_func)
 

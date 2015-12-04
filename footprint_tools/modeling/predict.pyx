@@ -58,7 +58,7 @@ def reverse_complement(seq):
 	compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
 	return ''.join([ compl[base] for base in seq ])[::-1]
 
-class region(object):
+class prediction(object):
 
 	def __init__(self, reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.0):
 		
@@ -99,61 +99,4 @@ class region(object):
 			win_counts[strand] = win[self.padding:w]
 
 		return (obs_counts, exp_counts, win_counts)
-
-def predict_interval(reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 50, smoothing_clip = 0.05):
-	"""
-	Creates an expected distribution of cleavage counts within a genomic interval
-	using observed data, a sequence preference model (bias), and a windowed smoothing
-	function.
-	
-	Parameters
-	----------
-	reads :	bamfile (or equivalent class)
-		Raw sequence alignment file
-	seq : faidx
-		FASTA index instance	
-	interval : genomic_interval
-		Genomic interval to be computed
-	bm : bias_model
-		A bias model to be used for resampling data in windows
-
-	half_window_width : int
-
-	smoothing_class : smoothing class or None
-
-	Returns
-	-------
-	A dictionary
-	"""
-	
-	obs_counts = {'+': None, '-': None}
-	exp_counts = {'+': None, '-': None}
-	win_counts = {'+': None, '-': None}
-
-	padding = half_window_width + smoothing_half_window_width
-	# Pad the interval sequence by the half-windown width and the bm model offset
-	seq = fasta[interval.chrom][interval.start-padding-bm.offset():interval.end+padding+bm.offset()].seq.upper()
-	
-	# Get counts
-	counts = reads[interval.widen(padding)]
-
-	for strand in ['+', '-']:
-
-		# Pre-calculate the sequence bias propensity table from bias model
-		if strand == '+':
-			probs = bm.probs(seq)
-		else:
-			probs = bm.probs(reverse_complement(seq))[::-1]
-
-		exp, win = predict(np.ascontiguousarray(counts[strand]), np.ascontiguousarray(probs), half_window_width, smoothing_half_window_width, smoothing_clip)
-
-		w = counts[strand].shape[0] - padding
-
-		obs_counts[strand] = counts[strand][padding:w]
-		exp_counts[strand] = exp[padding:w]
-		win_counts[strand] = win[padding:w]
-
-	return { "obs": obs_counts, "exp": exp_counts, "win": win_counts }
-
-
 
