@@ -1,3 +1,4 @@
+# Copyright 2015 Jeff Vierstra
 
 import numpy as np
 

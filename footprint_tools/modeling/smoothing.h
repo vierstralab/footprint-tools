@@ -1,3 +1,5 @@
+// Copyright 2015 Jeff Vierstra
+
 #ifndef __SMOOTHING_H_
 #define __SMOOTHING_H_
 

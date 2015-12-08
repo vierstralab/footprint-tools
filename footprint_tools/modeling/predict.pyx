@@ -1,8 +1,9 @@
+# Copyright 2015 Jeff Vierstra
+
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
 
-from libc.stdlib cimport free, malloc
 cimport numpy as np
 
 import numpy as np

@@ -1,3 +1,5 @@
+# Copyright 2015 Jeff Vierstra
+
 import scipy.special
 import scipy.optimize
 import numpy as np

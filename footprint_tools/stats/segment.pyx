@@ -1,3 +1,4 @@
+# Copyright 2015 Jeff Vierstra
 
 cimport numpy as np
 
@@ -6,9 +7,7 @@ ctypedef np.float64_t data_type_t
 cpdef segment(data_type_t [:] x, data_type_t threshold, bint decreasing = 0):
 	"""Segment an array into continuous elements passing a threshhold
 
-	Returns
-	-------
-	segments (list of tuples): start and end points to regions that pass a threshold
+	:returns: [(int, int), ...]: start and end points to regions that pass a threshold
 	"""
 
 	cdef double dir = -1 if decreasing else 1

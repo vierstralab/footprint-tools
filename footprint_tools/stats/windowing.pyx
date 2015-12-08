@@ -1,11 +1,11 @@
+# Copyright 2015 Jeff Vierstra
+
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
 
 import numpy as np
-import scipy.stats
 
-from libc.stdlib cimport free, malloc
 cimport numpy as np
 
 ctypedef np.float64_t data_type_t

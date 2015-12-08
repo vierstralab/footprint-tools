@@ -1,10 +1,13 @@
+# Copyright 2015 Jeff Vierstra
+
 import pysam
 import numpy as np
 
 import genomic_interval
 
 class bamfile(object):
-
+	"""Class to access a BAM file (largely inspired/copied from Piper et al.)"""
+	
 	def __init__(self, filepath, chunksize = 1000):
 
 		try:

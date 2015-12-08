@@ -1,3 +1,5 @@
+# Copyright 2015 Jeff Vierstra
+
 from . import genomic_interval
 
 def bed3_iterator(file_handle):

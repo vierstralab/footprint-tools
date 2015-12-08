@@ -1,3 +1,5 @@
+# Copyright 2015 Jeff Vierstra
+
 from __future__ import print_function, division
 
 import sys

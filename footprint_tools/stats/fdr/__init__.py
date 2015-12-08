@@ -1,3 +1,5 @@
+# Copyright 2015 Jeff Vierstra
+
 from .bisect import *
 
 import numpy as np

@@ -1,3 +1,8 @@
+// Copyright 2015 Jeff Vierstra
+
+#ifndef __WINDOWING_H__
+#define __WINDOWING_H__
+
 #include "cephes.h"
 
 extern double c_log( double );
@@ -52,3 +57,5 @@ double* fast_windowing_func(const double* const x, int n, int w, func_t func_ptr
 
 	return res;
 }
+
+#endif

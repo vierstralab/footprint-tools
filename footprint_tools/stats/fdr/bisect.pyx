@@ -1,3 +1,5 @@
+# Copyright 2015 Jeff Vierstra
+
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False

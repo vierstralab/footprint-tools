@@ -50,7 +50,7 @@ The sequence bias model is the basis of FTD. A model file contains 2 columns tha
 FTD using a negative binomial to compute the significance of per-nucleotide cleavage devations from the expected. The negative binomial has two parameters, mu and r. The script `learn_dispersion_model.py` emperically fits mu and r from the observed cleavage data and then interpolates all values using linear regression. `learn_dispersion_model.py` writes a dispersion model in JSON format to standard out which can then be used with all FTD analyses.
 
 	[jvierstra@rotini footprint-tools]$ python scripts/learn_dispersion_model.py -h
-	usage: learn_dispersion_model.py [-h] [--kmer MODEL_FILE] [--half_win_width N]
+	usage: learn_dispersion_model.py [-h] [--bm MODEL_FILE] [--half_win_width N]
 	                                 [--processors N]
 	                                 bam_file fasta_file interval_file
 
@@ -110,7 +110,7 @@ The dispersion model is typically generated from a random subset of the accessib
 	                        Half window width to apply smoothing model. When set
 	                        to zero no smoothing is applied. (default: 50)
 	  --smooth_clip N       Fraction of signal to clip when computing trimmed
-	                        mean. (default: 0.05)
+	                        mean. (default: 0.01)
 
 	statistics options:
 	  --dm MODEL_FILE		Dispersion model for negative binomial tests. If
@@ -125,7 +125,7 @@ The dispersion model is typically generated from a random subset of the accessib
 	  --processors N        Number of processors to use. (default: all available
 	                        processors)
 
-The `compute_deviation.py` script writes to standard out. The ouptput format is quasi-bedGraph such that the columns contain information about (3) expected cleavages, (4) observed cleavages, (5) -log p-value of the per-nucleotide deviation from expected, (6) -log of the combined p-values using Stouffers Z-score method, and (7) the  calibrated FDR of column 6. 
+The `compute_deviation.py` script writes to standard out. The ouptput format is quasi-bedGraph such that the columns contain information about (4) expected cleavages, (5) observed cleavages, (6) -log p-value of the per-nucleotide deviation from expected, (7) -log of the combined p-values using Stouffers Z-score method, and (8) the  calibrated FDR of column 6. 
 
 	[jvierstra@rotini footprint-tools]$ python scripts/compute_deviation.py --bm vierstra_et_al.txt --dm model.json
 		reads.bam genome.fa dhs.bed
@@ -138,8 +138,17 @@ The `compute_deviation.py` script writes to standard out. The ouptput format is 
 
 ### Step 7: Retrieving footprints
 
-#### 7.1: P-value thresholded
+Footprints can be retrieved by thresholding on either p-values or the emperical FDR and then merging consecutive bases.
 
-#### 7.2: FDR thresholded
+#### P-value threshold 
+
+	[jvierstra@rotini footprint-tools]$ cat per-nucleotide.bed | awk -v OFS="\t" '$7 <= 0.05 { print; }' | bedops -m -
+
+#### FDR threshold
+
+	[jvierstra@rotini footprint-tools]$ cat per-nucleotide.bed | awk -v OFS="\t" '$8 <= 0.05 { print; }' | bedops -m -
 
 ## SGE parallelization
+
+See `compute_deviation.sge` for an example of how to parallelize footprint discovery on the Sun Grid Engine platform.
+

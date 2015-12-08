@@ -1,5 +1,6 @@
-import numpy as np
+# Copyright 2015 Jeff Vierstra
 
+import numpy as np
 
 def step(arr, xaxis = False, interval = 0):
 	"""

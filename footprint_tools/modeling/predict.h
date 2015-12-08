@@ -1,3 +1,7 @@
+// Copyright 2015 Jeff Vierstra
+
+#ifndef __PREDICT_H_
+#define __PREDICT_H_
 
 #include "cephes.h"
 #include "smoothing.h"
@@ -61,3 +65,5 @@ result_t* fast_predict(double const *obs, double const *probs, int l, int half_w
 	// Return
 	return res;
 }
+
+#endif

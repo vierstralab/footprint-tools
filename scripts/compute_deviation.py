@@ -1,3 +1,5 @@
+# Copyright 2015 Jeff Vierstra
+
 from __future__ import print_function, division
 
 import sys, signal
@@ -75,7 +77,7 @@ def parse_options(args):
                         help = "Half window width to apply smoothing model. When set to"
                         " zero no smoothing is applied. (default: %(default)s)")
 
-    grp_sm.add_argument("--smooth_clip", metavar = "N", type = float, default = 0.05,
+    grp_sm.add_argument("--smooth_clip", metavar = "N", type = float, default = 0.01,
                         help = "Fraction of signal to clip when computing trimmed mean."
                         " (default: %(default)s)")
 

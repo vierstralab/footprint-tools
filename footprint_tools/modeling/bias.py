@@ -1,13 +1,4 @@
-'''
-JDV Aug.2015
-
-footprint toolkit/bias_model
-
-Class used to perform various shufflings of cleavage data
-based on sequence within a local window. A hexamer (6mer)
-model is currently hardcoded, but should change in the 
-future to accomodate other sizes.
-'''
+# Copyright 2015 Jeff Vierstra
 
 import numpy as np
 import itertools
