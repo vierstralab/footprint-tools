@@ -62,6 +62,8 @@ class kmer_model(bias_model):
 
 		:param filepath: the path to a 6-model
 		:type filepath: string
+
+		:returns:
 		"""
 
 		try:
@@ -75,7 +77,12 @@ class kmer_model(bias_model):
 			raise IOError("Cannot open file: %s" % filepath)
 	
 	def probs(self, seq):
+		"""Generate cleavage preference array from DNA sequence
 
+		:param seq: DNA sequence
+
+		:returns: array (float)
+		"""
 		k = self.k
 		mid = self.mid
 		ofst = self.offset()

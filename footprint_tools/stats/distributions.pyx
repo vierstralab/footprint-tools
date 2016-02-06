@@ -10,7 +10,11 @@ cimport numpy as np
 ctypedef np.float64_t data_type_t
 
 cdef extern from "cephes.h":
-	double c_incbet(double, double, double)
+	double c_exp(double) nogil
+	double c_log(double) nogil
+	double c_log1p(doule) nogil
+	double c_lgamma(double) nogil
+	double c_incbet(double, double, double) nogil
 
 cdef class nbinom(object):
 
@@ -48,9 +52,13 @@ cdef class nbinom(object):
 		return (x[0], x[1])
 
 	@staticmethod
+	def logpmf(int k, data_type_t p, data_type_t r):
+		cdef double coeff = c_lgamma(k+r) - c_lgamma(k+1) - c_lgamma(r)
+		return coeff + r * c_log(p) + k * c_log1p(-p)
+
+	@staticmethod
 	def pmf(int k, data_type_t p, data_type_t r):
-		#return negbinom_pmf(k, p, r)
-		return 0
+		return c_exp( nbinom.logpmf(k, p, r) )
 
 	@staticmethod
 	def cdf(int k, data_type_t p, data_type_t r):
@@ -60,7 +68,8 @@ cdef class nbinom(object):
 	def mean(data_type_t p, data_type_t r):
 		return p*r/(1-p)
 
+	"""Not yet implemented
 	@staticmethod
 	def rvs(data_type_t p, data_type_t r, int n = 1):
 		return np.random.negative_binomial(r, p, n)
-
+	"""

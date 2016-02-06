@@ -65,12 +65,9 @@ cdef class dispersion_model:
 	cpdef mu(self, data_type_t x):
 		"""Computes the mu term for the negative binomial.
 		
-		Parameters
-		----------
+		:param x: predicted values to be converted to observed means
 		
-		Returns
-		-------
-		(float): mu
+		:returns mu: (float)
 		"""
 
 		cdef double res = self._mu_params_a + self._mu_params_b * x
@@ -80,33 +77,42 @@ cdef class dispersion_model:
 		"""Computes the dispersion term for the negative binomial.
 		Note that the model parameters estimate the inverse.
 
-		Parameters
-		----------
+		:param x: predicted values to be converted to dispersion parameter r
 
-		Returns
-		-------
-		r : float
-			Dispersion term r
+		:returns r: (float)
 		"""
 
 		cdef double res = 1.0 / (self._r_params_a + self._r_params_b * x)
 		return res
 
 	def __str__(self):
-		
+		"""Print model to string"""
+
 		res = "mu = %0.4f + %0.4fx\n" % (self.mu_params)
 		res += "r = %0.4f + %0.4fx" % (self.r_params)
 		return res
 
+	cpdef log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs):
+		"""Computing the probability mass function"""
+
+		cdef int i, n = exp.shape[0]
+		cdef double r, mu
+		cdef data_type_t [:] res = np.ones(n, dtype = np.float64, order = 'c')
+
+		for i in range(n):
+			r = self.r(exp[i])
+			mu = self.mu(exp[i])
+			res[i] = distributions.nbinom.logpmf(obs[i], (r/(r+mu)), r)
+
+		return res
+
 	cpdef p_values(self, data_type_t [:] exp, data_type_t [:] obs):
-		"""Computes log p-value from negative binomial
-		
-		Parameters
-		----------
+		"""Computes CDF p-value from negative binomial
 
-		Returns
-		-------
+		:param exp: 
+		:param obs:
 
+		:return p:
 		"""
 		
 		cdef int i, n = exp.shape[0]
@@ -118,31 +124,6 @@ cdef class dispersion_model:
 			mu = self.mu(exp[i])
 			res[i] = distributions.nbinom.cdf(obs[i], r/(r+mu), r)
 
-		return res
-
-	cpdef resample(self, data_type_t [:] x):
-		"""Resamples cleavage counts from negative binomial
-		
-		Parameters
-		----------
-
-		Returns
-		-------
-
-		Todo
-		----
-		Replace numpy RVS with a home-made solution for speed
-		"""
-
-		cdef int i, n = x.shape[0]
-		cdef double r, mu
-		cdef data_type_t [:] res = np.zeros(n, dtype = np.float64, order = 'c')
-
-		for i in range(n):
-			r = self.r(x[i])
-			mu = self.mu(x[i])
-			res[i] = np.random.negative_binomial(r, r/(r+mu), 1)[0]
-		
 		return res
 
 	cpdef resample_p_values(self, data_type_t [:] x, int times):

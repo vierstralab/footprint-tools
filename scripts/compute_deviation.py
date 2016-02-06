@@ -110,7 +110,6 @@ def parse_options(args):
     return parser.parse_args(args)
 
 def process_func(pred, dm, fdr_shuffle_n):
-
     """Main processing function"""
 
     (obs_counts, exp_counts, win_counts) = pred.compute()
@@ -130,7 +129,7 @@ def process_func(pred, dm, fdr_shuffle_n):
     
         fpr = fdr.emperical_fpr(win_pvals_null, win_pvals)
 
-        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), fpr))
+        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), np.minimum(fpr, 1))
 
     else:
 
@@ -139,7 +138,6 @@ def process_func(pred, dm, fdr_shuffle_n):
     return (pred.interval, data)
 
 class process_callback(object):
-
     """Writer class used as a callback"""
 
     def __init__(self, filehandle = sys.stdout):

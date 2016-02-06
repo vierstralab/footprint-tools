@@ -19,15 +19,24 @@ set -e -o pipefail
 #bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/alignments/hTR-DS14702.hg19.bam
 #interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/hotspots/hTR-DS14702.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
 
-prefix=hTH1-DS18015
-output_dir=/home/jvierstra/proj/ftd/results/${prefix}
-bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/alignments/hTH1-DS18015.hg19.bam
-interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/hotspots/hTH1-DS18015.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
-
-fasta_file=/home/jvierstra/data/genomes/hg19/hg.ribo.all.fa
 bias_model_file=/home/jvierstra/proj/dnase-perspective/cleavage_model/vierstra_et_al.txt
 
-chrom_sizes_file=/home/jvierstra/data/genomes/hg19/hg.all.chrom.sizes
+prefix=$1
+fasta_file=$2
+bam_file=$3
+interval_file=$4
+
+output_dir=/home/jvierstra/proj/ftd/results/${prefix}
+
+chrom_sizes_file="${fasta_file%.fa}.chrom.sizes"
+
+echo $prefix
+echo $fasta_file
+echo $chrom_sizes_file
+echo $bam_file
+echo $interval_file
+echo $output_dir
+
 chunksize=1000
 
 # FPR thresholds to call footprints
@@ -55,7 +64,6 @@ cat <<__SCRIPT__ > ${output_dir}/sge.learn_dispersion_model
 set -e -o pipefail
 
 zcat -f ${interval_file} > \${TMPDIR}/intervals.bed
-#unstarch ${interval_file} > \${TMPDIR}/intervals.bed
 
 cat \${TMPDIR}/intervals.bed | random-lines --seed=1 --num=10000 --max=\`wc -l < \${TMPDIR}/intervals.bed\` > \${TMPDIR}/intervals.sampled.bed
 
@@ -90,7 +98,6 @@ python ${scripts_dir}/compute_deviation.py \
 __SCRIPT__
 
 zcat -f ${interval_file} | split -l ${chunksize} -a 4 -d - ${output_dir}/interval.
-#unstarch ${interval_file} | split -l ${chunksize} -a 4 -d - ${output_dir}/interval.
 ls ${output_dir}/interval.* > ${output_dir}/sge.compute_deviation_chunk.params
 
 qsub -V -pe threads 1-8 \
