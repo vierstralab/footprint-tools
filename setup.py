@@ -41,7 +41,7 @@ ext_modules = [
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation","scripts/ftd-compute-posterior"]
 
-install_requires =  ["numpy", "scipy", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing"]
+install_requires =  ["numpy>1.10", "scipy", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing"]
 
 setup(
 	name = "footprint-tools",
