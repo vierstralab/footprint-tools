@@ -39,7 +39,7 @@ set -e -o pipefail
 
 INPUT_FILES=(\`cat ${output_dir}/sge.compute_posterior_chunk.params | head -n \${SGE_TASK_ID} | tail -n 1\`)
 
-ftd-compute-posterior.py \
+ftd-compute-posterior \
 	${output_dir}/directories.txt \${INPUT_FILES[0]} \
 | sort --buffer-size=${mem_per_slot}G -k1,1 -k2,2n > \${INPUT_FILES[0]}.out
 __SCRIPT__
