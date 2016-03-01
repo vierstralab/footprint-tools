@@ -4,20 +4,7 @@
 
 set -e -o pipefail
 
-#prefix=NCI_H2081-DS25642A
-#output_dir=/home/jvierstra/proj/ftd/results/${prefix}
-#bam_file=/net/monarch/vol2/tag/stamlab/GSK/production/alignments/NCI_H2081-DS25642A.hg19.bam
-#interval_file=/net/monarch/vol2/tag/stamlab/GSK/production/hotspot/NCI_H2081-DS25642A.hg19/NCI_H2081-DS25642A.hg19-final/NCI_H2081-DS25642A.hg19.fdr0.01.hot.bed
-
-#prefix=K562-DS9767
-#output_dir=/home/jvierstra/proj/ftd/results/${prefix}
-#bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/100607/alignments/K562-DS9767.hg19.bam
-#interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/100607/hotspots/K562-DS9767.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
-
-#prefix=hTR-DS14702
-#output_dir=/home/jvierstra/proj/ftd/results/${prefix}
-#bam_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/alignments/hTR-DS14702.hg19.bam
-#interval_file=/net/monarch/vol2/tag/stamlab/data-release/encode/DGF/120229/hotspots/hTR-DS14702.hotspot.twopass.merge150.wgt10.zgt2.hg19.bed.gz
+######## CHANGE VARIABLES BELOW ######## 
 
 bias_model_file=/home/jvierstra/proj/dnase-perspective/cleavage_model/vierstra_et_al.txt
 
@@ -25,8 +12,7 @@ prefix=$1
 fasta_file=$2
 bam_file=$3
 interval_file=$4
-
-output_dir=/home/jvierstra/proj/ftd/results/${prefix}
+output_dir=$5
 
 chrom_sizes_file="${fasta_file%.fa}.chrom.sizes"
 
@@ -41,6 +27,8 @@ chunksize=1000
 
 # FPR thresholds to call footprints
 fps_thresh=(0.2 0.1 0.05 0.01)
+
+######## DO NOT CHANGE BELOW THIS LINE ######## 
 
 mkdir -p ${output_dir}/logs
 
