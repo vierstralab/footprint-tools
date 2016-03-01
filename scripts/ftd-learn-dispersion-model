@@ -1,3 +1,5 @@
+#!/usr/bin/which python
+
 # Copyright 2015 Jeff Vierstra
 
 from __future__ import print_function, division
@@ -7,11 +9,8 @@ import sys
 from argparse import ArgumentParser, Action, ArgumentError
 
 # import footprint_tools
-sys.path.append('/home/jvierstra/proj/code/footprint-tools')
-
 from footprint_tools import bed, genomic_interval, cutcounts
-from footprint_tools.modeling import bias, predict
-from footprint_tools.stats import dispersion
+from footprint_tools.modeling import bias, predict, dispersion
 
 # fasta index
 import pyfaidx

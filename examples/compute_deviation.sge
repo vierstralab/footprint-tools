@@ -44,8 +44,6 @@ fps_thresh=(0.2 0.1 0.05 0.01)
 
 mkdir -p ${output_dir}/logs
 
-scripts_dir=/home/jvierstra/proj/code/footprint-tools/scripts
-
 # load modules
 source /net/lebowski/vol1/Modules/3.2.9/init/bash
 module load coreutils/8.9
@@ -67,7 +65,7 @@ zcat -f ${interval_file} > \${TMPDIR}/intervals.bed
 
 cat \${TMPDIR}/intervals.bed | random-lines --seed=1 --num=10000 --max=\`wc -l < \${TMPDIR}/intervals.bed\` > \${TMPDIR}/intervals.sampled.bed
 
-python ${scripts_dir}/learn_dispersion_model.py \
+ftd-learn-dispersion-model.py \
 	--bm ${bias_model_file} --half_win_width 5 \
 	--processors \${NSLOTS} \
 	${bam_file} ${fasta_file} \${TMPDIR}/intervals.sampled.bed \
@@ -88,7 +86,7 @@ set -e -o pipefail
 
 INPUT_FILES=(\`cat ${output_dir}/sge.compute_deviation_chunk.params | head -n \${SGE_TASK_ID} | tail -n 1\`)
 
-python ${scripts_dir}/compute_deviation.py \
+ftd-compute-deviation.py \
 	--bm ${bias_model_file} --half_win_width 5 \
 	--smooth_half_win_width 50 --smooth_clip 0.01 \
 	--dm ${output_dir}/dm.json --fdr_shuffle_n 25 \
@@ -208,7 +206,6 @@ qsub -V \
 	-S /bin/bash ${output_dir}/sge.compute_deviation_browser_tracks
 
 qsub -V \
-	-N ${prefix}.compute_deviation_cleanup \
 	-hold_jid ${prefix}.compute_deviation_working_tracks,${prefix}.compute_deviation_footprints,${output_dir}/sge.compute_deviation_browser_tracks \
 	-S /bin/bash ${output_dir}/sge.compute_deviation_cleanup
 

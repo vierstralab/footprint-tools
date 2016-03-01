@@ -1,0 +1,193 @@
+#!/usr/bin/which python
+
+from __future__ import print_function, division
+
+import sys
+
+import pysam
+
+import multiprocessing as mp
+
+import numpy as np
+
+# import footprint_tools
+from footprint_tools import bed, genomic_interval
+from footprint_tools.modeling import dispersion
+from footprint_tools.stats import bayesian, segment
+
+####
+
+def read_data(handles, interval):
+    """ """
+    n = len(handles)
+    w = len(interval)
+
+    obs = np.zeros((n, w), dtype = np.float64)
+    exp = np.zeros((n, w), dtype = np.float64)
+    fpr = np.ones((n, w), dtype = np.float64)
+    
+    start = interval.start
+    end = interval.end
+    
+    i = 0
+    j = 0
+    
+    for tabix in handles:
+
+        try:
+            for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
+                j = int(row[1])-start
+                exp[i, j] = np.float64(row[3])
+                obs[i, j] = np.float64(row[4])
+                fpr[i, j] = np.float64(row[7])
+        except:
+            pass
+
+        i += 1
+
+    return (exp, obs, fpr)
+
+def compute_posterior(exp, obs, fpr, dm):
+    """Computes the posterior probability a footprint given a large dataset
+    """
+    prior = bayesian.compute_prior(fpr) # need wieghted average based on cleavage density
+    scale = bayesian.compute_delta(obs, exp, fpr, 0.01)
+
+    ll_on = bayesian.log_likelihood(obs, exp, dm, delta = scale, w = 3) * -1
+    ll_off = bayesian.log_likelihood(obs, exp, dm, w = 3) * -1
+
+    return bayesian.posterior(prior, ll_on, ll_off)
+
+def read_func(input_q, output_q, dirnames):
+
+    handles = [pysam.TabixFile(f + "/interval.all.bedgraph.gz") for f in dirnames]
+
+    while 1:
+
+        interval = input_q.get()
+
+        if interval == None:
+            break
+
+        (exp, obs, fpr) = read_data(handles, interval)
+        output_q.put( (interval, exp, obs, fpr) )
+
+    [handle.close() for handle in handles]
+
+def process_func(input_q, output_q, dirnames):
+
+    models = [dispersion.read_dispersion_model(f + "/dm.json") for f in dirnames]
+
+    while 1:
+
+        data = input_q.get()
+
+        if data == None:
+            break
+        
+        (interval, exp, obs, fpr) = data
+
+        # Compute posterior
+        post = -compute_posterior(exp, obs, fpr, models) / np.log(10)
+        
+        # Make meta p-value array
+        meta_post = np.max(post, axis = 0)
+        
+        # Compute footprints
+        segs = segment(meta_post, 2, 3)
+        
+        # Get best p-value for footprint in each cell type
+        z = np.vstack([np.max(post[:,s[0]:s[1]], axis = 1) for s in segs]) if len(segs) > 0 else None
+
+        output_q.put((interval, segs, z))
+
+def write_func(input_q, n_datasets, n_intervals, filehandle):
+
+    n = 0
+
+    fmtr = ''.join(["\t{:0.4f}"] * (n_datasets))
+
+    while n < n_intervals:
+
+        n += 1
+
+        data = input_q.get()
+
+        (interval, segs, z) = data
+
+        chrom = interval.chrom
+        start = interval.start
+
+        n_segs = len(segs)
+
+        if n_segs == 0:
+            pass
+        else:
+            out = '\n'.join(
+                ["{}\t{:d}\t{:d}".format(chrom, start+segs[i][0], start+segs[i][1]) + 
+                    fmtr.format(*(z[i,:])) for i in range(n_segs)])
+            print(out, file = filehandle)
+
+def read_directories_file(filename):
+
+    dirs = []
+
+    with open(filename) as f:
+        
+        for line in f:
+            dirs.append(line.strip())
+
+    return dirs
+
+def main(argv = sys.argv[1:]):
+
+    dirnames = read_directories_file(argv[0])
+
+    intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(argv[1])))
+
+    n_datasets = len(dirnames)
+    n_intervals = len(intervals)
+
+    #print(dirnames)
+
+    #sys.exit(0)
+    #print(n_intervals, file = sys.stdout)
+
+    input_q = mp.Queue()
+    process_q = mp.Queue()
+    output_q = mp.Queue()
+
+    read_pool = [mp.Process(target = read_func, args = (input_q, process_q, dirnames)) for i in range(2)]
+    [proc.start() for proc in read_pool]
+
+    process_pool = [mp.Process(target = process_func, args = (process_q, output_q, dirnames)) for i in range(1)]
+    [proc.start() for proc in process_pool]   
+
+    write_proc = mp.Process(target = write_func, args = (output_q, n_datasets, n_intervals, sys.stdout))
+    write_proc.start()
+
+    for interval in intervals:
+        input_q.put(interval)
+
+    # Wait for the writer to finish
+    write_proc.join()
+
+    # Send a kill signal to the reader processes
+    [input_q.put(None) for i in range(2)]
+    input_q.close()
+
+    [proc.join() for proc in read_pool]
+
+    # Send a kill signal to the processing processes
+    [process_q.put(None) for i in range(1)]
+    process_q.close()
+
+    [proc.join() for proc in process_pool]
+
+    output_q.close()
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
+

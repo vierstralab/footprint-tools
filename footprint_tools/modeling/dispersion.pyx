@@ -4,7 +4,7 @@
 # cython: wraparound=False
 # cython: nonecheck=False
 
-import distributions
+from ..stats import distributions
 
 import numpy as np
 cimport numpy as np

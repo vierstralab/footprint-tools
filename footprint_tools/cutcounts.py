@@ -11,7 +11,7 @@ class bamfile(object):
 	def __init__(self, filepath, chunksize = 1000):
 
 		try:
-			self.samfile = pysam.Samfile(filepath)
+			self.samfile = pysam.Samfile(filepath, "rb")
 		except:
 
 			raise IOError("Cannot open BAM file: %s" % filepath)

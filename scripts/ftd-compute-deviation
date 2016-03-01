@@ -1,17 +1,17 @@
+#!/usr/bin/which python
+
 # Copyright 2015 Jeff Vierstra
 
 from __future__ import print_function, division
 
-import sys, signal
+import sys
 
 from argparse import ArgumentParser, Action, ArgumentError
 
 # import footprint_tools
-sys.path.append('/home/jvierstra/proj/code/footprint-tools')
-
 from footprint_tools import bed, genomic_interval, cutcounts, stats
-from footprint_tools.modeling import bias, predict
-from footprint_tools.stats import fdr, dispersion
+from footprint_tools.modeling import bias, predict, dispersion
+from footprint_tools.stats import fdr
 
 # fasta index
 import pyfaidx
@@ -129,7 +129,7 @@ def process_func(pred, dm, fdr_shuffle_n):
     
         fpr = fdr.emperical_fpr(win_pvals_null, win_pvals)
 
-        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), np.minimum(fpr, 1))
+        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), np.minimum(fpr, 1)))
 
     else:
 

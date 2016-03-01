@@ -12,7 +12,7 @@ ctypedef np.float64_t data_type_t
 cdef extern from "cephes.h":
 	double c_exp(double) nogil
 	double c_log(double) nogil
-	double c_log1p(doule) nogil
+	double c_log1p(double) nogil
 	double c_lgamma(double) nogil
 	double c_incbet(double, double, double) nogil
 

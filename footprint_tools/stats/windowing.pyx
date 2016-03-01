@@ -53,7 +53,7 @@ cpdef sum(data_type_t [:] x, int hw):
 
     return windowing_func(x, hw, fast_sum)
 
-cpdef product(data_type_t [:], int hw):
+cpdef product(data_type_t [:] x, int hw):
     """Product of values in sliding local window
 
     :param x: (array) values
