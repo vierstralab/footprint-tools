@@ -46,13 +46,13 @@ class dispersion_model_action(Action):
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute expected DNase I per-nucleotide cleavages")
+    parser = ArgumentParser(description = "Compute the per-nucleotide cleavage deviation statistics")
 
     parser.add_argument("bam_file", metavar = "bam_file", type = str,
-                        help = "File path to BAM-format tag sequence file")
+                        help = "Path to BAM-format tag sequence file")
 
     parser.add_argument("fasta_file", metavar = "fasta_file", type = str, 
-                        help = "File path to genome FASTA file (requires associated"
+                        help = "Path to genome FASTA file (requires associated"
                         " FASTA index in same folder; see documentation on how"
                         " to create an index)")
 
@@ -87,7 +87,7 @@ def parse_options(args):
                         dest = "dispersion_model", action = dispersion_model_action, default = None,
                         help = "Dispersion model for negative binomial tests. If argument"
                         " is not provided then no stastical output is provided. File is in"
-                        " JSON format and generated using the 'learn_dispersion_model'"
+                        " JSON format and generated using the 'ftd-learn-dispersion-model'"
                         " script included in the software package.")
 
     # TODO: implement
@@ -96,7 +96,7 @@ def parse_options(args):
     #                     help = "FDR cutoff at which to report footprints.")
 
     grp_st.add_argument("--fdr_shuffle_n", metavar = "N", type = int,
-                        dest = "fdr_shuffle_n", default = 25,
+                        dest = "fdr_shuffle_n", default = 50,
                         help = "Number of times to shuffle data for FDR calculation."
                         " (default: %(default)s)")
 
@@ -125,11 +125,11 @@ def process_func(pred, dm, fdr_shuffle_n):
         pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
 
         win_pvals = win_pvals_func(pvals)
+        
         win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
-    
-        fpr = fdr.emperical_fpr(win_pvals_null, win_pvals)
+        fdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
 
-        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), np.minimum(fpr, 1)))
+        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), fdr))
 
     else:
 
@@ -180,7 +180,7 @@ def main(argv = sys.argv[1:]):
         region = predict.prediction(reads, fasta, interval, args.bias_model, args.half_win_width, args.smooth_half_win_width, args.smooth_clip)
 
         pool.apply_async(process_func, args = (region, args.dispersion_model, args.fdr_shuffle_n,), callback = write_func)
-        
+
         while pool._taskqueue.qsize() > 1000:
             pass
 

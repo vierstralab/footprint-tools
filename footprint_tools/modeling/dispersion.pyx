@@ -7,8 +7,8 @@
 from ..stats import distributions
 
 import numpy as np
-cimport numpy as np
 
+cimport numpy as np
 cimport cython
 
 ctypedef np.float64_t data_type_t

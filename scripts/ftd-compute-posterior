@@ -3,29 +3,73 @@
 from __future__ import print_function, division
 
 import sys
+import os, os.path
 
-import pysam
+from argparse import ArgumentParser
 
 import multiprocessing as mp
 
 import numpy as np
+import scipy.stats
+
+import pysam
 
 # import footprint_tools
 from footprint_tools import bed, genomic_interval
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment
 
+
+def parse_options(args):
+
+    parser = ArgumentParser(description = "Compute the posterior probability of cleavage data")
+
+    parser.add_argument("metadata_file", metavar = "metadata_file", type = str,
+                        help = "Path to configuration file containing metadata for samples")
+
+    parser.add_argument("interval_file", metavar = "interval_file", type = str, 
+                        help = "File path to BED file")
+
+    grp_st = parser.add_argument_group("statistical options")
+
+    grp_st.add_argument("--beta_priors_file", metavar = "BETA_PRIOR_FILE", type = str,
+                        dest = "beta_priors_file", default = None,
+                        help = "Path to file containing the parameters for the genome-wide"
+                        " beta prior (calculated with 'ftd-learn-beta-prior'")
+
+    grp_st.add_argument("--fdr_cutoff", metavar = "N", type = float,
+                        dest = "fdr_cutoff", default = 0.05,
+                        help = "Only consider nucleotides with FDR <= this value."
+                        " (default: %(default)s)")
+
+    grp_o = parser.add_argument_group("output options")
+
+    grp_o.add_argument("--post_cutoff", metavar = "N", type = float,
+                        dest = "post_cutoff", default = 0.05,
+                        help = "Only consider nucleotides with FDR <= this value."
+                        " (default: %(default)s)")
+
+    grp_ot = parser.add_argument_group("other options")
+
+    grp_ot.add_argument("--processors", metavar = "N", type = int,
+                        dest = "processors", default = mp.cpu_count(),
+                        help = "Number of processors to use."
+                        " (default: all available processors)")
+
+    return parser.parse_args(args)
+
 ####
 
-def read_data(handles, interval):
+def read_interval_data(handles, interval):
     """ """
     n = len(handles)
     w = len(interval)
 
     obs = np.zeros((n, w), dtype = np.float64)
     exp = np.zeros((n, w), dtype = np.float64)
-    fpr = np.ones((n, w), dtype = np.float64)
-    
+    fdr = np.ones((n, w), dtype = np.float64)
+    w = np.zeros((n, w), dtype = np.float64)
+
     start = interval.start
     end = interval.end
     
@@ -39,28 +83,19 @@ def read_data(handles, interval):
                 j = int(row[1])-start
                 exp[i, j] = np.float64(row[3])
                 obs[i, j] = np.float64(row[4])
-                fpr[i, j] = np.float64(row[7])
+                fdr[i, j] = np.float64(row[7])
+                w[i, j] = 1
         except:
             pass
 
         i += 1
 
-    return (exp, obs, fpr)
+    return (exp, obs, fdr, w)
 
-def compute_posterior(exp, obs, fpr, dm):
-    """Computes the posterior probability a footprint given a large dataset
+def read_proc(input_q, output_q, filenames):
+    """Opens file handles to all datasets and reads the data
     """
-    prior = bayesian.compute_prior(fpr) # need wieghted average based on cleavage density
-    scale = bayesian.compute_delta(obs, exp, fpr, 0.01)
-
-    ll_on = bayesian.log_likelihood(obs, exp, dm, delta = scale, w = 3) * -1
-    ll_off = bayesian.log_likelihood(obs, exp, dm, w = 3) * -1
-
-    return bayesian.posterior(prior, ll_on, ll_off)
-
-def read_func(input_q, output_q, dirnames):
-
-    handles = [pysam.TabixFile(f + "/interval.all.bedgraph.gz") for f in dirnames]
+    handles = [pysam.TabixFile(f) for f in filenames]
 
     while 1:
 
@@ -69,14 +104,16 @@ def read_func(input_q, output_q, dirnames):
         if interval == None:
             break
 
-        (exp, obs, fpr) = read_data(handles, interval)
-        output_q.put( (interval, exp, obs, fpr) )
+        (exp, obs, fdr, w) = read_interval_data(handles, interval)
+        output_q.put( (interval, exp, obs, fdr, w) )
 
     [handle.close() for handle in handles]
 
-def process_func(input_q, output_q, dirnames):
-
-    models = [dispersion.read_dispersion_model(f + "/dm.json") for f in dirnames]
+def compute_proc(input_q, output_q, dm, beta_prior, fdr_cutoff, post_cutoff):
+    """Consumes data from the read process and computes the posterior. The
+    data is sent to the queue that is processed by the writer process.
+    """
+    #models = [dispersion.read_dispersion_model(f) for f in filenames]
 
     while 1:
 
@@ -85,23 +122,33 @@ def process_func(input_q, output_q, dirnames):
         if data == None:
             break
         
-        (interval, exp, obs, fpr) = data
+        (interval, exp, obs, fdr, w) = data
 
-        # Compute posterior
-        post = -compute_posterior(exp, obs, fpr, models) / np.log(10)
-        
+        #prior = bayesian.compute_prior(fpr) # no weights
+    	prior = bayesian.compute_prior_weighted(fdr, w, cutoff = fdr_cutoff)   
+    
+    	#scale = bayesian.compute_delta(obs, exp, fpr, cutoff = 0.01)
+    	scale = bayesian.compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = fdr_cutoff)
+
+    	ll_on = bayesian.log_likelihood(obs, exp, dm, delta = scale, w = 3) * -1
+    	ll_off = bayesian.log_likelihood(obs, exp, dm, w = 3) * -1
+
+    	# Compute posterior
+    	post = -bayesian.posterior(prior, ll_on, ll_off)
+
         # Make meta p-value array
         meta_post = np.max(post, axis = 0)
         
         # Compute footprints
-        segs = segment(meta_post, 2, 3)
+        segs = segment(meta_post, post_cutoff, 3)
         
         # Get best p-value for footprint in each cell type
         z = np.vstack([np.max(post[:,s[0]:s[1]], axis = 1) for s in segs]) if len(segs) > 0 else None
 
+        # Throw it into the output queue
         output_q.put((interval, segs, z))
 
-def write_func(input_q, n_datasets, n_intervals, filehandle):
+def write_proc(input_q, n_datasets, n_intervals, filehandle):
 
     n = 0
 
@@ -128,61 +175,102 @@ def write_func(input_q, n_datasets, n_intervals, filehandle):
                     fmtr.format(*(z[i,:])) for i in range(n_segs)])
             print(out, file = filehandle)
 
-def read_directories_file(filename):
+def read_metadata_file(filename):
 
-    dirs = []
+    ids = []
+    tabix_files = []
+    dm_files = []
+
+    with open(filename) as f:  
+        for line in f:
+            (i, t, d) = line.strip().split("\t")
+            ids.append(i)
+            tabix_files.append(t)
+            dm_files.append(d)
+
+    return (ids, tabix_files, dm_files)
+
+def read_beta_priors_file(filename):
+
+    beta_priors = []
 
     with open(filename) as f:
-        
         for line in f:
-            dirs.append(line.strip())
+            params = line.strip().split('\t')
+            beta_priors.append(params)
 
-    return dirs
+    return np.array(beta_priors, dtype = np.float64)
 
 def main(argv = sys.argv[1:]):
 
-    dirnames = read_directories_file(argv[0])
+    args = parse_options(argv)
 
-    intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(argv[1])))
+    (ids, tabix_files, disp_model_files) = read_metadata_file(args.metadata_file)
 
-    n_datasets = len(dirnames)
+    n_datasets = len(ids)
+
+    # Check to make sure TABIX files exist
+    for file in tabix_files:
+        if not os.path.exists(file):
+            print("Fatal error: TABIX-file %s does not exists!" % file, file = sys.stderr)
+
+    print(ids, tabix_files, disp_model_files)
+
+    # Load dispersion models
+    disp_models = [dispersion.read_dispersion_model(f) for f in disp_model_files]
+
+    # Load beta priors, else set them to one
+    if args.beta_priors_file:
+        beta_priors = read_beta_priors_file(args.beta_priors_file)
+    else:
+        beta_priors = np.ones((n_datasets, 2))
+
+    print(beta_priors)
+
+    # Load intervals file
+    intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
     n_intervals = len(intervals)
 
-    #print(dirnames)
-
-    #sys.exit(0)
-    #print(n_intervals, file = sys.stdout)
-
+    #
     input_q = mp.Queue()
     process_q = mp.Queue()
     output_q = mp.Queue()
 
-    read_pool = [mp.Process(target = read_func, args = (input_q, process_q, dirnames)) for i in range(2)]
-    [proc.start() for proc in read_pool]
+    readers = [mp.Process(target = read_proc, 
+                    args = (input_q, process_q, tabix_files))
+                for i in range(2)]
 
-    process_pool = [mp.Process(target = process_func, args = (process_q, output_q, dirnames)) for i in range(1)]
-    [proc.start() for proc in process_pool]   
+    [proc.start() for proc in readers]
 
-    write_proc = mp.Process(target = write_func, args = (output_q, n_datasets, n_intervals, sys.stdout))
-    write_proc.start()
+    processors = [mp.Process(target = compute_proc, 
+                    args = (process_q, output_q, disp_models, beta_priors, args.fdr_cutoff, -np.log(args.post_cutoff))) 
+                for i in range(1)]
 
+    [proc.start() for proc in processors]   
+
+    writer = mp.Process(target = write_proc, args = (output_q, n_datasets, n_intervals, sys.stdout))
+    writer.start()
+
+    # Write to input queue
     for interval in intervals:
         input_q.put(interval)
+        while input_q.qsize() > 1000:
+            pass
 
     # Wait for the writer to finish
-    write_proc.join()
+    writer.join()
 
     # Send a kill signal to the reader processes
     [input_q.put(None) for i in range(2)]
     input_q.close()
 
-    [proc.join() for proc in read_pool]
+    [proc.join() for proc in readers]
 
     # Send a kill signal to the processing processes
     [process_q.put(None) for i in range(1)]
     process_q.close()
 
-    [proc.join() for proc in process_pool]
+    [proc.join() for proc in processors]
 
     output_q.close()
 

@@ -11,10 +11,61 @@ negative binomial distribution.
 
 FTD requires Python (>=2.7) and depends on the following additional packages:
 
-* numpy
-* scipy
+* Cython>=0.22
+* numpy>=1.10
+* scipy>=0.16
 * pysam
 * pyfaidx
+
+
+## Installation
+
+While the software package has a limited number of dependencies, some of them (ahem: numpy/scipy) can be tricky to install. Below you will find a general tutorial on how to get them properly installed in your local environment
+
+1. Verfiy that Python >= 2.7.3 is installed in your environment
+2. Verify that you have ```gcc``` version 4.7.2 installed (if not, try to load using the command ```module load gcc/4.7.2``` on a cluster node)
+3. Install Cython 0.22 (if necesary)
+	- Download Cython from ... and place in ```~/.local/src``` folder
+	```
+		[jvierstra ~]$ cd ~/.local/src
+		[jvierstra ~/.local/src]$ wget 
+	```
+4. Install numpy/scipy:
+    - Before starting we must compile the linear algebra packages ALTAS/LAPACK from source
+      - Download ATLAS 3.10 from http://math-atlas.sourceforge.net and place in ```~/.local/src``` folder
+      - Download LAPACK from http://www.netlib.org/lapack/lapack-3.6.0.tgz and place in ```~/.local/src``` folder
+      - Compile and install ATLAS/LAPACK:
+      ```
+        [jvierstra ~/.local/src]$ tar xzf atlas3.10.2.tar.gz
+        [jvierstra ~/.local/src]$ cd ATLAS
+        [jvierstra src/ATLAS]$ mkdir BUILD
+        [jvierstra ATLAS/BUILD]$ ../configure --prefix=$HOME/.local --with-lapack-tgz=$HOME/.local/src/lapack-3.6.0.tgz
+        [jvierstra ATLAS/BUILD]$ make
+        [jvierstra ATLAS/BUILD]$ make install
+      ```
+      - Add the following line to your ```~/.bashrc``` file:
+      ```
+        export ATLAS=$HOME/.local/lib
+      ```
+      - Re-initialize the your enviroment by entering the command: 
+      ```
+        source ~/.bashrc
+      ```
+      - ATLAS/LAPACK should now be installed
+
+    - Download ```numpy``` to ```~/.local/src``` and uncompress
+    - Install
+    ```
+    	[jvierstra ~/.local/src]$ cd numpy
+    	[jvierstra src/numpy]$ python setup.py install --user
+    ```
+     - Download ```scipy``` to ```~/.local/src``` and uncompress
+    - Install
+    ```
+    	[jvierstra ~/.local/src]$ cd scipy
+    	[jvierstra src/scipy$ python setup.py install --user
+    ```
+
 
 ## Usage
 

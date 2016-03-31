@@ -32,13 +32,13 @@ class kmer_action(Action):
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Learn a negative binomial dispersion model")
+    parser = ArgumentParser(description = "Learn a negative binomial dispersion model from data corrected for sequence preference")
 
     parser.add_argument("bam_file", metavar = "bam_file", type = str,
-                        help = "File path to BAM-format tag sequence file")
+                        help = "Path to BAM-format tag sequence file")
 
     parser.add_argument("fasta_file", metavar = "fasta_file", type = str, 
-                        help = "File path to genome FASTA file (requires associated"
+                        help = "Path to genome FASTA file (requires associated"
                         " FASTA index in same folder; see documentation on how"
                         " to create an index)")
 
@@ -60,7 +60,7 @@ def parse_options(args):
     grp_ot = parser.add_argument_group("other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
-                        dest = "processors", default = 8,
+                        dest = "processors", default = mp.cpu_count(),
                         help = "Number of processors to use."
                         " (default: all available processors)")
 

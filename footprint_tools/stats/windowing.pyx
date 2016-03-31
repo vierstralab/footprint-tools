@@ -40,7 +40,7 @@ cdef windowing_func(data_type_t [:] x, int hw, func_t func_ptr):
     
     free(res)
 
-    return win
+    return np.asarray(win)
 
 cpdef sum(data_type_t [:] x, int hw):
     """Sum of values in sliding local window
@@ -100,7 +100,7 @@ cdef weighted_windowing_func(data_type_t [:] x, data_type_t [:] w, int hw, weigh
     
     free(res)
 
-    return win
+    return np.asarray(win)
 
 cpdef weighted_stouffers_z(data_type_t [:] x, data_type_t [:] w, int hw):
     """Compute p-value for a window using weighted Stouffer's method

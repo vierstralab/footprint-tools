@@ -77,7 +77,7 @@ INPUT_FILES=(\`cat ${output_dir}/sge.compute_deviation_chunk.params | head -n \$
 ftd-compute-deviation \
 	--bm ${bias_model_file} --half_win_width 5 \
 	--smooth_half_win_width 50 --smooth_clip 0.01 \
-	--dm ${output_dir}/dm.json --fdr_shuffle_n 25 \
+	--dm ${output_dir}/dm.json --fdr_shuffle_n 50 \
 	--processors \${NSLOTS} \
 	${bam_file} ${fasta_file} \${INPUT_FILES[0]} \
 | sort --buffer-size=${mem_per_slot}G -k1,1 -k2,2n > \${INPUT_FILES[0]}.out

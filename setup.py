@@ -39,9 +39,9 @@ ext_modules = [
 		 sources = ["footprint_tools/stats/fdr/bisect.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation","scripts/ftd-compute-posterior"]
+scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior"]
 
-install_requires =  ["numpy>1.10", "scipy", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing"]
+install_requires = ["numpy>1.10", "scipy", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing"]
 
 setup(
 	name = "footprint-tools",
