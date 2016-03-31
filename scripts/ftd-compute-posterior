@@ -130,8 +130,8 @@ def compute_proc(input_q, output_q, dm, beta_prior, fdr_cutoff, post_cutoff):
     	#scale = bayesian.compute_delta(obs, exp, fpr, cutoff = 0.01)
     	scale = bayesian.compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = fdr_cutoff)
 
-    	ll_on = bayesian.log_likelihood(obs, exp, dm, delta = scale, w = 3) * -1
-    	ll_off = bayesian.log_likelihood(obs, exp, dm, w = 3) * -1
+    	ll_on = bayesian.log_likelihood(obs, exp, dm, delta = scale, w = 3) 
+    	ll_off = bayesian.log_likelihood(obs, exp, dm, w = 3)
 
     	# Compute posterior
     	post = -bayesian.posterior(prior, ll_on, ll_off)
