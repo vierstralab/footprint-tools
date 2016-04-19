@@ -36,6 +36,7 @@ def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = 0.05):
 	ws = np.ones((n, w))
 	
 	for i in range(n):
+		
 		k = obs[i,:]
 		n = np.max(np.vstack([exp[i,:], obs[i,:]]), axis = 0)
 

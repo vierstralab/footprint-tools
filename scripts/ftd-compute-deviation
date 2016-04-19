@@ -102,6 +102,11 @@ def parse_options(args):
 
     grp_ot = parser.add_argument_group("other options")
 
+    # Not yet implemented...
+    grp_ot.add_argument("--remove-dups", action = "store_true",
+                        dest = "remove_dups", help = "Remove duplicate reads from analysis"
+                        " (SAM flag -- 1024)")
+
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count(),
                         help = "Number of processors to use."
@@ -119,17 +124,23 @@ def process_func(pred, dm, fdr_shuffle_n):
 
     if dm:
 
-        win_pvals_func = lambda z: stats.stouffers_z(np.ascontiguousarray(z), 3)
+        try:
 
-        pvals = dm.p_values(exp, obs)
-        pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
+            win_pvals_func = lambda z: stats.stouffers_z(np.ascontiguousarray(z), 3)
 
-        win_pvals = win_pvals_func(pvals)
-        
-        win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
-        fdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
+            pvals = dm.p_values(exp, obs)
+            pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
 
-        data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), fdr))
+            win_pvals = win_pvals_func(pvals)
+            
+            win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
+            FDR = fdr.emperical_fdr(win_pvals_null, win_pvals)
+
+            data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), FDR))
+
+        except Exception as e:
+            
+            print(e, sys.stderr)
 
     else:
 

@@ -8,7 +8,7 @@ import genomic_interval
 class bamfile(object):
 	"""Class to access a BAM file (largely inspired/copied from Piper et al.)"""
 	
-	def __init__(self, filepath, chunksize = 1000):
+	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, chunksize = 1000):
 
 		try:
 			self.samfile = pysam.Samfile(filepath, "rb")
@@ -22,11 +22,21 @@ class bamfile(object):
 		self.offset = 0 #-1 # a hack for the mis-aligned data from 2010
 		self.CHUNK_SIZE = chunksize
 
+		self.min_qual = min_qual
+		self.remove_dups = remove_dups
+		self.remove_qcfail = remove_qcfail
+
 	def __add(self, chrom, start, end):
         
 		for alignedread in self.samfile.fetch(chrom, max(start, 0), end):
 
-				if alignedread.mapq < 1:
+				if alignedread.mapq < self.min_qual:
+					continue
+
+				if self.remove_dups and alignedread.is_duplicate:
+					continue
+
+				if self.remove_qcfail and alignedread.is_qcfail:
 					continue
 
 				if alignedread.is_reverse:

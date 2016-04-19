@@ -18,7 +18,6 @@ chrom_sizes_file="${fasta_file%.fa}.chrom.sizes"
 
 echo $prefix
 echo $fasta_file
-echo $chrom_sizes_file
 echo $bam_file
 echo $interval_file
 echo $output_dir
@@ -143,6 +142,9 @@ cat ${output_dir}/interval.all.bedgraph \
 	| bedops -m - \
 	| awk -v OFS="\t" -v thresh="\${thresh}" '{ \$4="."; \$5=thresh; print; }' \
 > ${output_dir}/interval.all.fps.\${thresh}.bed
+
+bgzip -c ${output_dir}/interval.all.fps.\${thresh}.bed > ${output_dir}/interval.all.fps.\${thresh}.bed.gz
+tabix -0 -p bed ${output_dir}/interval.all.fps.\${thresh}.bed.gz
 __SCRIPT__
 
 
@@ -194,6 +196,7 @@ qsub -V \
 	-S /bin/bash ${output_dir}/sge.compute_deviation_browser_tracks
 
 qsub -V \
+	-N ${prefix}.compute_deviation_cleanup \
 	-hold_jid ${prefix}.compute_deviation_working_tracks,${prefix}.compute_deviation_footprints,${output_dir}/sge.compute_deviation_browser_tracks \
 	-S /bin/bash ${output_dir}/sge.compute_deviation_cleanup
 

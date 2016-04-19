@@ -22,7 +22,7 @@ from footprint_tools.stats import bayesian, segment
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute the posterior probability of cleavage data")
+    parser = ArgumentParser(description = "Perform a log-likelihood ratio test (LRT) between two groups of data")
 
     parser.add_argument("metadata_file", metavar = "metadata_file", type = str,
                         help = "Path to configuration file containing metadata for samples")
@@ -42,13 +42,6 @@ def parse_options(args):
                         help = "Only consider nucleotides with FDR <= this value."
                         " (default: %(default)s)")
 
-    grp_o = parser.add_argument_group("output options")
-
-    grp_o.add_argument("--post_cutoff", metavar = "N", type = float,
-                        dest = "post_cutoff", default = 0.05,
-                        help = "Only consider nucleotides with FDR <= this value."
-                        " (default: %(default)s)")
-
     grp_ot = parser.add_argument_group("other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
@@ -58,17 +51,16 @@ def parse_options(args):
 
     return parser.parse_args(args)
 
-####
 
 def read_interval_data(handles, interval):
-    """ """
+    """Reads data from a group of TABIX files"""
+    
     n = len(handles)
     l = len(interval)
 
     obs = np.zeros((n, l), dtype = np.float64)
     exp = np.zeros((n, l), dtype = np.float64)
     fdr = np.ones((n, l), dtype = np.float64)
-    w = np.zeros((n, l), dtype = np.float64)
 
     start = interval.start
     end = interval.end
@@ -77,43 +69,47 @@ def read_interval_data(handles, interval):
     j = 0
     
     for tabix in handles:
-
+        
         try:
+        
             for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
+                
                 j = int(row[1])-start
                 exp[i, j] = np.float64(row[3])
                 obs[i, j] = np.float64(row[4])
                 fdr[i, j] = np.float64(row[7])
-                w[i, j] = 1
+        
         except:
-            pass
 
+            pass
+        
         i += 1
 
-    return (exp, obs, fdr, w)
+    return (exp, obs, fdr)
+
 
 def read_func(inq, outq, filenames):
     """Opens file handles to all datasets and reads the data
     """
+    
     handles = [pysam.TabixFile(f) for f in filenames]
 
     while 1:
-
+        
         interval = inq.get()
 
         if interval == None:
             break
 
-        (exp, obs, fdr, w) = read_interval_data(handles, interval)
-        outq.put( (interval, exp, obs, fdr, w) )
+        (exp, obs, fdr) = read_interval_data(handles, interval)
+        outq.put( (interval, exp, obs, fdr) )
 
     [handle.close() for handle in handles]
 
-def compute_func(inq, outq, dm, beta_priors, fdr_cutoff, post_cutoff):
+def compute_func(inq, outq, dm, beta_prior, fdr_cutoff):
     """Consumes data from the read process and computes the posterior. The
     data is sent to the queue that is processed by the writer process.
     """
-    #models = [dispersion.read_dispersion_model(f) for f in filenames]
 
     while 1:
 
@@ -121,52 +117,41 @@ def compute_func(inq, outq, dm, beta_priors, fdr_cutoff, post_cutoff):
 
         if data == None:
             break
-        
-        (interval, exp, obs, fdr, w) = data
 
-        #prior = bayesian.compute_prior(fpr) # no weights
-    	prior = bayesian.compute_prior_weighted(fdr, w, cutoff = fdr_cutoff)   
-    
-    	#scale = bayesian.compute_delta(obs, exp, fpr, cutoff = 0.01)
-    	scale = bayesian.compute_delta_prior(obs, exp, fdr, beta_priors, cutoff = fdr_cutoff)
+        (interval, exp, obs, fdr) = data
 
-    	ll_on = bayesian.log_likelihood(obs, exp, dm, delta = scale, w = 3) 
-    	ll_off = bayesian.log_likelihood(obs, exp, dm, w = 3)
+        minfdr = np.repeat(np.min(fdr, axis = 0)[np.newaxis,:], fdr.shape[0], 0) 
 
-    	# Compute posterior
-    	post = -bayesian.posterior(prior, ll_on, ll_off)
+        a = bayesian.compute_delta_prior(obs[0:2,:], exp[0:2,:], minfdr[0:2,:], beta_prior[0:2,:], fdr_cutoff)
+        b = bayesian.compute_delta_prior(obs[2:4,:], exp[2:4,:], minfdr[2:4,:], beta_prior[2:4,:], fdr_cutoff)
+        ab = bayesian.compute_delta_prior(obs, exp, minfdr, beta_prior, fdr_cutoff)
 
-        # Make meta p-value array
-        meta_post = np.max(post, axis = 0)
-        
-        # Compute footprints
-        segs = segment(meta_post, post_cutoff, 3)
-        
-        # Get best p-value for footprint in each cell type
-        z = np.vstack([np.max(post[:,s[0]:s[1]], axis = 1) for s in segs]) if len(segs) > 0 else None
+        alt = np.sum(bayesian.log_likelihood(obs[0:2,:], exp[0:2,:], dm[0:2], delta = a, w = 3), axis = 0)
+        alt += np.sum(bayesian.log_likelihood(obs[2:4,:], exp[2:4,:], dm[2:4], delta = b, w = 3), axis = 0)
+
+        null = np.sum(bayesian.log_likelihood(obs[0:4,:], exp[0:4,:], dm[0:4], delta = ab, w = 3), axis = 0)
+
+        llr = (alt - null)
+        lrt = scipy.stats.chi2.sf(2*llr, 7)
 
         # Throw it into the output queue
-        outq.put((interval, segs, z))
+        outq.put((interval, lrt))
 
-def write_func(inq, n_datasets, n_intervals, filehandle):
+def write_func(inq, n_intervals, filehandle):
 
     n = 0
-
-    fmtr = ''.join(["\t{:0.4f}"] * (n_datasets))
 
     while n < n_intervals:
 
         n += 1
 
-        data = inq.get()
-
-        (interval, segs, z) = data
+        (interval, lrt) = inq.get()
 
         chrom = interval.chrom
         start = interval.start
 
-        for i, s in enumerate(segs):
-            out = "{}\t{:d}\t{:d}".format(chrom, start+s[0], start+s[1]) + fmtr.format(*(z[i,:]))
+        for i, p in enumerate(lrt):
+            out = "{}\t{:d}\t{:d}\t{:0.4f}".format(chrom, start+i, start+i+1, lrt[i])
             print(out, file = filehandle)
 
 def read_metadata_file(filename):
@@ -221,7 +206,8 @@ def main(argv = sys.argv[1:]):
     intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
     n_intervals = len(intervals)
 
-    #
+
+     #
     input_q = mp.Queue()
     process_q = mp.Queue()
     output_q = mp.Queue()
@@ -233,12 +219,12 @@ def main(argv = sys.argv[1:]):
     [proc.start() for proc in readers]
 
     processors = [mp.Process(target = compute_func, 
-                    args = (process_q, output_q, disp_models, beta_priors, args.fdr_cutoff, -np.log(args.post_cutoff))) 
+                    args = (process_q, output_q, disp_models, beta_priors, args.fdr_cutoff)) 
                 for i in range(1)]
 
     [proc.start() for proc in processors]   
 
-    writer = mp.Process(target = write_func, args = (output_q, n_datasets, n_intervals, sys.stdout))
+    writer = mp.Process(target = write_func, args = (output_q, n_intervals, sys.stdout))
     writer.start()
 
     # Write to input queue
@@ -266,6 +252,8 @@ def main(argv = sys.argv[1:]):
 
     return 0
 
+
 if __name__ == "__main__":
     sys.exit(main())
+
 
