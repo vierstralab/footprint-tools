@@ -3,9 +3,11 @@
 import numpy as np
 import scipy.stats
 
+'''
 def compute_prior(fdr, cutoff = 0.05):
 	""" """
 	return np.mean(np.maximum(np.minimum(fdr, 1-cutoff), cutoff), axis = 0)
+'''
 
 def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
 
@@ -13,9 +15,15 @@ def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
 	n = np.sum(w, axis = 0) #np.sum(w) # num of datasets w/ HS
 	A = n-k + pseudo
 	B = k + pseudo
+	pr = A/(A+B)
+	
+	res = np.ones(fdr.shape)
+	res *= pr[np.newaxis,:]
+	res[w==0] = 1
 
-	return A/(A+B)
+	return res
 
+'''
 def compute_delta(obs, exp, fdr, cutoff = 0.05):
 	""" """
 	mask = fdr <= cutoff
@@ -27,6 +35,7 @@ def compute_delta(obs, exp, fdr, cutoff = 0.05):
 	delta[np.isnan(delta)] = 1
 
 	return delta
+'''
 
 def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = 0.05):
 	""" """

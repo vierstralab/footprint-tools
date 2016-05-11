@@ -4,12 +4,13 @@
 # cython: wraparound=False
 # cython: nonecheck=False
 
-from ..stats import distributions
-
+from ..stats.distributions import nbinom
 import numpy as np
 
 cimport numpy as np
 cimport cython
+
+from ..stats.distributions cimport nbinom
 
 ctypedef np.float64_t data_type_t
 
@@ -102,7 +103,7 @@ cdef class dispersion_model:
 		for i in range(n):
 			r = self.r(exp[i])
 			mu = self.mu(exp[i])
-			res[i] = distributions.nbinom.logpmf(obs[i], (r/(r+mu)), r)
+			res[i] = nbinom.logpmf(<int>obs[i], (r/(r+mu)), r)
 
 		return res
 
@@ -122,7 +123,7 @@ cdef class dispersion_model:
 		for i in range(n):
 			r = self.r(exp[i])
 			mu = self.mu(exp[i])
-			res[i] = distributions.nbinom.cdf(obs[i], r/(r+mu), r)
+			res[i] = nbinom.cdf(<int>obs[i], r/(r+mu), r)
 
 		return res
 
@@ -141,7 +142,7 @@ cdef class dispersion_model:
 			vals = np.random.negative_binomial(r, r/(r+mu), times)
 			
 			for j in range(times):
-				res[i, j] = distributions.nbinom.cdf(vals[j], r/(r+mu), r)
+				res[i, j] = nbinom.cdf(<int>vals[j], r/(r+mu), r)
 
 		return res
 
@@ -183,7 +184,7 @@ def learn_dispersion_model(h, cutoff = 100, trim = [2.5, 97.5]):
 
 			est_p = est_r / (est_r + mu)
 			
-			(p[i], r[i]) = distributions.nbinom.fit(x[lower:upper], p = est_p, r = est_r)
+			(p[i], r[i]) = nbinom.fit(x[lower:upper], p = est_p, r = est_r)
 
 	# Back-compute the mean values from the negative binomial parameters
 	mus = p*r/(1-p)

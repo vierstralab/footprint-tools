@@ -31,12 +31,14 @@ ext_modules = [
 		sources = ["footprint_tools/modeling/dispersion.pyx"]),
 	Extension("footprint_tools.stats.windowing", 
 		sources = ["footprint_tools/stats/windowing.pyx"]),
-	Extension("footprint_tools.stats.distributions",
-		 sources = ["footprint_tools/stats/distributions.pyx"]),
+	Extension("footprint_tools.stats.distributions.nbinom",
+		 sources = ["footprint_tools/stats/distributions/nbinom.pyx"]),
 	Extension("footprint_tools.stats.segment",
 		 sources = ["footprint_tools/stats/segment.pyx"]),
 	Extension("footprint_tools.stats.fdr.bisect",
-		 sources = ["footprint_tools/stats/fdr/bisect.pyx"])
+		 sources = ["footprint_tools/stats/fdr/bisect.pyx"]),
+	Extension("footprint_tools.stats.differential",
+		 sources = ["footprint_tools/stats/differential.pyx"])
 ]
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-compute-diff"]

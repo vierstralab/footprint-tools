@@ -135,19 +135,22 @@ def compute_func(inq, outq, dm, beta_priors, fdr_cutoff, post_cutoff):
 
     	# Compute posterior
     	post = -bayesian.posterior(prior, ll_on, ll_off)
+        post[post <= 0] = 0.0
 
         # Make meta p-value array
-        meta_post = np.max(post, axis = 0)
+        #meta_post = np.max(post, axis = 0)
         
         # Compute footprints
-        segs = segment(meta_post, post_cutoff, 3)
+        #segs = segment(meta_post, post_cutoff, 3)
         
         # Get best p-value for footprint in each cell type
-        z = np.vstack([np.max(post[:,s[0]:s[1]], axis = 1) for s in segs]) if len(segs) > 0 else None
+        #z = np.vstack([np.max(post[:,s[0]:s[1]], axis = 1) for s in segs]) if len(segs) > 0 else None
 
         # Throw it into the output queue
-        outq.put((interval, segs, z))
+        #outq.put((interval, segs, z))
+        outq.put((interval, post))
 
+'''
 def write_func(inq, n_datasets, n_intervals, filehandle):
 
     n = 0
@@ -167,6 +170,28 @@ def write_func(inq, n_datasets, n_intervals, filehandle):
 
         for i, s in enumerate(segs):
             out = "{}\t{:d}\t{:d}".format(chrom, start+s[0], start+s[1]) + fmtr.format(*(z[i,:]))
+            print(out, file = filehandle)
+'''
+
+def write_func(inq, n_datasets, n_intervals, filehandle):
+
+    n = 0
+
+    fmtr = ''.join(["\t{:0.4f}"] * (n_datasets))
+
+    while n < n_intervals:
+
+        n += 1
+
+        data = inq.get()
+
+        (interval, post) = data
+        #print(post)
+        chrom = interval.chrom
+        start = interval.start
+
+        for i in range(post.shape[1]):
+            out = "{}\t{:d}\t{:d}\t".format(chrom, start+i, start+i+1) + '\t'.join(["%0.4f" % p for p in post[:,i]])
             print(out, file = filehandle)
 
 def read_metadata_file(filename):
