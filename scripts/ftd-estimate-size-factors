@@ -1,0 +1,82 @@
+#!/usr/bin/which python
+
+from __future__ import print_function, division
+
+import sys
+import os
+from functools import partial
+
+from argparse import ArgumentParser
+
+import multiprocessing as mp
+
+import numpy as np
+
+import pysam
+
+from footprint_tools import bed, genomic_interval
+from footprint_tools.stats import differential
+
+def parse_options(args):
+
+	parser = ArgumentParser(description = "Learn the genome-wide beta model prior for nucleotide protection")
+
+	parser.add_argument("interval_file", metavar = "interval_file", type = str, 
+                        help = "File path to BED file")
+
+	parser.add_argument("tabix_files", metavar = "tabix_file", nargs = "+", type = str,
+                        help = "Path to TABIX-format file(s) (e.g., ouput"
+                        " from 'ftd-compute-deviation')")
+
+	grp_ot = parser.add_argument_group("other options")
+
+	grp_ot.add_argument("--processors", metavar = "N", type = int,
+                        dest = "processors", default = mp.cpu_count(),
+                        help = "Number of processors to use."
+                        " (default: all available processors)")
+    
+	return parser.parse_args(args)
+
+##
+
+def count_total_cutcounts(filename, intervals):
+	"""Returns an array of total cut counts within each DHS"""
+
+	tabix = pysam.TabixFile(filename)
+
+	n = len(intervals)
+	res = np.zeros(n)
+
+	i = 0
+	for interval in intervals:
+		for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
+			res[i] += np.float64(row[3])
+		i = i + 1
+
+	tabix.close()
+
+	return res
+
+def main(argv = sys.argv[1:]):
+
+	args = parse_options(argv)
+
+	intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
+
+	pool = mp.Pool(min(args.processors, len(args.tabix_files)))
+
+	process_func = partial(count_total_cutcounts, intervals = intervals)
+
+	res = pool.map(process_func, args.tabix_files)
+
+	counts = np.vstack(res) + 1
+
+	size_factors = differential.estimate_size_factors(counts)
+	
+	for sf in size_factors:
+		print(sf)
+
+	return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

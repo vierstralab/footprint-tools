@@ -38,7 +38,9 @@ ext_modules = [
 	Extension("footprint_tools.stats.fdr.bisect",
 		 sources = ["footprint_tools/stats/fdr/bisect.pyx"]),
 	Extension("footprint_tools.stats.differential",
-		 sources = ["footprint_tools/stats/differential.pyx"])
+		 sources = ["footprint_tools/stats/differential.pyx"]),
+	Extension("footprint_tools.stats.mutual_information",
+		 sources = ["footprint_tools/stats/mutual_information.pyx"])
 ]
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-compute-diff"]

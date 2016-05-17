@@ -9,9 +9,9 @@ import sys
 from argparse import ArgumentParser, Action, ArgumentError
 
 # import footprint_tools
-from footprint_tools import bed, genomic_interval, cutcounts, stats
+from footprint_tools import bed, genomic_interval, cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
-from footprint_tools.stats import fdr
+from footprint_tools.stats import fdr, windowing
 
 # fasta index
 import pyfaidx
@@ -126,7 +126,7 @@ def process_func(pred, dm, fdr_shuffle_n):
 
         try:
 
-            win_pvals_func = lambda z: stats.stouffers_z(np.ascontiguousarray(z), 3)
+            win_pvals_func = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
 
             pvals = dm.p_values(exp, obs)
             pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
