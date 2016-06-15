@@ -8,8 +8,11 @@ import sys
 
 from argparse import ArgumentParser, Action, ArgumentError
 
+# import genome_tools
+from genome_tools import bed, genomic_interval 
+
 # import footprint_tools
-from footprint_tools import bed, genomic_interval, cutcounts
+from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing
 

@@ -14,7 +14,7 @@ import numpy as np
 
 from glob import glob
 
-__version__ = "1.0.0"
+__version__ = "1.0"
 
 if sys.version_info[0] != 2 or sys.version_info[1] < 7:
     print("Package requires Python version 2.7+")
@@ -37,18 +37,16 @@ ext_modules = [
 		 sources = ["footprint_tools/stats/segment.pyx"]),
 	Extension("footprint_tools.stats.fdr.bisect",
 		 sources = ["footprint_tools/stats/fdr/bisect.pyx"]),
-	Extension("footprint_tools.stats.differential",
-		 sources = ["footprint_tools/stats/differential.pyx"]),
 	Extension("footprint_tools.stats.mutual_information",
 		 sources = ["footprint_tools/stats/mutual_information.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-compute-diff"]
+scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior"]
 
-install_requires = ["numpy>1.10", "scipy", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing"]
+install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing", "genome_tools>=1.0"]
 
 setup(
-	name = "footprint-tools",
+	name = "footprint_tools",
 	version = __version__,
 	description = "",
 	long_description = "",

@@ -1,1 +1,1 @@
-__all__ = ["distributions", "windowing", "bayesian", "differential" "segment"]
+__all__ = ["distributions", "windowing", "bayesian", "segment"]

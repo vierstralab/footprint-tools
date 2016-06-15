@@ -14,8 +14,9 @@ import scipy.stats
 
 import pysam
 
-# import footprint_tools
-from footprint_tools import bed, genomic_interval
+# import genome_tools
+from genome_tools import bed, genomic_interval 
+
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment
 

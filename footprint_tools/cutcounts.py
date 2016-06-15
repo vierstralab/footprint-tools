@@ -3,9 +3,8 @@
 import pysam
 import numpy as np
 
-import genomic_interval
-
 class bamfile(object):
+
 	"""Class to access a BAM file (largely inspired/copied from Piper et al.)"""
 	
 	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, chunksize = 1000):

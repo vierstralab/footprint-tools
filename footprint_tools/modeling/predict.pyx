@@ -74,6 +74,10 @@ class prediction(object):
 		self.interval = interval
 
 		pad_interval = interval.widen(self.padding)
+		
+		# We clip the first base when recombining the positive and negative strand, so add an extra base upfront
+		pad_interval.start -= 1
+
 		self.counts = reads[pad_interval]
 		self.seq = fasta[pad_interval.chrom][pad_interval.start-bm.offset():pad_interval.end+bm.offset()].seq.upper()
 
