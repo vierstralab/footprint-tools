@@ -32,24 +32,23 @@ fps_thresh=(0.2 0.1 0.05 0.01)
 mkdir -p ${output_dir}/logs
 
 # load modules
-source /net/lebowski/vol1/Modules/3.2.9/init/bash
-module load coreutils/8.9
 module load bedops/2.4.3
-module load python/2.7.3
+module load python/2.7.11
+module load gcc/5.3.0
 
-# memory per sge slot in GB
-mem_per_slot=4
-
+###
 
 cat <<__SCRIPT__ > ${output_dir}/slurm.learn_dispersion_model
 #!/bin/bash
 #
-#SBATCH --error=${output_dir}/logs/\$JOB_NAME.err
-#SBATCH --output=${output_dir}/logs/\$JOB_NAME.out
-#SBATCH --mem=2048M
+#SBATCH --output=${output_dir}/logs/%J.out
+#SBATCH --mem=4G
 #SBATCH --cpus-per-task=8
 
 set -e -o pipefail
+
+TMPDIR=/tmp/\$SLURM_JOB_ID
+mkdir -p \${TMPDIR}
 
 zcat -f ${interval_file} > \${TMPDIR}/intervals.bed
 
@@ -61,22 +60,27 @@ ftd-learn-dispersion-model \
 	${bam_file} ${fasta_file} \${TMPDIR}/intervals.sampled.bed \
 > ${output_dir}/dm.json
 
+rm -rf ${TMPDIR}
 __SCRIPT__
 
-sbatch --export=ALL \
+###
+
+JOB0=$(sbatch --export=ALL \
 	--job-name=${prefix}.learn_dm \
-	${output_dir}/slurm.learn_dispersion_model
+	${output_dir}/slurm.learn_dispersion_model)
+
+###
 
 cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_chunk
 #!/bin/bash
 #
-#SBATCH --error=${output_dir}/logs/\$JOB_NAME.\$TASK_ID.err
-#SBATCH --output=${output_dir}/logs/\$JOB_NAME.\$TASK_ID.out
+#SBATCH --output=${output_dir}/logs/%A.%a.out
+#SBATCH --mem=8G
 #SBATCH --cpus-per-task=4
 
 set -e -o pipefail
 
-INPUT_FILES=(\`cat ${output_dir}/sge.compute_deviation_chunk.params | head -n \${SLURM_ARRAY_TASK_ID} | tail -n 1\`)
+INPUT_FILES=(\`cat ${output_dir}/slurm.compute_deviation_chunk.params | head -n \${SLURM_ARRAY_TASK_ID} | tail -n 1\`)
 
 ftd-compute-deviation \
 	--bm ${bias_model_file} --half_win_width 5 \
@@ -84,42 +88,48 @@ ftd-compute-deviation \
 	--dm ${output_dir}/dm.json --fdr_shuffle_n 50 \
 	--processors \${SLURM_CPUS_PER_TASK} \
 	${bam_file} ${fasta_file} \${INPUT_FILES[0]} \
-| sort --buffer-size=${mem_per_slot}G -k1,1 -k2,2n > \${INPUT_FILES[0]}.out
+| sort --buffer-size=8G -k1,1 -k2,2n > \${INPUT_FILES[0]}.out
 __SCRIPT__
+
+###
 
 zcat -f ${interval_file} | split -l ${chunksize} -a 4 -d - ${output_dir}/interval.
 ls ${output_dir}/interval.* > ${output_dir}/slurm.compute_deviation_chunk.params
 
-sbatch --export=ALL \
-	--job-name$={prefix}.compute_deviation \
+JOB1=$(sbatch --export=ALL \
+	--job-name$=${prefix}.compute_deviation \
 	--array=1-$(wc -l < ${output_dir}/slurm.compute_deviation_chunk.params) \
-	--depend=afterok:\
-	${output_dir}/slurm.compute_deviation_chunk
+	--depend=afterok:${JOB0##*}\
+	${output_dir}/slurm.compute_deviation_chunk)
 
+###
 
 cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_merge_sort
 #!/bin/bash
 #
-#SBATCH --error=${output_dir}/logs/\$SLURM_JOB_ID.err
-#SBATCH --output=${output_dir}/logs/\$JOB_NAME.out
-#SBATCH --mem=4096M
+#SBATCH --output=${output_dir}/logs/%J.out
+#SBATCH --mem=8G
 
 set -e -o pipefail
 
 INPUT_FILES=(\`cat ${output_dir}/slurm.compute_deviation_chunk.params\`)
 OUTPUT_FILES=("\${INPUT_FILES[@]/%/.out}")
 
-sort -k1,1 -k2,2n -S ${mem_per_slot}G -m \${OUTPUT_FILES[@]} > ${output_dir}/interval.all.bedgraph
+sort -k1,1 -k2,2n -S 8G -m \${OUTPUT_FILES[@]} > ${output_dir}/interval.all.bedgraph
 
 rm -f \${INPUT_FILES[@]} \${OUTPUT_FILES[@]}
 __SCRIPT__
 
+###
 
-sbatch --export=ALL \
-	--job-name=
-	--depend=
-	${output_dir}/slurm.compute_deviation_merge_sort
+JOB2=$(sbatch --export=ALL \
+	--job-name=${prefix}.merge_sort \
+	--depend=afterok:${JOB1##*} \
+	${output_dir}/slurm.compute_deviation_merge_sort)
 
+exit;
+
+###
 
 cat <<__SCRIPT__ > ${output_dir}/sge.compute_deviation_working_tracks
 #!/bin/bash
@@ -187,7 +197,6 @@ set -e -o pipefail
 
 rm -f ${output_dir}/interval.all.bedgraph
 __SCRIPT__
-
 
 qsub -V -pe threads 2 \
 	-N ${prefix}.compute_deviation_working_tracks \
