@@ -70,17 +70,17 @@ def parse_options(args):
                         " argument is not provided the model defaults to uniform sequence"
                         " bias.")
 
-    grp_bm.add_argument("--half_win_width", metavar = "N", type = int, default = 5,
+    grp_bm.add_argument("--half-win-width", metavar = "N", type = int, default = 5,
                         help = "Half window width to apply bias model."
                         " (default: %(default)s)")
 
     grp_sm = parser.add_argument_group("smoothing options")
     
-    grp_sm.add_argument("--smooth_half_win_width", metavar = "N", type = int, default = 50,
+    grp_sm.add_argument("--smooth-half-win-width", metavar = "N", type = int, default = 50,
                         help = "Half window width to apply smoothing model. When set to"
                         " zero no smoothing is applied. (default: %(default)s)")
 
-    grp_sm.add_argument("--smooth_clip", metavar = "N", type = float, default = 0.01,
+    grp_sm.add_argument("--smooth-clip", metavar = "N", type = float, default = 0.01,
                         help = "Fraction of signal to clip when computing trimmed mean."
                         " (default: %(default)s)")
 
@@ -98,17 +98,21 @@ def parse_options(args):
     #                     action = list_parse_action, default = [],
     #                     help = "FDR cutoff at which to report footprints.")
 
-    grp_st.add_argument("--fdr_shuffle_n", metavar = "N", type = int,
+    grp_st.add_argument("--fdr-shuffle-n", metavar = "N", type = int,
                         dest = "fdr_shuffle_n", default = 50,
                         help = "Number of times to shuffle data for FDR calculation."
                         " (default: %(default)s)")
 
     grp_ot = parser.add_argument_group("other options")
 
-    # Not yet implemented...
     grp_ot.add_argument("--remove-dups", action = "store_true",
                         dest = "remove_dups", help = "Remove duplicate reads from analysis"
                         " (SAM flag -- 1024)")
+
+    grp_ot.add_argument("--bam-offset", metavar = "N", type = int,
+                        dest = "offset", default = 0,
+                        help = "BAM file offset (support for legacy BAM/SAM format)"
+                        " (default: %(default)s)")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count(),
@@ -143,7 +147,9 @@ def process_func(pred, dm, fdr_shuffle_n):
 
         except Exception as e:
             
-            print(e, sys.stderr)
+            print(e, file = sys.stderr)
+
+            data = np.column_stack((exp, obs, np.zeros(len(obs)), np.zeros(len(obs)), np.ones(len(obs))))
 
     else:
 
@@ -165,15 +171,7 @@ class process_callback(object):
         chrom = interval.chrom
         start = interval.start
 
-        fmtr = "\t{:0.0f}\t{:0.0f}"
-
-        if data.shape[1] > 2:
-            fmtr += ''.join(["\t{:0.4f}"] * (data.shape[1] - 2))
-
-        out = '\n'.join([
-                    "{}\t{:d}\t{:d}".format(chrom, start+i, start+i+1) + 
-                    fmtr.format(*(data[i,:])) 
-                for i in np.arange(data.shape[0])])
+        out = '\n'.join(["%s\t%d\t%d\t%s" % (chrom, start + i, start + i +1, '\t'.join(['{:0.4f}'.format(val) for val in data[i,:]])) for i in range(data.shape[0])])
 
         print(out, file = self.filehandle)
 
@@ -181,8 +179,8 @@ def main(argv = sys.argv[1:]):
 
     args = parse_options(argv)
 
-    reads = cutcounts.bamfile(args.bam_file)
-    fasta = pyfaidx.Fasta(args.fasta_file)
+    reads = cutcounts.bamfile(args.bam_file, remove_dups = args.remove_dups, offset = args.bam_offset)
+    fasta = pyfaidx.Fasta(args.fasta_file, one_based_attributes = False, sequence_always_upper = True)
     intervals = bed.bed3_iterator(open(args.interval_file))
 
     write_func = process_callback()

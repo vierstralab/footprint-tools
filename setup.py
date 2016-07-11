@@ -41,7 +41,7 @@ ext_modules = [
 		 sources = ["footprint_tools/stats/mutual_information.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior"]
+scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-compute-mutual-information"]
 
 install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing", "genome_tools>=1.0"]
 

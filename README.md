@@ -11,12 +11,13 @@ negative binomial distribution.
 
 FTD requires Python (>=2.7) and depends on the following additional packages:
 
-* Cython>=0.22
-* numpy>=1.10
-* scipy>=0.16
+* cython (>=0.22)
+* numpy (>=1.10)
+* scipy (>=0.16)
+* genome_tools (http://www.github.com/jvierstra/genome_tools)
 * pysam
 * pyfaidx
-
+* statsmodels
 
 ## Installation
 
@@ -53,19 +54,16 @@ While the software package has a limited number of dependencies, some of them (a
       ```
       - ATLAS/LAPACK should now be installed
 
-    - Download ```numpy``` to ```~/.local/src``` and uncompress
-    - Install
+    - Download ```numpy``` to ```~/.local/src``` and uncompress, install:
     ```
     	[jvierstra ~/.local/src]$ cd numpy
     	[jvierstra src/numpy]$ python setup.py install --user
     ```
-     - Download ```scipy``` to ```~/.local/src``` and uncompress
-    - Install
+    - Download ```scipy``` to ```~/.local/src``` and uncompress, install:
     ```
     	[jvierstra ~/.local/src]$ cd scipy
     	[jvierstra src/scipy$ python setup.py install --user
     ```
-
 
 ## Usage
 
@@ -73,17 +71,17 @@ Detecting footprints with FTD is easy and requires the execution of two scripts.
 
 ### Step 1: Align sequenced DNase I cleavages
 
-FTD requires an alignment file in BAM format which can be made using any sequence alignment tool. FTD uses all reads with a MAPQ > 0.
+FTD requires an alignment file in BAM format which can be made using any sequence alignment tool. FTD uses all reads with a MAPQ > 0. Typically, we also mark tags as QC fail ()
 
 ### Step 2: Create an index of the reference genome FASTA file
 
 The software uses an indexed FASTA file to enable rapid lookups of genomic sequences utilized by the sequence bias model. A FASTA file can be indexed using `samtools`.
 
-	[jvierstra@rotini footprint-tools]$ samtools faidx hg19.all.fasta
+	[jvierstra@rotini footprint-tools]$ samtools faidx /home/jvierstra/data/genomes/hg19/hg.ribo.all.fa
 
 ### Step 4: Download or create a 6-mer cleavage bias model
 
-The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any k-mer size, we typically use 6mers with the cleavage ocurring betwenn the 3 and 4 base.
+The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any k-mer size, we typically use 6mers with the cleavage ocurring betwenn the 3rd and 4th base.
 	
 	ACTTGC	0.22214673145056082
 	ACTTAC	0.21531706520159422
@@ -95,6 +93,29 @@ The sequence bias model is the basis of FTD. A model file contains 2 columns tha
 	ACTCGT	0.18406049938472563
 	TCTTGT	0.18256420745577184
 	TCTCGA	0.17989100314058748
+
+#### Step 4a: Create a sequence preference model
+
+You can create your own sequence preference model using an provided template script `examples/generate_bias_model.sh`. The script counts the 6mer context of all the cleavage/insertional events such that the 5’ end of the tags is in position 3 (nnn-Nnn; N 5’ end of read oriented for strand mappped) and then compares it to the prevalence of that 6mer in the mappable genome. As such, prerequisites for creating a bias model are: (1) a BAM file from a naked DNase experiment, (2) a genome mappability file tune for the read length of the reads in the BAM file (see below), and (3) an indexed FASTA file for the genome your BAM file refers to.
+
+	[jvierstra@test0 examples]$ ./generate_bias_model.sh --temporary-dir /tmp/jvierstra reads.filtered.bam mappability.stranded.bed  /home/jvierstra/data/genomes/hg19/hg.ribo.all.fa naked.model.txt
+
+
+The mappability file specifies the regions of the genome where the sequencing strategy can detect cleavage events. Fortunately, the ENCODE project (Roderic Guigo's lab at CRC Barcelona) has created a track that predicts the alignability of positions by putative read length. The script above requires a file which contains regions where the 5' positions are mappable in a stranded fashion. It is simple to convert the CRC track into a stranded mappability track:
+
+	
+	# Creates a stranded mappability file for 36mer read length
+
+	wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign36mer.bigWig
+
+	bigWigToBedGraph wgEncodeCrgMapabilityAlign36mer.bigWig /dev/stdout 
+	| awk -v OFS="\t" '
+			$4 >= 0.5 { print $1, $2, $3, ".", ".", "+"; 
+			print $1, $2+36-1, $3+36-1, ".", ".", "-"; }
+		'
+	| sort-bed --max-mem 16G - 
+	> mappability.stranded.bed
+
 
 ### Step 5: Create a dispersion (error) model
 
@@ -199,7 +220,7 @@ Footprints can be retrieved by thresholding on either p-values or the emperical 
 
 	[jvierstra@rotini footprint-tools]$ cat per-nucleotide.bed | awk -v OFS="\t" '$8 <= 0.05 { print; }' | bedops -m -
 
-## SGE parallelization
+## SGE/SLURM parallelization
 
 See `compute_deviation.sge` for an example of how to parallelize footprint discovery on the Sun Grid Engine platform.
 

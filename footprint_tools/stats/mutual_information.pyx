@@ -22,15 +22,11 @@ cpdef mutual_information(np.ndarray[int, ndim = 2, mode = 'c'] mat):
 	cdef int nx = mat.shape[0]
 	cdef int ny = mat.shape[1]
 
+	cdef int [:,:] mat_view = mat
+
 	cdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] result = np.zeros((ny, ny), dtype = np.float64, order = 'c')
+	cdef data_type_t [:,:] result_view = result
 
-	cdef double* c_result = <double*>calloc(ny * ny, sizeof(double))
-
-	cdef int success = pairwise_mutual_information(&mat[0,0], nx, ny, &c_result[0])
-
-	cdef int i, j
-	for i in range(ny):
-		for j in range(ny):
-			result[i, j] = c_result[i * ny + j]
+	cdef int success = pairwise_mutual_information(&mat_view[0,0], nx, ny, &result_view[0,0])
 
 	return result

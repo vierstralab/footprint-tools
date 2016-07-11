@@ -7,7 +7,7 @@ class bamfile(object):
 
 	"""Class to access a BAM file (largely inspired/copied from Piper et al.)"""
 	
-	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, chunksize = 1000):
+	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, chunksize = 1000, offset = 0):
 
 		try:
 			self.samfile = pysam.Samfile(filepath, "rb")
@@ -18,7 +18,7 @@ class bamfile(object):
 		self.cache = { i: {"+": {}, "-": {}} for i in self.samfile.references }
 		self.lookup = { i: [] for i in self.samfile.references }
 
-		self.offset = 0 #-1 # a hack for the mis-aligned data from 2010
+		self.offset = offset #-1 # a hack for the mis-aligned data from 2010
 		self.CHUNK_SIZE = chunksize
 
 		self.min_qual = min_qual

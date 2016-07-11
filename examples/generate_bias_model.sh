@@ -7,7 +7,7 @@
 #genome_mappability_filepath=
 #fasta_filepath="/home/jvierstra/data/genomes/hg19/hg.ribo.all.fa"
 
-bam_filters="-q 1 -F 512"
+mapq=1
 filtered_contigs="chrX,chrY,chrM"
 max_mem="16G"
 
@@ -35,10 +35,10 @@ while true ; do
 				"") shift 2;;
 				*) max_mem=$2 ; shift 2;;
 			esac ;;
-        -b|--bam-arguments)
+        -q|--mapq)
             case "$2" in
                 "") shift 2;;
-                *) bam_filters=$2 ; shift 2 ;;
+                *) mapq=$2 ; shift 2 ;;
             esac ;;
         -t|--temporary-dir)
 			case "$2" in
@@ -70,17 +70,38 @@ echo -e -n "+ Creating a cleavage file from BAM file..."
 #
 start=$(date +%s.%N)
 #
-samtools view ${bam_args} ${bam_filepath} \
-| awk -v OFS="\t" '{ \
-	if (and($2, 16)) { \
-		start = $4 + length($10) - 1; \
-		strand = "-"; \
-	} else { \
-		start = $4; \
-		strand = "+"; \
-	} \
-	print $3, start, start + 1, ".", ".", strand; \
-}' \
+cat > ${tmpdir}/cuts.py <<__EOF__
+from __future__ import print_function
+import sys
+import pysam
+import pyfaidx
+
+reads = pysam.AlignmentFile(sys.argv[1], "rb")
+read = None
+
+while(1):
+	try:
+		read = reads.next()
+	except:
+		break
+
+	if read.mapq < ${mapq}:
+		continue
+
+	if read.is_qcfail:
+		continue
+
+	if read.is_reverse:
+		i = int(read.aend) - 1
+	else:
+		i = int(read.pos)
+
+	chrom = reads.getrname(read.reference_id)
+
+	print("%s\t%d\t%d\t.\t.\t%s" % (chrom, i, i + 1, '-' if read.is_reverse else '+'))
+__EOF__
+
+python ${tmpdir}/cuts.py ${bam_filepath} \
 | grep -v -E $(echo ${filtered_contigs} | tr "," "|") \
 | sort-bed --max-mem ${max_mem} - \
 | tee ${tmpdir}/cuts.bed \
@@ -104,7 +125,7 @@ from __future__ import print_function
 import sys
 import pyfaidx
 
-fasta = pyfaidx.Fasta("${fasta_filepath}", sequence_always_upper=True)
+fasta = pyfaidx.Fasta("${fasta_filepath}", one_based_attributes=False, sequence_always_upper=True)
 
 for line in sys.stdin:
 	fields = line.strip().split('\t')
@@ -147,7 +168,7 @@ from __future__ import print_function
 import sys
 import pyfaidx
 
-fasta = pyfaidx.Fasta("${fasta_filepath}", sequence_always_upper=True)
+fasta = pyfaidx.Fasta("${fasta_filepath}", one_based_attributes=False, sequence_always_upper=True)
 
 cnts = {}
 

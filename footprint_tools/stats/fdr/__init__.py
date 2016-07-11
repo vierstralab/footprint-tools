@@ -2,6 +2,8 @@
 
 from __future__ import division
 
+import operator
+
 from .bisect import *
 
 import numpy as np
@@ -57,4 +59,33 @@ def qvalue(pvals):
 		qvals[u[i]] = min(qvals[u[i]], qvals[u[i+1]])
 
 	return qvals
+
+def bh_qvalue(pvals):
+    """
+    Return Benjamini-Hochberg FDR q-values corresponding to p-values C{pv}.
+
+    This function implements an algorithm equivalent to L{bh_rejected} but
+    yields a list of 'adjusted p-values', allowing for rejection decisions
+    based on any given threshold.
+
+    @type pv: list
+    @param pv: p-values from a multiple statistical test
+
+    @rtype: list
+    @return: adjusted p-values to be compared directly with the desired FDR
+      level
+    """
+    m = len(pvals)
+    rank, sorted_pvals = zip(*sorted(enumerate(pvals), None, operator.itemgetter(1)))
+    if pvals[0] < 0 or pvals[-1] > 1:
+        raise ValueError("p-values must be between 0 and 1")
+    qvalues = np.zeros(m)
+    mincoeff = sorted_pvals[-1]
+    qvalues[rank[-1]] = mincoeff
+    for j in xrange(m-2, -1, -1):
+        coeff = m*sorted_pvals[j]/float(j+1)
+        if coeff < mincoeff:
+            mincoeff = coeff
+        qvalues[rank[j]] = mincoeff
+    return qvalues
 

@@ -68,14 +68,14 @@ class prediction(object):
 		self.smoothing_half_window_width = smoothing_half_window_width
 		self.smoothing_clip = smoothing_clip
 
-		# Note: Plus one for the proper alignment of positive and negative strands
-		self.padding = self.half_window_width + smoothing_half_window_width + 1
+		self.padding = self.half_window_width + smoothing_half_window_width
 
 		self.interval = interval
 
 		pad_interval = interval.widen(self.padding)
 		
-		# We clip the first base when recombining the positive and negative strand, so add an extra base upfront
+		# Note: We clip the first base when recombining the positive 
+		# and negative strand, so add an extra base upfront
 		pad_interval.start -= 1
 
 		self.counts = reads[pad_interval]

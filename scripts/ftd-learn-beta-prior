@@ -26,12 +26,12 @@ def parse_options(args):
 
     grp_m = parser.add_argument_group("model options")
 
-    grp_m.add_argument("--fdr_cutoff", metavar = "N", type = float,
+    grp_m.add_argument("--fdr-cutoff", metavar = "N", type = float,
                         dest = "fdr_cutoff", default = 0.05,
                         help = "Only consider nucleotides with FDR <= this value."
                         " (default: %(default)s)")
 
-    grp_m.add_argument("--exp_cutoff", metavar = "N", type = int,
+    grp_m.add_argument("--exp-cutoff", metavar = "N", type = int,
                         dest = "exp_cutoff", default = 10,
                         help = "Only consider nucleotides with expected cleavages >= this value."
                         " (default: %(default)s)")

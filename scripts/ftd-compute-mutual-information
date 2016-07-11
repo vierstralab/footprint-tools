@@ -1,0 +1,177 @@
+#!/usr/bin/which python
+
+from __future__ import print_function, division
+
+import sys
+import os, os.path
+import ctypes
+
+from argparse import ArgumentParser
+
+import multiprocessing as mp
+
+import pysam
+
+import numpy as np
+import scipy.stats
+
+# import genome_tools
+from genome_tools import bed, genomic_interval 
+
+# import footprint_tools
+from footprint_tools.stats import mutual_information
+
+# 
+from scipy.ndimage.filters import median_filter
+from scipy.ndimage.measurements import label, find_objects
+
+
+def parse_options(args):
+
+    parser = ArgumentParser(description = "Compute the mutual information between footprinted bases from posteriors")
+
+    parser.add_argument("interval_file", metavar = "interval_file", type = str, 
+                        help = "File path to BED file")
+
+    parser.add_argument("posterior_file", metavar = "posterior_file", type = str,
+                        help = "Path to TABIX file containing per-nucleotide posterior p-values")
+
+    grp_st = parser.add_argument_group("statistical options")
+
+    grp_st.add_argument("--filter-width", metavar = "FILTER_WIDTH", type = int,
+                        dest = "filter_width", default = 3,
+                        help = "Width of filter to smooth mutual information score matrix")
+
+    grp_st.add_argument("--mi-cutoff", metavar = "N", type = float,
+                        dest = "mi_cutoff", default = 0.2,
+                        help = "Only consider nucleotides with FDR <= this value."
+                        " (default: %(default)s)")
+
+    grp_st.add_argument("--min-contig-bases", metavar = "N", type = int,
+                        dest = "min_contig_bases", default = 25,
+                        help = "Only output regions containing this amount of contiguous signal"
+                        " (default: %(default)s)")
+
+    grp_ot = parser.add_argument_group("other options")
+
+    grp_ot.add_argument("--processors", metavar = "N", type = int,
+                        dest = "processors", default = mp.cpu_count(),
+                        help = "Number of processors to use."
+                        " (default: all available processors)")
+
+    return parser.parse_args(args)
+
+def process_func(logp, interval, filter_width = 3, mi_cutoff = 0.2, min_contig_bases = 25):
+
+    p = np.exp(-logp)
+    p[p<=0.0] = 1e-16
+    p[p>1.0] = 1.0
+    p[np.isnan(p)] = 1.0
+
+    # digitize P-value matrix
+    I = np.apply_along_axis(np.digitize, 0, p, bins = [0, 0.25, 0.5, 0.75, 1], right = True) - 1
+
+    #print(np.min(I), np.max(I))
+    #print(np.min(p), np.max(p))
+
+    # compute mutual information
+    M = mutual_information.mutual_information(np.array(I, dtype = np.intc, order = 'c'))
+
+    #compute spearman's rho (only used for colors)
+    #(rho, p_rho) = scipy.stats.spearmanr(I, axis = 0)
+
+    Z = median_filter(M, size = (filter_width, filter_width))
+    labeled_array, num_features = label(Z >= mi_cutoff)
+
+    res = ""
+
+    for o in find_objects(labeled_array):
+       
+        x0 = o[0].start
+        x1 = o[0].stop
+        y0 = o[1].start
+        y1 = o[1].stop
+        
+        wa = x1-x0
+        wb = y1-y0
+        
+        if x0 >= y0:
+            continue
+
+        if wa*wb < min_contig_bases:
+            continue
+
+        #if np.median(rho[x0:x1,y0:y1]) > 0:
+        #    score = 100
+        #    col = "255,0,0"
+        #else:
+        #    score = -100
+        #    col = "0,0,255"
+
+        score = 100
+        col = "0,0,255"
+
+        res += "%s\t%d\t%d\t.\t%d\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, score, interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
+
+    return res
+
+class process_callback(object):
+
+    def __init__(self, filehandle = sys.stdout):
+
+        self.filehandle = filehandle
+
+    def __call__(self, res):
+
+        print(res, end = "")
+
+def main(argv = sys.argv[1:]):
+
+    args = parse_options(argv)
+
+    # Load intervals file
+    intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
+
+    # Read dimensions
+    tabix = pysam.TabixFile(args.posterior_file)
+    row = tabix.fetch(parser = pysam.asTuple()).next()
+
+    n_rows = len(row) - 3
+
+    #
+    write_func = process_callback()
+
+    pool = mp.Pool(args.processors)
+
+    i = 1
+
+    for interval in intervals:
+
+        #print(i)
+
+        logp = np.zeros((n_rows, len(interval)))
+
+        for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
+            j = int(row[1]) - interval.start
+            logp[:,j] = np.array(row[3:], dtype = np.float64)
+        
+        #logp[np.isnan(logp)] = 0.0
+
+        pool.apply_async(process_func, (logp, interval, args.filter_width, args.mi_cutoff, args.min_contig_bases,), callback = write_func)
+
+        while pool._taskqueue.qsize() > 1000:
+            pass
+
+        #print(process_func(logp, interval, args.filter_width, args.mi_cutoff, args.min_contig_bases), end = "")
+
+        i+=1
+
+    pool.close()
+    pool.join()
+
+    tabix.close()
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

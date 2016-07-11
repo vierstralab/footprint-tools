@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2015 Jeff Vierstra
+# Copyright 2015-2016 Jeff Vierstra
 
 set -e -o pipefail
 
@@ -22,7 +22,7 @@ echo $bam_file
 echo $interval_file
 echo $output_dir
 
-chunksize=1000
+chunksize=10000
 
 # FPR thresholds to call footprints
 fps_thresh=(0.2 0.1 0.05 0.01)
@@ -55,12 +55,12 @@ zcat -f ${interval_file} > \${TMPDIR}/intervals.bed
 cat \${TMPDIR}/intervals.bed | random-lines --seed=1 --num=10000 --max=\`wc -l < \${TMPDIR}/intervals.bed\` > \${TMPDIR}/intervals.sampled.bed
 
 ftd-learn-dispersion-model \
-	--bm ${bias_model_file} --half_win_width 5 \
+	--bm ${bias_model_file} --half-win-width 5 \
 	--processors \${SLURM_CPUS_PER_TASK} \
 	${bam_file} ${fasta_file} \${TMPDIR}/intervals.sampled.bed \
 > ${output_dir}/dm.json
 
-rm -rf ${TMPDIR}
+rm -rf \${TMPDIR}
 __SCRIPT__
 
 ###
@@ -68,6 +68,8 @@ __SCRIPT__
 JOB0=$(sbatch --export=ALL \
 	--job-name=${prefix}.learn_dm \
 	${output_dir}/slurm.learn_dispersion_model)
+
+echo $JOB0
 
 ###
 
@@ -83,9 +85,9 @@ set -e -o pipefail
 INPUT_FILES=(\`cat ${output_dir}/slurm.compute_deviation_chunk.params | head -n \${SLURM_ARRAY_TASK_ID} | tail -n 1\`)
 
 ftd-compute-deviation \
-	--bm ${bias_model_file} --half_win_width 5 \
-	--smooth_half_win_width 50 --smooth_clip 0.01 \
-	--dm ${output_dir}/dm.json --fdr_shuffle_n 50 \
+	--bm ${bias_model_file} --half-win-width 5 \
+	--smooth-half-win-width 50 --smooth-clip 0.01 \
+	--dm ${output_dir}/dm.json --fdr-shuffle-n 50 \
 	--processors \${SLURM_CPUS_PER_TASK} \
 	${bam_file} ${fasta_file} \${INPUT_FILES[0]} \
 | sort --buffer-size=8G -k1,1 -k2,2n > \${INPUT_FILES[0]}.out
@@ -97,10 +99,12 @@ zcat -f ${interval_file} | split -l ${chunksize} -a 4 -d - ${output_dir}/interva
 ls ${output_dir}/interval.* > ${output_dir}/slurm.compute_deviation_chunk.params
 
 JOB1=$(sbatch --export=ALL \
-	--job-name$=${prefix}.compute_deviation \
+	--job-name=${prefix}.compute_deviation \
 	--array=1-$(wc -l < ${output_dir}/slurm.compute_deviation_chunk.params) \
-	--depend=afterok:${JOB0##*}\
+	--depend=afterok:${JOB0##* }\
 	${output_dir}/slurm.compute_deviation_chunk)
+
+echo $JOB1
 
 ###
 
@@ -108,71 +112,89 @@ cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_merge_sort
 #!/bin/bash
 #
 #SBATCH --output=${output_dir}/logs/%J.out
-#SBATCH --mem=8G
+#SBATCH --mem=32G
+#SBATCH --cpus-per-task=1
 
 set -e -o pipefail
 
 INPUT_FILES=(\`cat ${output_dir}/slurm.compute_deviation_chunk.params\`)
 OUTPUT_FILES=("\${INPUT_FILES[@]/%/.out}")
 
-sort -k1,1 -k2,2n -S 8G -m \${OUTPUT_FILES[@]} > ${output_dir}/interval.all.bedgraph
-
-rm -f \${INPUT_FILES[@]} \${OUTPUT_FILES[@]}
+sort -k1,1 -k2,2n -S 32G -m \${OUTPUT_FILES[@]} > ${output_dir}/interval.all.bedgraph
 __SCRIPT__
 
 ###
 
 JOB2=$(sbatch --export=ALL \
 	--job-name=${prefix}.merge_sort \
-	--depend=afterok:${JOB1##*} \
+	--depend=afterok:${JOB1##* } \
 	${output_dir}/slurm.compute_deviation_merge_sort)
 
-exit;
+echo $JOB2
 
 ###
 
-cat <<__SCRIPT__ > ${output_dir}/sge.compute_deviation_working_tracks
+cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_working_tracks
 #!/bin/bash
-#$ -e ${output_dir}/logs/\$JOB_NAME.err
-#$ -o ${output_dir}/logs/\$JOB_NAME.out
+#
+#SBATCH --output=${output_dir}/logs/%J.out
+#SBATCH --mem=32G
+#SBATCH --cpus-per-task=1
 
 set -e -o pipefail
 
-BUFFER_SIZE="\$(echo "${mem_per_slot}*\${NSLOTS}" | bc)G"
+TMPDIR=/tmp/\$SLURM_JOB_ID
+mkdir -p \${TMPDIR}
 
-sort-bed --tmpdir \${TMPDIR} --max-mem \${BUFFER_SIZE} ${output_dir}/interval.all.bedgraph | starch - > ${output_dir}/interval.all.bedgraph.starch
+sort-bed --tmpdir \${TMPDIR} --max-mem 32G ${output_dir}/interval.all.bedgraph | starch - > ${output_dir}/interval.all.bedgraph.starch
 
 bgzip -c ${output_dir}/interval.all.bedgraph > ${output_dir}/interval.all.bedgraph.gz
 tabix -0 -p bed ${output_dir}/interval.all.bedgraph.gz
+
+rm -rf \${TMPDIR}
 __SCRIPT__
 
 
-cat <<__SCRIPT__ > ${output_dir}/sge.compute_deviation_footprints
+cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_footprints
 #!/bin/bash
+#
+#SBATCH --output=${output_dir}/logs/%J.out
+#SBATCH --mem=8G
+#SBATCH --cpus-per-task=1
 
 set -e -o pipefail
 
+TMPDIR=/tmp/\$SLURM_JOB_ID
+mkdir -p \${TMPDIR}
+
 thresholds=(${fps_thresh[@]})
-thresh=\${thresholds[\${SGE_TASK_ID}-1]}
+thresh=\${thresholds[\${SLURM_ARRAY_TASK_ID}-1]}
 
 cat ${output_dir}/interval.all.bedgraph \
 	| awk -v OFS="\t" -v thresh="\${thresh}" '\$8 <= thresh { print \$1, \$2-3, \$3+3; }' \
-	| sort-bed --tmpdir \${TMPDIR} --max-mem ${mem_per_slot}G - \
+	| sort-bed --tmpdir \${TMPDIR} --max-mem 8G - \
 	| bedops -m - \
 	| awk -v OFS="\t" -v thresh="\${thresh}" '{ \$4="."; \$5=thresh; print; }' \
 > ${output_dir}/interval.all.fps.\${thresh}.bed
 
 bgzip -c ${output_dir}/interval.all.fps.\${thresh}.bed > ${output_dir}/interval.all.fps.\${thresh}.bed.gz
 tabix -0 -p bed ${output_dir}/interval.all.fps.\${thresh}.bed.gz
+
+rm -rf \${TMPDIR}
 __SCRIPT__
 
 
-cat <<__SCRIPT__ > ${output_dir}/sge.compute_deviation_browser_tracks
+cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_browser_tracks
 #!/bin/bash
-#$ -e ${output_dir}/logs/\$JOB_NAME.err
-#$ -o ${output_dir}/logs/\$JOB_NAME.out
+#
+#SBATCH --output=${output_dir}/logs/%J.out
+#SBATCH --mem=8G
+#SBATCH --cpus-per-task=1
 
 set -e -o pipefail
+
+TMPDIR=/tmp/\$SLURM_JOB_ID
+mkdir -p \${TMPDIR}
 
 cut -f1-3,4 ${output_dir}/interval.all.bedgraph | awk '\$4 > 0 { print; }' > \${TMPDIR}/interval.all.exp.bedgraph
 bedGraphToBigWig \${TMPDIR}/interval.all.exp.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.exp.bw
@@ -188,33 +210,53 @@ bedGraphToBigWig \${TMPDIR}/interval.all.winlnpval.bedgraph ${chrom_sizes_file} 
 
 cut -f1-3,8 ${output_dir}/interval.all.bedgraph > \${TMPDIR}/interval.all.fpr.bedgraph
 bedGraphToBigWig \${TMPDIR}/interval.all.fpr.bedgraph ${chrom_sizes_file} ${output_dir}/interval.all.fpr.bw
+
+rm -rf \${TMPDIR}
 __SCRIPT__
 
-cat <<__SCRIPT__ > ${output_dir}/sge.compute_deviation_cleanup
+cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_cleanup
 #!/bin/bash
+#
+#SBATCH --output=${output_dir}/logs/%J.out
+#SBATCH --cpus-per-task=1
 
 set -e -o pipefail
+
+INPUT_FILES=(\`cat ${output_dir}/slurm.compute_deviation_chunk.params\`)
+OUTPUT_FILES=("\${INPUT_FILES[@]/%/.out}")
+
+rm -f \${INPUT_FILES[@]} \${OUTPUT_FILES[@]}
 
 rm -f ${output_dir}/interval.all.bedgraph
 __SCRIPT__
 
-qsub -V -pe threads 2 \
-	-N ${prefix}.compute_deviation_working_tracks \
-	-hold_jid ${prefix}.compute_deviation_merge_sort \
-	-S /bin/bash ${output_dir}/sge.compute_deviation_working_tracks
+###
 
-qsub -V \
-	-N ${prefix}.compute_deviation_footprints -t 1-${#fps_thresh[@]} \
-	-hold_jid ${prefix}.compute_deviation_merge_sort \
-	-S /bin/bash ${output_dir}/sge.compute_deviation_footprints
+JOB3=$(sbatch --export=ALL \
+	--job-name=${prefix}.working_tracks \
+	--depend=afterok:${JOB2##* } \
+	${output_dir}/slurm.compute_deviation_working_tracks)
 
-qsub -V \
-	-N ${prefix}.compute_deviation_browser_tracks \
-	-hold_jid ${prefix}.compute_deviation_merge_sort \
-	-S /bin/bash ${output_dir}/sge.compute_deviation_browser_tracks
+echo $JOB3
 
-qsub -V \
-	-N ${prefix}.compute_deviation_cleanup \
-	-hold_jid ${prefix}.compute_deviation_working_tracks,${prefix}.compute_deviation_footprints,${output_dir}/sge.compute_deviation_browser_tracks \
-	-S /bin/bash ${output_dir}/sge.compute_deviation_cleanup
+JOB4=$(sbatch --export=ALL \
+	--job-name=${prefix}.footprints \
+	--array=1-${#fps_thresh[@]} \
+	--depend=afterok:${JOB2##* } \
+	${output_dir}/slurm.compute_deviation_footprints)
 
+echo $JOB4
+
+JOB5=$(sbatch --export=ALL \
+	--job-name=${prefix}.browser_tracks \
+	--depend=afterok:${JOB2##* } \
+	${output_dir}/slurm.compute_deviation_browser_tracks)
+
+echo $JOB5
+
+JOB6=$(sbatch --export=ALL \
+	--job-name=${prefix}.cleanup \
+	--depend=afterok:${JOB3##* }:${JOB4##* }:${JOB5##* } \
+	${output_dir}/slurm.compute_deviation_cleanup)
+
+echo $JOB6

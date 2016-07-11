@@ -56,16 +56,26 @@ def parse_options(args):
                         " argument is not provided the model defaults to uniform sequence"
                         " bias.")
 
-    grp_bm.add_argument("--half_win_width", metavar = "N", type = int, default = 5,
+    grp_bm.add_argument("--half-win-width", metavar = "N", type = int, default = 5,
                         help = "Half window width to apply bias model."
                         " (default: %(default)s)")
 
     grp_ot = parser.add_argument_group("other options")
 
+    grp_ot.add_argument("--remove-dups", action = "store_true",
+                        dest = "remove_dups", help = "Remove duplicate reads from analysis"
+                        " (SAM flag -- 1024)")
+
+    grp_ot.add_argument("--bam-offset", metavar = "N", type = int,
+                        dest = "offset", default = 0,
+                        help = "BAM file offset (support for legacy BAM/SAM format)"
+                        " (default: %(default)s)")
+
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count(),
                         help = "Number of processors to use."
                         " (default: all available processors)")
+
 
     return parser.parse_args(args)
 
@@ -100,8 +110,8 @@ def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
 
-	reads = cutcounts.bamfile(args.bam_file)
-	fasta = pyfaidx.Fasta(args.fasta_file)
+    reads = cutcounts.bamfile(args.bam_file, remove_dups = args.remove_dups, offset = args.bam_offset)
+	fasta = pyfaidx.Fasta(args.fasta_file, one_based_attributes = False, sequence_always_upper = True)
 	intervals = bed.bed3_iterator(open(args.interval_file))
 
 	size = (200, 1000)
