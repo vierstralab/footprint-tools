@@ -13,6 +13,8 @@ import scipy.stats
 def emperical_fdr(pvals_null, pvals):
 	"""
 	"""
+
+	''' DEPRECATED
 	sorted_pvals_null = np.sort(pvals_null, axis = 0)
 	sorted_pvals_idx = np.argsort(pvals)
 
@@ -23,6 +25,15 @@ def emperical_fdr(pvals_null, pvals):
 	
 	false_positive_rates[false_positive_rates > 1] = 1
 
+	return false_positive_rates[np.argsort(sorted_pvals_idx)]
+	'''
+
+	sorted_pvals_null = np.sort(np.ravel(pvals_null))
+	sorted_pvals_idx = np.argsort(pvals)
+
+	counts = bisect(sorted_pvals_null, pvals[sorted_pvals_idx])
+	false_positive_rates = counts / len(sorted_pvals_null)
+	false_positive_rates[false_positive_rates > 1] = 1
 	return false_positive_rates[np.argsort(sorted_pvals_idx)]
 
 # Not sure if Storey FDR is best (appears to be too conservative)

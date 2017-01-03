@@ -72,7 +72,7 @@ cdef class dispersion_model:
 		"""
 
 		cdef double res = self._mu_params_a + self._mu_params_b * x
-		return res
+		return res if res > 0.0 else 0.0
 
 	cpdef r(self, data_type_t x):
 		"""Computes the dispersion term for the negative binomial.
@@ -84,7 +84,7 @@ cdef class dispersion_model:
 		"""
 
 		cdef double res = 1.0 / (self._r_params_a + self._r_params_b * x)
-		return res
+		return res if res > 0.0 else 1e-6
 
 	def __str__(self):
 		"""Print model to string"""
@@ -133,7 +133,9 @@ cdef class dispersion_model:
 		cdef data_type_t r, mu, k
 
 		cdef long [:] vals
-		cdef data_type_t [:,:] res = np.ones((n, times), dtype = np.float64, order = 'c')
+
+		cdef data_type_t [:,:] res_pvals = np.ones((n, times), dtype = np.float64, order = 'c')
+		cdef long [:,:] res_vals = np.zeros((n, times), dtype = np.int_, order = 'c')
 
 		for i in range(n):
 			r = self.r(x[i])
@@ -142,9 +144,10 @@ cdef class dispersion_model:
 			vals = np.random.negative_binomial(r, r/(r+mu), times)
 			
 			for j in range(times):
-				res[i, j] = nbinom.cdf(<int>vals[j], r/(r+mu), r)
+				res_pvals[i, j] = nbinom.cdf(<int>vals[j], r/(r+mu), r)
+				res_vals[i, j] = vals[j]
 
-		return res
+		return res_vals, res_pvals
 
 def learn_dispersion_model(h, cutoff = 100, trim = [2.5, 97.5]):
 	"""Learn a dispersion model from the

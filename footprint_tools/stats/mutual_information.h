@@ -96,4 +96,77 @@ int pairwise_mutual_information(int* mat, int nx, int ny, double *result)
 	return 0;
 }
 
+double pairwise_mutual_information_0(int* x, int* y, int n)
+{
+
+	//histograms
+	size_t n_bins = 4;
+	double *hx, *hy, *hxy;
+	
+	hx = (double*) calloc(n_bins, sizeof(double));
+	hy = (double*) calloc(n_bins, sizeof(double));
+	hxy = (double*) calloc(n_bins * n_bins, sizeof(double));
+
+	int i, j, xi, yi;
+
+	//clear histogram
+	for(i = 0; i < n_bins*n_bins; i++)
+	{
+		if(i < n_bins)
+		{
+			hx[i] = hy[i] = 0.0;
+		}
+		hxy[i] = 0.0;
+	}
+
+	// for "row", assign to respective histogram bins
+
+	//fprintf(stderr, "%d\n", nx);
+
+	for(j = 0; j < n; j++)
+	{
+		xi = x[j];
+		yi = y[j];
+
+		hx[xi] += 1.0;
+		hy[yi] += 1.0;
+		hxy[(xi * n_bins) + yi] += 1.0;
+	}
+
+	double px, py, pxy, pmi, mi = 0.0;
+
+	for(i = 0; i < n_bins; i++)
+	{
+		for(j = 0; j < n_bins; j++)
+		{
+			px = hx[i] / (double)n;
+			py = hy[j] / (double)n;
+			pxy = hxy[(j * n_bins) + i] / (double)n;
+
+			fprintf(stderr, "%d\t%d", xi, yi);
+			fprintf(stderr, "\t%0.4f\t%0.4f\t%0.4f", px, py, pxy);
+
+			if(px > 0 && py > 0 && pxy > 0)
+			{
+				pmi = pxy * c_log(pxy/(px*py));
+				fprintf(stderr, "\t%0.4f\n", pmi);
+
+				mi += pmi;
+			}
+			fprintf(stderr, "\n");
+
+			//fprintf(stderr, "%0.2f\t", hxy[(xi * n_bins) + yi]);
+		}
+		//fprintf(stderr, "\n");
+	}
+
+	
+	free(hx);
+	free(hy);
+	free(hxy);
+
+	return mi;
+}
+
+
 #endif

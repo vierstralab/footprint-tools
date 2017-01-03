@@ -110,7 +110,7 @@ def parse_options(args):
                         " (SAM flag -- 1024)")
 
     grp_ot.add_argument("--bam-offset", metavar = "N", type = int,
-                        dest = "offset", default = 0,
+                        dest = "bam_offset", default = 0,
                         help = "BAM file offset (support for legacy BAM/SAM format)"
                         " (default: %(default)s)")
 
@@ -136,7 +136,7 @@ def process_func(pred, dm, fdr_shuffle_n):
             win_pvals_func = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
 
             pvals = dm.p_values(exp, obs)
-            pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
+            counts_null, pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
 
             win_pvals = win_pvals_func(pvals)
             

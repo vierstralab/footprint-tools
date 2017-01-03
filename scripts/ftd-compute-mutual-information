@@ -52,6 +52,11 @@ def parse_options(args):
                         help = "Only output regions containing this amount of contiguous signal"
                         " (default: %(default)s)")
 
+    grp_st.add_argument("--max-interval-width", metavar = "N", type = int,
+                        dest = "max_interval_width", default = 10000,
+                        help = "Only compute MI for regions containing less than or equal to this width"
+                        " (default: %(default)s)")
+
     grp_ot = parser.add_argument_group("other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
@@ -108,10 +113,10 @@ def process_func(logp, interval, filter_width = 3, mi_cutoff = 0.2, min_contig_b
         #    score = -100
         #    col = "0,0,255"
 
-        score = 100
+        score = np.max(M[x0:x1, y0:y1])
         col = "0,0,255"
 
-        res += "%s\t%d\t%d\t.\t%d\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, score, interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
+        res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, score, interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
 
     return res
 
@@ -147,7 +152,9 @@ def main(argv = sys.argv[1:]):
 
     for interval in intervals:
 
-        #print(i)
+        if len(interval) > args.max_interval_width:
+            print("Warning: %s too large to process!" % str(interval), file = sys.stderr)
+            continue
 
         logp = np.zeros((n_rows, len(interval)))
 

@@ -67,7 +67,7 @@ def parse_options(args):
                         " (SAM flag -- 1024)")
 
     grp_ot.add_argument("--bam-offset", metavar = "N", type = int,
-                        dest = "offset", default = 0,
+                        dest = "bam_offset", default = 0,
                         help = "BAM file offset (support for legacy BAM/SAM format)"
                         " (default: %(default)s)")
 
@@ -110,7 +110,7 @@ def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
 
-    reads = cutcounts.bamfile(args.bam_file, remove_dups = args.remove_dups, offset = args.bam_offset)
+	reads = cutcounts.bamfile(args.bam_file, remove_dups = args.remove_dups, offset = args.bam_offset)
 	fasta = pyfaidx.Fasta(args.fasta_file, one_based_attributes = False, sequence_always_upper = True)
 	intervals = bed.bed3_iterator(open(args.interval_file))
 
@@ -142,4 +142,4 @@ def main(argv = sys.argv[1:]):
 	return 0
 
 if __name__ == "__main__":
-    sys.exit(main())
+	sys.exit(main())
