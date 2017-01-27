@@ -19,7 +19,6 @@ from genome_tools import bed, genomic_interval
 
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment
-from footprint_tools.stats.fdr import bh_qvalue
 
 def parse_options(args):
 
@@ -32,11 +31,6 @@ def parse_options(args):
                         help = "File path to BED file")
 
     grp_st = parser.add_argument_group("statistical options")
-
-    grp_st.add_argument("--beta-priors-file", metavar = "BETA_PRIOR_FILE", type = str,
-                        dest = "beta_priors_file", default = None,
-                        help = "Path to file containing the parameters for the genome-wide"
-                        " beta prior (calculated with 'ftd-learn-beta-prior'")
 
     grp_st.add_argument("--fdr-cutoff", metavar = "N", type = float,
                         dest = "fdr_cutoff", default = 0.05,
@@ -164,8 +158,8 @@ def write_func(inq, n_datasets, n_intervals, filehandle):
         # To keep the filesize down, only output bases that reach a certain threshold, plus some buffer
         mask = np.zeros(L)
         for i in np.where(np.max(post, axis = 0) >= thresh)[0]:
-            s = i-padding if i-padding > 0 else 0
-            e = i+padding if i+padding < L else L
+            s = (i - padding) if (i - padding) > 0 else 0
+            e = (i + padding) if (i + padding) < L else L
             mask[s:e] = 1
 
         out = ""
@@ -176,8 +170,9 @@ def write_func(inq, n_datasets, n_intervals, filehandle):
 def read_metadata_file(filename):
 
     ids = []
-    tabix_files = []
     dm_files = []
+    tabix_files = []
+    bp_files = []
 
     with open(filename) as f:  
         for line in f:
@@ -185,45 +180,51 @@ def read_metadata_file(filename):
             if line[0] == "#":
                 continue
 
-            (i, t, d) = line.strip().split("\t")
+            #TODO: add try statement
+            (i, d, t, b) = line.strip().split("\t")
+
             ids.append(i)
-            tabix_files.append(t)
             dm_files.append(d)
+            tabix_files.append(t)
+            bp_files.append(b if b != "!" else None)            
 
-    return (ids, tabix_files, dm_files)
-
-def read_beta_priors_file(filename):
-
-    beta_priors = []
-
-    with open(filename) as f:
-        for line in f:
-            params = line.strip().split('\t')
-            beta_priors.append(params)
-
-    return np.array(beta_priors, dtype = np.float64)
+    return (ids, dm_files, tabix_files, bp_files)
 
 def main(argv = sys.argv[1:]):
 
     args = parse_options(argv)
 
-    (ids, tabix_files, disp_model_files) = read_metadata_file(args.metadata_file)
+    (ids, disp_model_files, tabix_files, beta_prior_files) = read_metadata_file(args.metadata_file)
 
     n_datasets = len(ids)
 
-    # Check to make sure TABIX files exist
-    for file in tabix_files:
-        if not os.path.exists(file):
-            print("Fatal error: TABIX-file %s does not exists!" % file, file = sys.stderr)
+    disp_models = []
+    beta_priors = np.ones((n_datasets, 2))
 
-    # Load dispersion models
-    disp_models = [dispersion.read_dispersion_model(f) for f in disp_model_files]
+    # Load and parse input files
+    for i in range(n_datasets):
 
-    # Load beta priors, else set them to one
-    if args.beta_priors_file:
-        beta_priors = read_beta_priors_file(args.beta_priors_file)
-    else:
-        beta_priors = np.ones((n_datasets, 2))
+         # Check to make sure that all input files exist
+        if not os.path.exists(tabix_files[i]):
+            print("Fatal error: TABIX-file %s does not exists!" % tabix_files[i], file = sys.stderr)
+            sys.exit(1)
+
+        # Load dispersion model
+        if not os.path.exists(disp_model_files[i]):
+            print("Fatal error: Dispersion model file %s does not exists!" % disp_model_files[i], file = sys.stderr)
+            sys.exit(1)
+        else:
+            disp_models.append(dispersion.read_dispersion_model(disp_model_files[i]))
+
+        # Load the priors file
+        if beta_prior_files[i]:
+            if not os.path.exists(beta_prior_files[i]):
+                print("Fatal error: Beta-prior file %s does not exists!" % beta_prior_files[i], file = sys.stderr)
+                sys.exit(1)
+            else:
+                with open(beta_prior_files[i], 'r') as f:
+                    params = f.readline().strip().split('\t')
+                    beta_priors[i,:] = np.array(params, dtype = np.float64)
 
     # Load intervals file
     intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))

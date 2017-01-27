@@ -83,17 +83,21 @@ int code;
  * which is supposed to be the name of the
  * function in which the error occurred:
  */
-fprintf(stderr, "\n%s ", name );
+
+// JDV: comment out to reduce stderr 'noise'
+//fprintf(stderr, "\n%s ", name );
 
 /* Set global error message word */
-merror = code;
+//merror = code;
 
 /* Display error message defined
  * by the code argument.
  */
 if( (code <= 0) || (code >= 7) )
 	code = 0;
-fprintf(stderr, "%s error\n", ermsg[code] );
+
+// JDV: comment out to reduce stderr 'noise'
+//fprintf(stderr, "%s error\n", ermsg[code] );
 
 /* Return to calling
  * program

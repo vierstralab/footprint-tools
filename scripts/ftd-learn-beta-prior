@@ -53,7 +53,6 @@ def compute_beta_prior(filename, fdr_cutoff, exp_cutoff):
 
 	ratios = []
 
-	i = 0
 	for row in handle.fetch(parser = pysam.asTuple()):
 
 		exp = np.float64(row[3])
@@ -62,10 +61,6 @@ def compute_beta_prior(filename, fdr_cutoff, exp_cutoff):
 
 		if fdr <= fdr_cutoff and exp >= exp_cutoff:
 			ratios.append( (obs+1)/(exp+1) )
-			i = i + 1
-
-		if i > 10000:
-			break
 
 	handle.close()
 
