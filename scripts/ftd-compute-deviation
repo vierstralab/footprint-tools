@@ -39,6 +39,14 @@ class dispersion_model_action(Action):
         except IOError, e:
              raise ArgumentError(self, str(e))
 
+def paired_ints(arg):
+    try:
+        fw, rev = map(int, arg.split(','))
+        return (fw, rev)
+    except:
+        raise ArgumentTypeError("Offset argument must be a in the format of int,int")
+
+
 # TODO: implement
 # class list_parse_action(Action):
 #    def __call__(self, parser, namespace, values, option_string = None):
@@ -109,8 +117,8 @@ def parse_options(args):
                         dest = "remove_dups", help = "Remove duplicate reads from analysis"
                         " (SAM flag -- 1024)")
 
-    grp_ot.add_argument("--bam-offset", metavar = "N", type = int,
-                        dest = "bam_offset", default = 0,
+    grp_ot.add_argument("--bam-offset", metavar = "N", type = paired_ints,
+                        dest = "bam_offset", default = (0, 0),
                         help = "BAM file offset (support for legacy BAM/SAM format)"
                         " (default: %(default)s)")
 

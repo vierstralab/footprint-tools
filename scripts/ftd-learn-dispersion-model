@@ -6,7 +6,7 @@ from __future__ import print_function, division
 
 import sys
 
-from argparse import ArgumentParser, Action, ArgumentError
+from argparse import ArgumentParser, Action, ArgumentError, ArgumentTypeError
 
 # import genome_tools
 from genome_tools import bed, genomic_interval 
@@ -32,6 +32,13 @@ class kmer_action(Action):
             setattr(namespace, self.dest, bias.kmer_model(values[0]))
         except IOError, e:
              raise ArgumentError(self, str(e))
+
+def paired_ints(arg):
+	try:
+		fw, rev = map(int, arg.split(','))
+		return (fw, rev)
+	except:
+		raise ArgumentTypeError("Offset argument must be a in the format of int,int")
 
 def parse_options(args):
 
@@ -66,8 +73,8 @@ def parse_options(args):
                         dest = "remove_dups", help = "Remove duplicate reads from analysis"
                         " (SAM flag -- 1024)")
 
-    grp_ot.add_argument("--bam-offset", metavar = "N", type = int,
-                        dest = "bam_offset", default = 0,
+    grp_ot.add_argument("--bam-offset", metavar = "N", type = paired_ints,
+                        dest = "bam_offset", default = (0, 0),
                         help = "BAM file offset (support for legacy BAM/SAM format)"
                         " (default: %(default)s)")
 
@@ -86,11 +93,11 @@ def process_func(pred, size):
 	obs = obs_counts['+'][1:] + obs_counts['-'][:-1]
 	exp = exp_counts['+'][1:] + exp_counts['-'][:-1]
 
-	res = np.zeros(size)
+	res = np.zeros(size, dtype = np.float64)
 
 	for o, e in zip(obs, exp):
 		try:
-			res[e, o] += 1.0
+			res[int(e), int(o)] += 1.0
 		except IndexError:
 			pass
 
