@@ -136,7 +136,7 @@ cdef class dispersion_model:
 		#cdef double res = self._mu_params_a + self._mu_params_b * x
 		cdef double res = self._mu_func(x)
 
-		return res if res > 0.0 else 0.0
+		return res if res > 0.0 else 0.1
 
 	cpdef fit_r(self, data_type_t x):
 		"""Computes the dispersion term for the negative binomial.
@@ -282,7 +282,6 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	#model_mu = sm.WLS(mus[sele], xx[sele], w[sele]).fit()
 	#model_mu = np.polyfit(x[valid], mus[valid], deg = 1, w = w[valid])p0=(2,2,35, 1, 1, 1)
 	
-	
 	x0 = 5
 	y0 = mus[x0]
 	k1 = (y0 - mus[0]) / (x0)
@@ -295,7 +294,12 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	y2 = mus[sele][-1]
 	k3 = (y2 - y1) / (x2 - x1)
 
-	model_mu, e = optimize.curve_fit(piecewise_three, x[sele], mus[sele], p0 = (x0, y0, x1, k1, k2, k3))
+	# Set intial guess and parameter bounds
+	p0 = (x0, y0, x1, k1, k2, k3)
+	l_bound = [0, 0, 0, -np.inf, -np.inf, -np.inf]
+	u_bound = np.inf
+
+	model_mu, e = optimize.curve_fit(piecewise_three, x[sele], mus[sele], p0 = p0, bounds = (l_bound, u_bound))
 
 	# remove non-linear part of r parameters
 	# sele[:10] = False
@@ -303,20 +307,24 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	#model_r = sm.WLS((1/r)[sele], xx[sele], w[sele]).fit()
 	#model_r = np.polyfit(x[valid], 1.0/r[valid], deg = 1, w = w[valid])
 	
-	
-	x0 = 2
-	y0 = r[x0]
-	k1 = (1/y0 - 1/r[0]) / (x0)
+	x0 = 5
+	y0 = 1.0/r[x0]
+	k1 = (y0 - 1/r[0]) / (x0)
 
-	x1 = 5
-	y1 = r[x1]
-	k2 = (1/y1 - 1/y0) / (x1 - x0)
+	x1 = 10
+	y1 = 1.0/r[x1]
+	k2 = (y1 - y0) / (x1 - x0)
 
 	x2 = x[sele][-1]
-	y2 = r[sele][-1]
-	k3 = (1/y2 - 1/y1) / (x2 - x1)
+	y2 = 1.0/r[sele][-1]
+	k3 = (y2 - y1) / (x2 - x1)
 
-	model_r, e = optimize.curve_fit(piecewise_three, x[sele], 1.0/r[sele], p0 = (x0, y0, x1, k1, k2, k3))
+	# Set intial guess and parameter bounds
+	p0 = (x0, y0, x1, k1, k2, k3)
+	l_bound = [0, 0, 0, -np.inf, -np.inf, -np.inf]
+	u_bound = np.inf
+
+	model_r, e = optimize.curve_fit(piecewise_three, x[sele], 1.0/r[sele], p0 = p0, bounds = (l_bound, u_bound))
 
 	# Create a dispersion model class
 	res = dispersion_model()

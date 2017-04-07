@@ -53,41 +53,20 @@ def parse_options(args):
 
     return parser.parse_args(args)
 
-####
-
-def read_interval_data(handles, interval):
-    """ """
-    n = len(handles)
-    l = len(interval)
-
-    obs = np.zeros((n, l), dtype = np.float64)
-    exp = np.zeros((n, l), dtype = np.float64)
-    fdr = np.ones((n, l), dtype = np.float64)
-    w = np.zeros((n, l), dtype = np.float64)
-    
-    i = 0
-    j = 0
-    
-    for tabix in handles:
-
-        try:
-            for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
-                j = int(row[1])-interval.start
-                exp[i, j] = np.float64(row[3])
-                obs[i, j] = np.float64(row[4])
-                fdr[i, j] = np.float64(row[7])
-                w[i, j] = 1
-        except:
-            pass
-
-        i += 1
-
-    return (exp, obs, fdr, w)
 
 def read_func(inq, outq, filenames):
     """Opens file handles to all datasets and reads the data
     """
+
+    #print("Opening TABIX", file = sys.stderr)
+
     handles = [pysam.TabixFile(f) for f in filenames]
+    n = len(handles)
+
+    obs = np.zeros((n, 20000), dtype = np.float64)
+    exp = np.zeros((n, 20000), dtype = np.float64)
+    fdr = np.ones((n, 20000), dtype = np.float64)
+    w = np.zeros((n, 20000), dtype = np.float64)
 
     while 1:
 
@@ -95,9 +74,41 @@ def read_func(inq, outq, filenames):
 
         if interval == None:
             break
+        
+        #print("Reading", file = sys.stderr)
 
-        (exp, obs, fdr, w) = read_interval_data(handles, interval)
+        l = len(interval)
+
+        if l > 20000:
+            next
+
+    	obs[:,:] = 0# = np.zeros((n, l), dtype = np.float64)
+    	exp[:,:] = 0# = np.zeros((n, l), dtype = np.float64)
+    	fdr[:,:] = 1#np.ones((n, l), dtype = np.float64)
+    	w[:,:] = 0# = np.zeros((n, l), dtype = np.float64)
+    
+    	i = 0
+    	j = 0
+    
+    	for tabix in handles:
+
+			try:
+				for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
+					j = int(row[1])-interval.start
+					exp[i, j] = np.float64(row[3])
+					obs[i, j] = np.float64(row[4])
+					fdr[i, j] = np.float64(row[7])
+					w[i, j] = 1
+			except:
+				pass
+
+			i += 1
+        
+        #print("Reading done!", file = sys.stderr)
+
         outq.put( (interval, exp, obs, fdr, w) )
+
+    #print("Close TABIX!", file = sys.stderr)
 
     [handle.close() for handle in handles]
 
@@ -107,63 +118,62 @@ def compute_func(inq, outq, dm, beta_priors, fdr_cutoff, post_cutoff):
     """
     #models = [dispersion.read_dispersion_model(f) for f in filenames]
 
+    #print("Starting processor...", file = sys.stderr)
+
     while 1:
 
         data = inq.get()
 
         if data == None:
             break
-        
+
+        #print("Recieved interval!", file = sys.stderr)
+
+
         (interval, exp, obs, fdr, w) = data
+        l = len(interval)
 
         #prior = bayesian.compute_prior(fpr) # no weights
-    	prior = bayesian.compute_prior_weighted(fdr, w, cutoff = fdr_cutoff)   
+    	prior = bayesian.compute_prior_weighted(fdr[:,:l], w[:,:l], cutoff = fdr_cutoff)   
     
     	#scale = bayesian.compute_delta(obs, exp, fpr, cutoff = 0.01)
-    	scale = bayesian.compute_delta_prior(obs, exp, fdr, beta_priors, cutoff = fdr_cutoff)
+    	scale = bayesian.compute_delta_prior(obs[:,:l], exp[:,:l], fdr[:,:l], beta_priors, cutoff = fdr_cutoff)
 
-    	ll_on = bayesian.log_likelihood(obs, exp, dm, delta = scale, w = 3) 
-    	ll_off = bayesian.log_likelihood(obs, exp, dm, w = 3)
+    	ll_on = bayesian.log_likelihood(obs[:,:l], exp[:,:l], dm, delta = scale, w = 3) 
+    	ll_off = bayesian.log_likelihood(obs[:,:l], exp[:,:l], dm, w = 3)
 
     	# Compute posterior
     	post = -bayesian.posterior(prior, ll_on, ll_off)
         post[post <= 0] = 0.0
 
+        #print("Finshed interval!", file = sys.stderr)
+
         # Throw it into the output queue
         outq.put((interval, post))
 
-
+    #print("Kill processor!", file = sys.stderr)
 
 def write_func(inq, n_datasets, n_intervals, filehandle):
 
-    n = 0
-
     fmtr = ''.join(["\t{:0.4f}"] * (n_datasets))
 
-    thresh = -np.log(0.5)
-    padding = 3
-
-    while n < n_intervals:
-
-        n += 1
+    while 1:
 
         data = inq.get()
 
+        if data == None:
+            break
+
         (interval, post) = data
-        N, L = post.shape
  
         chrom = interval.chrom
         start = interval.start
 
-        # To keep the filesize down, only output bases that reach a certain threshold, plus some buffer
-        mask = np.zeros(L)
-        for i in np.where(np.max(post, axis = 0) >= thresh)[0]:
-            s = (i - padding) if (i - padding) > 0 else 0
-            e = (i + padding) if (i + padding) < L else L
-            mask[s:e] = 1
+        ii = np.where(np.max(post, axis = 0) > 0.0)[0]
 
         out = ""
-        for i in np.where(mask == 1)[0]:
+        #for i in range(L):
+        for i in ii:
             out += "{}\t{:d}\t{:d}\t".format(chrom, start+i, start+i+1) + '\t'.join(["%0.4f" % p for p in post[:,i]]) + '\n'
         print(out, end = '', file = filehandle)
 
@@ -230,8 +240,8 @@ def main(argv = sys.argv[1:]):
     intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
     n_intervals = len(intervals)
 
-    #
-    input_q = mp.Queue()
+
+    input_q = mp.Queue()    
     process_q = mp.Queue()
     output_q = mp.Queue()
 
@@ -239,16 +249,15 @@ def main(argv = sys.argv[1:]):
                     args = (input_q, process_q, tabix_files))
                 for i in range(2)]
 
-    [proc.start() for proc in readers]
-
     processors = [mp.Process(target = compute_func, 
                     args = (process_q, output_q, disp_models, beta_priors, args.fdr_cutoff, -np.log(args.post_cutoff))) 
                 for i in range(4)]
 
-    [proc.start() for proc in processors]   
-
     writer = mp.Process(target = write_func, args = (output_q, n_datasets, n_intervals, sys.stdout))
     writer.start()
+
+    [proc.start() for proc in readers]
+    [proc.start() for proc in processors]
 
     # Write to input queue
     for interval in intervals:
@@ -256,22 +265,15 @@ def main(argv = sys.argv[1:]):
         while input_q.qsize() > 1000:
             pass
 
-    # Wait for the writer to finish
-    writer.join()
-
     # Send a kill signal to the reader processes
     [input_q.put(None) for i in range(2)]
-    input_q.close()
-
     [proc.join() for proc in readers]
 
-    # Send a kill signal to the processing processes
     [process_q.put(None) for i in range(4)]
-    process_q.close()
-
     [proc.join() for proc in processors]
 
-    output_q.close()
+    output_q.put(None)
+    writer.join()
 
     return 0
 
