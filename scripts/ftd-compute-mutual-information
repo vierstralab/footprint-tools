@@ -2,28 +2,28 @@
 
 from __future__ import print_function, division
 
-import sys
-import os, os.path
-import ctypes
+import sys, os, os.path, glob, tempfile, shutil
+import logging
 
 from argparse import ArgumentParser
 
 import multiprocessing as mp
 
-import pysam
-
 import numpy as np
 import scipy.stats
 
-# import genome_tools
-from genome_tools import bed, genomic_interval 
+import pysam
 
-# import footprint_tools
+from genome_tools import bed, genomic_interval 
 from footprint_tools.stats import mutual_information
 
 # 
-from scipy.ndimage.filters import median_filter
+#from scipy.ndimage.filters import median_filter
 from scipy.ndimage.measurements import label, find_objects
+
+
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logger = logging.getLogger(__name__)
 
 
 def parse_options(args):
@@ -38,24 +38,24 @@ def parse_options(args):
 
     grp_st = parser.add_argument_group("statistical options")
 
-    grp_st.add_argument("--filter-width", metavar = "FILTER_WIDTH", type = int,
-                        dest = "filter_width", default = 3,
-                        help = "Width of filter to smooth mutual information score matrix")
+    #grp_st.add_argument("--filter-width", metavar = "FILTER_WIDTH", type = int,
+    #                    dest = "filter_width", default = 3,
+    #                    help = "Width of filter to smooth mutual information score matrix")
 
     grp_st.add_argument("--mi-cutoff", metavar = "N", type = float,
-                        dest = "mi_cutoff", default = 0.2,
+                        dest = "mi_cutoff", default = 0.1,
                         help = "Only consider nucleotides with FDR <= this value."
                         " (default: %(default)s)")
 
     grp_st.add_argument("--min-contig-bases", metavar = "N", type = int,
-                        dest = "min_contig_bases", default = 25,
+                        dest = "min_contig_bases", default = 9,
                         help = "Only output regions containing this amount of contiguous signal"
                         " (default: %(default)s)")
 
-    grp_st.add_argument("--max-interval-width", metavar = "N", type = int,
-                        dest = "max_interval_width", default = 10000,
-                        help = "Only compute MI for regions containing less than or equal to this width"
-                        " (default: %(default)s)")
+    #grp_st.add_argument("--max-interval-width", metavar = "N", type = int,
+    #                    dest = "max_interval_width", default = 25000,
+    #                    help = "Only compute MI for regions containing less than or equal to this width"
+    #                    " (default: %(default)s)")
 
     grp_ot = parser.add_argument_group("other options")
 
@@ -66,59 +66,76 @@ def parse_options(args):
 
     return parser.parse_args(args)
 
-def process_func(logp, interval, filter_width = 3, mi_cutoff = 0.2, min_contig_bases = 25):
+def process_func(queue, outfile, mi_cutoff = 0.1, min_contig_bases = 9):
 
-    p = np.exp(-logp)
-    p[p<=0.0] = 1e-16
-    p[p>1.0] = 1.0
-    p[np.isnan(p)] = 1.0
+    handle = open(outfile, "w")
 
-    # digitize P-value matrix
-    I = np.apply_along_axis(np.digitize, 0, p, bins = [0, 0.25, 0.5, 0.75, 1], right = True) - 1
+    while 1:
 
-    #print(np.min(I), np.max(I))
-    #print(np.min(p), np.max(p))
+        data = queue.get()
 
-    # compute mutual information
-    M = mutual_information.mutual_information(np.array(I, dtype = np.intc, order = 'c'))
+        if data == None:
+            queue.task_done()
+            break
 
-    #compute spearman's rho (only used for colors)
-    #(rho, p_rho) = scipy.stats.spearmanr(I, axis = 0)
+        (interval, logp) = data
 
-    Z = median_filter(M, size = (filter_width, filter_width))
-    labeled_array, num_features = label(Z >= mi_cutoff)
+        p = np.exp(-logp)
+        p[p<=0.0] = 1e-16
+        p[p>1.0] = 1.0
+        p[np.isnan(p)] = 1.0
 
-    res = ""
+        # digitize P-value matrix
+        I = np.apply_along_axis(np.digitize, 0, p, bins = [0, 0.15, 0.85, 1], right = True) - 1
 
-    for o in find_objects(labeled_array):
-       
-        x0 = o[0].start
-        x1 = o[0].stop
-        y0 = o[1].start
-        y1 = o[1].stop
+        #print(np.min(I), np.max(I))
+        #print(np.min(p), np.max(p))
+
+        # compute mutual information
+        M = mutual_information.mutual_information(np.array(I, dtype = np.intc, order = 'c'))
+
+        #compute spearman's rho (only used for colors)
+        #(rho, p_rho) = scipy.stats.spearmanr(I, axis = 0)
+
+        #Z = median_filter(M, size = (filter_width, filter_width))
         
-        wa = x1-x0
-        wb = y1-y0
-        
-        if x0 >= y0:
-            continue
+	labeled_array, num_features = label(M >= mi_cutoff)
 
-        if wa*wb < min_contig_bases:
-            continue
+        res = ""
 
-        #if np.median(rho[x0:x1,y0:y1]) > 0:
-        #    score = 100
-        #    col = "255,0,0"
-        #else:
-        #    score = -100
-        #    col = "0,0,255"
+        for o in find_objects(labeled_array):
+           
+            x0 = o[0].start
+            x1 = o[0].stop
+            y0 = o[1].start
+            y1 = o[1].stop
+            
+            wa = x1-x0
+            wb = y1-y0
+            
+            if x0 >= y0:
+                continue
 
-        score = np.max(M[x0:x1, y0:y1])
-        col = "0,0,255"
+            if wa*wb < min_contig_bases:
+                continue
 
-        res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, score, interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
+            #if np.median(rho[x0:x1,y0:y1]) > 0:
+            #    score = 100
+            #    col = "255,0,0"
+            #else:
+            #    score = -100
+            #    col = "0,0,255"
 
-    return res
+            score = np.max(M[x0:x1, y0:y1])
+            col = "0,0,255"
+
+            res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, score, interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
+
+        print(res, file = handle, end = "")
+
+        queue.task_done()
+
+    handle.close()
 
 class process_callback(object):
 
@@ -136,46 +153,60 @@ def main(argv = sys.argv[1:]):
 
     # Load intervals file
     intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
+    n_intervals = len(intervals)
 
     # Read dimensions
-    tabix = pysam.TabixFile(args.posterior_file)
-    row = tabix.fetch(parser = pysam.asTuple()).next()
-
-    n_rows = len(row) - 3
+    tabix_handle = pysam.TabixFile(args.posterior_file)
+    row = tabix_handle.fetch(parser = pysam.asTuple()).next()
+    n_datasets = len(row) - 3
 
     #
-    write_func = process_callback()
+    tmpdir = tempfile.mkdtemp()
+    chunk_files = [os.path.join(tmpdir, "chunk%s" % i) for i in range(args.processors-1)]
 
-    pool = mp.Pool(args.processors)
+    q = mp.JoinableQueue()
 
-    i = 1
+    processors = [ mp.Process(target = process_func, args = (q, f, args.mi_cutoff, args.min_contig_bases)) for f in chunk_files ]
+    [processor.start() for processor in processors]
+
+    logger.info("Working (%d threads; chunked results in %s)" % (len(chunk_files), tmpdir))
 
     for interval in intervals:
 
-        if len(interval) > args.max_interval_width:
-            print("Warning: %s too large to process!" % str(interval), file = sys.stderr)
-            continue
+        l = len(interval)
 
-        logp = np.zeros((n_rows, len(interval)))
+        ln_p = np.zeros((n_datasets, l), dtype = np.float64)
 
-        for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
-            j = int(row[1]) - interval.start
-            logp[:,j] = np.array(row[3:], dtype = np.float64)
-        
-        #logp[np.isnan(logp)] = 0.0
+        try:
+            for row in tabix_handle.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
+                j = int(row[1]) - interval.start
+                ln_p[:,j] = np.array(row[3:], dtype = np.float64)
+            q.put((interval, ln_p))
+        except:
+            pass    
 
-        pool.apply_async(process_func, (logp, interval, args.filter_width, args.mi_cutoff, args.min_contig_bases,), callback = write_func)
-
-        while pool._taskqueue.qsize() > 1000:
+        while q.qsize() > 500:
             pass
 
-        #print(process_func(logp, interval, args.filter_width, args.mi_cutoff, args.min_contig_bases), end = "")
+    logger.info("Finishing up final processing...")
 
-        i+=1
+    q.join() # Wait for queue to unblock
+    [q.put(None) for i in range(len(chunk_files))] # sends a return command to processing threads
+    [processor.join() for processor in processors] # wait for threads to stop
+ 
+    logger.info("Merging data...")
 
-    pool.close()
-    pool.join()
+    for file in chunk_files: 
+        with open(file, 'r') as handle:
+            for line in handle:
+                sys.stdout.write(line)
 
+    logger.info("Cleaning up...")
+
+    tabix_handle.close()
+    shutil.rmtree(tmpdir)
+
+    return 0
     tabix.close()
 
     return 0
