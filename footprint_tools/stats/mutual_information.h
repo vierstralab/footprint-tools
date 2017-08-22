@@ -2,18 +2,32 @@
 #define __MUTUAL_INFORMATION_H__
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "cephes.h"
 
+#include "kdtree.h"
+
 extern double c_log( double );
 
-int pairwise_mutual_information(int* mat, int nx, int ny, double *result)
+
+
+/*
+a, b, c are offset values to switch from a 2d to a 3d array
+
+a*i + b*i + c
+
+2D: a = N2, b = 1, c = 0 -> N2*i + i + 0
+3D: a = N3*N2, b = N2, c = n3 -> N3*N2*i + N3*j + n3 
+
+*/
+int pairwise_mutual_information(double* mat, int nx, int ny, int n_bins, double *result, int a, int b, int c)
 {
 	//
-	int i, j, k;
+	int i, j, k, offset;
 
 	//histograms
-	size_t n_bins = 4;
+	//size_t n_bins = 4;
 
 	double *hx, *hy, *hxy;
 	hx = (double*) calloc(n_bins, sizeof(double));
@@ -37,7 +51,7 @@ int pairwise_mutual_information(int* mat, int nx, int ny, double *result)
 	for(i = 0; i < ny; i++)
 	{
 
-		for(j = 0; j < ny; j++)
+		for(j = i+1; j < ny; j++)
 		{
 			//fprintf(stderr, "Cols: %i\t%i\n", i, j );
 
@@ -80,7 +94,9 @@ int pairwise_mutual_information(int* mat, int nx, int ny, double *result)
 
 					if(pxy > 0 && px > 0 && py > 0)
 					{
-						result[(i * ny) + j] += pxy * c_log((pxy)/(px*py)) ;
+						offset = (a*i) + (b*j) + c;
+						result[offset] += pxy * c_log((pxy)/(px*py));
+						//result[(i * ny) + j] += pxy * c_log((pxy)/(px*py)) ;
 					}
 				}
 				//fprintf(stderr, "\n");
@@ -96,76 +112,135 @@ int pairwise_mutual_information(int* mat, int nx, int ny, double *result)
 	return 0;
 }
 
-double pairwise_mutual_information_0(int* x, int* y, int n)
+static int rand_int(int n)
+{
+	int limit = RAND_MAX - RAND_MAX % n;
+	int rnd;
+
+	do
+	{
+		rnd = rand();
+	}
+	while(rnd >= limit);
+
+	return rnd % n;
+}
+
+void shuffle_columns_fast(double* mat, int nx, int ny)
 {
 
-	//histograms
-	size_t n_bins = 4;
-	double *hx, *hy, *hxy;
-	
-	hx = (double*) calloc(n_bins, sizeof(double));
-	hy = (double*) calloc(n_bins, sizeof(double));
-	hxy = (double*) calloc(n_bins * n_bins, sizeof(double));
+	int i, j, s, ii, jj, tmp;
 
-	int i, j, xi, yi;
-
-	//clear histogram
-	for(i = 0; i < n_bins*n_bins; i++)
+	for(j=0; j<ny; j++)
 	{
-		if(i < n_bins)
+		for(i=nx-1; i>0; i--)
 		{
-			hx[i] = hy[i] = 0.0;
+			s = rand_int(i+1);
+
+			ii = (i*ny) + j;
+			jj = (s*ny) + j;
+			tmp = mat[jj];
+			mat[jj] = mat[ii];
+			mat[ii] = tmp;
 		}
-		hxy[i] = 0.0;
 	}
 
-	// for "row", assign to respective histogram bins
+	return 0;
+}
 
-	//fprintf(stderr, "%d\n", nx);
 
-	for(j = 0; j < n; j++)
-	{
-		xi = x[j];
-		yi = y[j];
+unsigned int get_msec(void)
+{
+	static struct timeval timeval, first_timeval;
 
-		hx[xi] += 1.0;
-		hy[yi] += 1.0;
-		hxy[(xi * n_bins) + yi] += 1.0;
+	gettimeofday(&timeval, 0);
+
+	if(first_timeval.tv_sec == 0) {
+		first_timeval = timeval;
+		return 0;
 	}
+	return (timeval.tv_sec - first_timeval.tv_sec) * 1000 + (timeval.tv_usec - first_timeval.tv_usec) / 1000;
+}
 
-	double px, py, pxy, pmi, mi = 0.0;
+int pairwise_mutual_information_kraskov(double* mat, int nx, int ny, double *result, int a, int b, int c)
+{
 
-	for(i = 0; i < n_bins; i++)
+
+	int i, j, k;
+
+	void *kd;
+	void **kd_array = (void*) malloc(sizeof(void *) * ny);
+	
+	struct kdres *kd_res;
+
+	double buf_2d[2];
+
+	for(i = 0; i < ny; i++)
 	{
-		for(j = 0; j < n_bins; j++)
+		kd_array[i] = kd_create(1);
+
+		for(k = 0; k < nx; k++)
 		{
-			px = hx[i] / (double)n;
-			py = hy[j] / (double)n;
-			pxy = hxy[(j * n_bins) + i] / (double)n;
+			buf_2d[0] = mat[(k*ny) + i];
+			kd_insert(kd_array[i], buf_2d, 0);
+		}
+	}
 
-			fprintf(stderr, "%d\t%d", xi, yi);
-			fprintf(stderr, "\t%0.4f\t%0.4f\t%0.4f", px, py, pxy);
+	double *dist_vec = (double*)malloc(sizeof(double) * nx);
 
-			if(px > 0 && py > 0 && pxy > 0)
-			{
-				pmi = pxy * c_log(pxy/(px*py));
-				fprintf(stderr, "\t%0.4f\n", pmi);
+	for(i = 0; i < ny; i++)
+	{
+		for(j = i+1; j < ny; j++)
+		{
+			kd = kd_create(2);
 
-				mi += pmi;
+			//build kd-tree
+			for(k = 0; k < nx; k++) {
+				buf_2d[0] = mat[(k*ny) + i];
+				buf_2d[1] = mat[(k*ny) + j];
+				kd_insert(kd, buf_2d, 0);
+
+				fprintf(stderr, "insert: %0.2f, %0.2f\n",buf_2d[0],buf_2d[1] );
 			}
-			fprintf(stderr, "\n");
 
-			//fprintf(stderr, "%0.2f\t", hxy[(xi * n_bins) + yi]);
+			//find n closest points
+			for(k = 0; k < nx; k++) {
+
+				buf_2d[0] = mat[(k*ny) + i];
+				buf_2d[1] = mat[(k*ny) + j];
+
+				fprintf(stderr, "Search: %0.2f, %0.2f\n",buf_2d[0],buf_2d[1] );
+
+				kd_res = kd_nearest_n(kd, buf_2d, 3, RAND_MAX);
+
+				while(!kd_res_end(kd_res))
+				{
+					kd_res_item(kd_res, buf_2d);
+					
+					fprintf(stderr, "-- %0.2f, %0.2f\n",buf_2d[0],buf_2d[1] );
+					
+					kd_res_next(kd_res);
+				}
+
+				kd_res_free(kd_res);
+			}
+
+			kd_free(kd);
 		}
-		//fprintf(stderr, "\n");
 	}
 
-	
-	free(hx);
-	free(hy);
-	free(hxy);
+	free(dist_vec);
 
-	return mi;
+	for(i = 0; i < ny; i++)
+	{
+		kd_free(kd_array[i]);
+	}
+
+	free(kd_array);
+
+
+	return 0;
+
 }
 
 

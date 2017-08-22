@@ -5,31 +5,33 @@
 # cython: nonecheck=False
 
 from ..stats.distributions import nbinom
+
 import numpy as np
-
-cimport numpy as np
-cimport cython
-
-from ..stats.distributions cimport nbinom
-
-ctypedef np.float64_t data_type_t
-
 from scipy import optimize
 
-from functools import partial
+cimport cython
+cimport numpy as np
+from ..stats.distributions cimport nbinom
 
-def piecewise_three(x, x0, y0, x1, k1, k2, k3):
+cpdef data_type_t piecewise_three(data_type_t x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3) nogil:
 
 	# x0,y0 : first breakpoint
 	# x1 : second breakpoint
 	# k1,k2,k3 : 3 slopes.
 
-	y1=y0+ k2*(x1-x0) # for continuity
-
-	return (
-	(x<x0)              *   (y0 + k1*(x-x0))      +
-	((x>=x0) & (x<x1))  *   (y0 + k2*(x-x0))      +
-	(x>=x1)             *   (y1 + k3*(x-x1)))
+	cdef double y1=y0+ k2*(x1-x0) # for continuity
+	
+	if x<x0:
+		return y0 + k1*(x-x0)
+	elif x>=x1:
+		return y1 + k3*(x-x1)
+	else:
+		return y0 + k2*(x-x0)
+	
+	#return (
+	#(x<x0)              *   (y0 + k1*(x-x0))      +
+	#((x>=x0) & (x<x1))  *   (y0 + k2*(x-x0))      +
+	#(x>=x1)             *   (y1 + k3*(x-x1)))
 
 
 cdef class dispersion_model:
@@ -37,14 +39,14 @@ cdef class dispersion_model:
 	Dispersion model base class
 	"""
 
-	cdef np.ndarray _h
-	cdef np.ndarray _p, _r
+	#cdef np.ndarray _h
+	#cdef np.ndarray _p, _r
 
 	#cdef data_type_t _mu_params_a, _mu_params_b
 	#cdef data_type_t _r_params_a, _r_params_b
 
-	cdef np.ndarray _mu_params, _r_params
-	cdef public object _mu_func, _r_func
+	#cdef np.ndarray _mu_params, _r_params
+	#cdef public object _mu_func, _r_func
 
 	def __init__(self):
 		
@@ -60,7 +62,7 @@ cdef class dispersion_model:
 		#self._r_params_a = self._r_params_b = 0.0
 		
 		self._mu_params = self._r_params = None
-		self._mu_func = self._r_func = None
+		#self._mu_func = self._r_func = None
 
 		pass
 
@@ -109,9 +111,9 @@ cdef class dispersion_model:
 		def __set__(self, x):
 			#self._mu_params_a = x[0]
 			#self._mu_params_b = x[1]
-			self._mu_params = x
+			self._mu_params = np.array(x, order = 'c')
 			#self._mu_func = np.poly1d(self._mu_params)
-			self._mu_func = partial(piecewise_three, x0 = x[0], y0 = x[1], x1 = x[2], k1 = x[3], k2 = x[4], k3 = x[5])
+			#self._mu_func = partial(piecewise_three, x0 = x[0], y0 = x[1], x1 = x[2], k1 = x[3], k2 = x[4], k3 = x[5])
 
 	property r_params:
 		def __get__(self):
@@ -120,25 +122,28 @@ cdef class dispersion_model:
 		def __set__(self, x):
 			#self._r_params_a = x[0]
 			#self._r_params_b = x[1]
-			self._r_params = x
+			self._r_params = np.array(x, order = 'c')
 			#self._r_func = np.poly1d(self._r_params)
-			self._r_func = partial(piecewise_three, x0 = x[0], y0 = x[1], x1 = x[2], k1 = x[3], k2 = x[4], k3 = x[5])
+			#self._r_func = partial(piecewise_three, x0 = x[0], y0 = x[1], x1 = x[2], k1 = x[3], k2 = x[4], k3 = x[5])
 
 
-	cpdef fit_mu(self, data_type_t x):
+	cpdef data_type_t fit_mu(self, data_type_t x):
 		"""Computes the mu term for the negative binomial.
 		
 		:param x: predicted values to be converted to observed means
 		
 		:returns mu: (float)
 		"""
+		cdef data_type_t [:] par = self._mu_params
+		cdef data_type_t res = piecewise_three(x, par[0], par[1], par[2], par[3], par[4], par[5])
 
 		#cdef double res = self._mu_params_a + self._mu_params_b * x
-		cdef double res = self._mu_func(x)
+		#cdef data_type_t res = piecewise_three(x, self._mu_params[0], self._mu_params[1], self._mu_params[2], self._mu_params[3], self._mu_params[4], self._mu_params[5])
+		#cdef double res = self._mu_func(x)
 
 		return res if res > 0.0 else 0.1
 
-	cpdef fit_r(self, data_type_t x):
+	cpdef data_type_t fit_r(self, data_type_t x):
 		"""Computes the dispersion term for the negative binomial.
 		Note that the model parameters estimate the inverse.
 
@@ -148,7 +153,11 @@ cdef class dispersion_model:
 		"""
 
 		#cdef double res = 1.0 / (self._r_params_a + self._r_params_b * x)
-		cdef double res = 1.0/self._r_func(x)
+		cdef data_type_t [:] par = self._r_params
+		cdef data_type_t res = 1.0/piecewise_three(x, par[0], par[1], par[2], par[3], par[4], par[5])
+
+		#cdef double res = 1.0/piecewise_three(x, self._r_params[0], self._r_params[1], self._r_params[2], self._r_params[3], self._r_params[4], self._r_params[5])
+		#cdef double res = 1.0/self._r_func(x)
 		return res if res > 0.0 else 1e-6
 
 	def __str__(self):
@@ -156,15 +165,66 @@ cdef class dispersion_model:
 
 		#res = "mu = %0.4f + %0.4fx\n" % (self.mu_params)
 		#res += "r = %0.4f + %0.4fx" % (self.r_params)
-		res = ""
+		res = "Oops...not yet implemented!"
 		return res
 
-	cpdef log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs):
+	@cython.cdivision(True)
+	cpdef data_type_t [:] log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs):
 		"""Computing the probability mass function"""
 
 		cdef int i, n = exp.shape[0]
 		cdef double r, mu
-		cdef data_type_t [:] res = np.ones(n, dtype = np.float64, order = 'c')
+		
+		cdef data_type_t [:] res = np.zeros(n, dtype = np.float64, order = 'c')
+	
+		for i in range(n):
+			r = self.fit_r(exp[i])
+			mu = self.fit_mu(exp[i])
+			res[i] = nbinom.logpmf(<int>obs[i], (r/(r+mu)), r)
+
+		return res
+
+	@cython.cdivision(True)
+	cpdef data_type_t [:] pmf_values(self, data_type_t [:] exp, data_type_t [:] obs):
+		"""Computing the probability mass function"""
+
+		cdef int i, n = exp.shape[0]
+		cdef double r, mu
+		
+		cdef data_type_t [:] res = np.zeros(n, dtype = np.float64, order = 'c')
+
+		for i in range(n):
+			r = self.fit_r(exp[i])
+			mu = self.fit_mu(exp[i])
+			res[i] = nbinom.pmf(<int>obs[i], (r/(r+mu)), r)
+
+		return res
+
+
+	@cython.cdivision(True)
+	cpdef data_type_t [:] pmf_values_0(self, data_type_t [:] exp, data_type_t [:] obs, data_type_t [:] res):
+		"""Computing the probability mass function (but writes to a matrix pointer)"""
+
+		cdef int i, n = exp.shape[0]
+		cdef double r, mu
+		
+		#cdef data_type_t [:] res = np.zeros(n, dtype = np.float64, order = 'c')
+
+		for i in range(n):
+			r = self.fit_r(exp[i])
+			mu = self.fit_mu(exp[i])
+			res[i] = nbinom.pmf(<int>obs[i], (r/(r+mu)), r)
+
+		return res
+
+	@cython.cdivision(True)
+	cpdef data_type_t [:] log_pmf_values_0(self, data_type_t [:] exp, data_type_t [:] obs, data_type_t [:] res):
+		"""Computing the probability mass function (but writes to a matrix pointer)"""
+
+		cdef int i, n = exp.shape[0]
+		cdef double r, mu
+		
+		#cdef data_type_t [:] res = np.zeros(n, dtype = np.float64, order = 'c')
 
 		for i in range(n):
 			r = self.fit_r(exp[i])
@@ -173,7 +233,7 @@ cdef class dispersion_model:
 
 		return res
 
-	cpdef p_values(self, data_type_t [:] exp, data_type_t [:] obs):
+	cpdef data_type_t [:] p_values(self, data_type_t [:] exp, data_type_t [:] obs):
 		"""Computes CDF p-value from negative binomial
 
 		:param exp: 
@@ -193,7 +253,7 @@ cdef class dispersion_model:
 
 		return res
 
-	cpdef resample_p_values(self, data_type_t [:] x, int times):
+	cpdef data_type_t [:] resample_p_values(self, data_type_t [:] x, int times):
 
 		cdef int i, j, n = x.shape[0]
 		cdef data_type_t r, mu, k

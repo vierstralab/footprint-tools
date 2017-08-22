@@ -3,13 +3,8 @@
 import numpy as np
 import scipy.stats
 
-'''
-def compute_prior(fdr, cutoff = 0.05):
-	""" """
-	return np.mean(np.maximum(np.minimum(fdr, 1-cutoff), cutoff), axis = 0)
-'''
-
 def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
+	""" Returns prior of whether a TF is bound or not """
 
 	k = np.sum(fdr <= cutoff, axis = 0) # num of datasets w/ fp
 	n = np.sum(w, axis = 0) #np.sum(w) # num of datasets w/ HS
@@ -23,22 +18,9 @@ def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
 
 	return res
 
-'''
-def compute_delta(obs, exp, fdr, cutoff = 0.05):
-	""" """
-	mask = fdr <= cutoff
-
-	ratio = (obs+1)/(exp+1)
-	ratio[~mask] = 0
-
-	delta = np.sum(ratio, axis = 0) / np.sum(mask, axis = 0)
-	delta[np.isnan(delta)] = 1
-
-	return delta
-'''
-
 def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = 0.05):
-	""" """
+	""" Returns a point estimate of exepected cleavage depletion with a footprint per nucleotide """
+
 	(n, w) = obs.shape
 
 	mus = np.ones((n, w))
@@ -74,7 +56,7 @@ def log_likelihood(obs, exp, dm, delta = 1, w = 3):
 
 	:returns : Array of log likelihood values computed from local window
 	"""
-	res = np.ones((obs.shape[0], obs.shape[1]))
+	res = np.ones((obs.shape[0], obs.shape[1]), order = 'c')
 
 	n = obs.shape[0]
 	for i in range(n):
@@ -92,3 +74,7 @@ def posterior(prior, ll_on, ll_off):
 	denom = np.logaddexp(p_on, p_off)
 
 	return (p_off - denom)
+
+
+
+

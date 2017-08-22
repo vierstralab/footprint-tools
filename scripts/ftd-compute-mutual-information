@@ -9,20 +9,17 @@ from argparse import ArgumentParser
 
 import multiprocessing as mp
 
+from collections import Counter
+
 import numpy as np
 import scipy.stats
 
 import pysam
 
 from genome_tools import bed, genomic_interval 
-from footprint_tools.stats import mutual_information
+from footprint_tools.stats import mutual_information, segment
 
-# 
-#from scipy.ndimage.filters import median_filter
-from scipy.ndimage.measurements import label, find_objects
-
-
-logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level = logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
@@ -38,24 +35,11 @@ def parse_options(args):
 
     grp_st = parser.add_argument_group("statistical options")
 
-    #grp_st.add_argument("--filter-width", metavar = "FILTER_WIDTH", type = int,
-    #                    dest = "filter_width", default = 3,
-    #                    help = "Width of filter to smooth mutual information score matrix")
 
-    grp_st.add_argument("--mi-cutoff", metavar = "N", type = float,
-                        dest = "mi_cutoff", default = 0.1,
-                        help = "Only consider nucleotides with FDR <= this value."
+    grp_st.add_argument("--fps-cutoff", metavar = "N", type = float,
+                        dest = "fps_cutoff", default = 0.0001,
+                        help = "Only consider fooptrints with a consensus p-value <= this value."
                         " (default: %(default)s)")
-
-    grp_st.add_argument("--min-contig-bases", metavar = "N", type = int,
-                        dest = "min_contig_bases", default = 9,
-                        help = "Only output regions containing this amount of contiguous signal"
-                        " (default: %(default)s)")
-
-    #grp_st.add_argument("--max-interval-width", metavar = "N", type = int,
-    #                    dest = "max_interval_width", default = 25000,
-    #                    help = "Only compute MI for regions containing less than or equal to this width"
-    #                    " (default: %(default)s)")
 
     grp_ot = parser.add_argument_group("other options")
 
@@ -63,10 +47,17 @@ def parse_options(args):
                         dest = "processors", default = mp.cpu_count(),
                         help = "Number of processors to use."
                         " (default: all available processors)")
+    
+    grp_ot.add_argument("--tmpdir", metavar = "", type = str,
+                        dest = "tmpdir", default = None,
+                        help = "Temporary directory to use"
+                        " (default: uses unix 'mkdtemp'")
+
 
     return parser.parse_args(args)
 
-def process_func(queue, outfile, mi_cutoff = 0.1, min_contig_bases = 9):
+#def process_func(queue, outfile, mi_cutoff = 0.1, filter_width = 3, min_contig_bases = 16):
+def process_func(queue, outfile, fps_cutoff = 0.0001):
 
     handle = open(outfile, "w")
 
@@ -80,56 +71,61 @@ def process_func(queue, outfile, mi_cutoff = 0.1, min_contig_bases = 9):
 
         (interval, logp) = data
 
-        p = np.exp(-logp)
+        fps = segment.segment(np.nanmax(logp, axis = 0), -np.log(fps_cutoff), 3)
+
+        # No footprints; skip
+        if len(fps) == 0:
+            queue.task_done()
+            continue
+
+        logp_fps = np.zeros((logp.shape[0], len(fps)))
+        
+        for j, f in enumerate(fps):
+            s = f[0]
+            e = f[1]
+            logp_fps[:,j] = np.max(logp[:,s:e], axis = 1)
+
+        p = np.exp(-logp_fps)
         p[p<=0.0] = 1e-16
         p[p>1.0] = 1.0
         p[np.isnan(p)] = 1.0
-
-        # digitize P-value matrix
-        I = np.apply_along_axis(np.digitize, 0, p, bins = [0, 0.15, 0.85, 1], right = True) - 1
-
-        #print(np.min(I), np.max(I))
-        #print(np.min(p), np.max(p))
-
-        # compute mutual information
-        M = mutual_information.mutual_information(np.array(I, dtype = np.intc, order = 'c'))
-
-        #compute spearman's rho (only used for colors)
-        #(rho, p_rho) = scipy.stats.spearmanr(I, axis = 0)
-
-        #Z = median_filter(M, size = (filter_width, filter_width))
         
-	labeled_array, num_features = label(M >= mi_cutoff)
+        I = np.apply_along_axis(np.digitize, 0, p, bins = [0, 0.1, 1], right = True) - 1
+        
+        # Remove cell types if 0 footprints are called with in the interval
+        k = np.apply_along_axis(np.min, 1, I) == 0
+        I_reduced = np.array(I[k,:], dtype = np.intc, order = 'c')
+
+        m, m_null, p_mi = mutual_information.mutual_information_p(I_reduced, bins = 2, ntimes = 10000)
 
         res = ""
 
-        for o in find_objects(labeled_array):
-           
-            x0 = o[0].start
-            x1 = o[0].stop
-            y0 = o[1].start
-            y1 = o[1].stop
+        for i in range(p_mi.shape[0]):
+            for j in range(i+1, p_mi.shape[0]):
             
-            wa = x1-x0
-            wb = y1-y0
-            
-            if x0 >= y0:
-                continue
+                # remove the sites which permutation is unable come up with a reliable distribution
+                # granted that this is a little bit of hack to help estimate the FDR better
 
-            if wa*wb < min_contig_bases:
-                continue
+                if len(set(m_null[i, j, :])) <= 3:
+                    continue
 
-            #if np.median(rho[x0:x1,y0:y1]) > 0:
-            #    score = 100
-            #    col = "255,0,0"
-            #else:
-            #    score = -100
-            #    col = "0,0,255"
+                # determine directionality of association
 
-            score = np.max(M[x0:x1, y0:y1])
-            col = "0,0,255"
+                cnt = Counter((I_reduced[:,i] << 1) ^ I_reduced[:,j])
+                if cnt[0] + cnt[3] > cnt[1] + cnt[2]:
+                    col = "0,0,255"  
+                else:
+                    col = "0,255,0"
 
-            res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, score, interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
+                x0 = fps[i][0]
+                x1 = fps[i][1]
+                y0 = fps[j][0]
+                y1 = fps[j][1] 
+
+                wa = x1-x0
+                wb = y1-y0
+
+                res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, -np.log(p_mi[i, j]), interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
 
         print(res, file = handle, end = "")
 
@@ -166,7 +162,8 @@ def main(argv = sys.argv[1:]):
 
     q = mp.JoinableQueue()
 
-    processors = [ mp.Process(target = process_func, args = (q, f, args.mi_cutoff, args.min_contig_bases)) for f in chunk_files ]
+    processors = [ mp.Process(target = process_func, args = (q, f, args.fps_cutoff)) for f in chunk_files ]
+
     [processor.start() for processor in processors]
 
     logger.info("Working (%d threads; chunked results in %s)" % (len(chunk_files), tmpdir))
@@ -181,17 +178,20 @@ def main(argv = sys.argv[1:]):
             for row in tabix_handle.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
                 j = int(row[1]) - interval.start
                 ln_p[:,j] = np.array(row[3:], dtype = np.float64)
-            q.put((interval, ln_p))
+            
+            q.put((interval, ln_p[:,:]))
+        
         except:
             pass    
 
         while q.qsize() > 500:
             pass
 
+    [q.put(None) for i in range(len(chunk_files))] # sends a return command to processing threads
+
     logger.info("Finishing up final processing...")
 
     q.join() # Wait for queue to unblock
-    [q.put(None) for i in range(len(chunk_files))] # sends a return command to processing threads
     [processor.join() for processor in processors] # wait for threads to stop
  
     logger.info("Merging data...")
@@ -205,9 +205,6 @@ def main(argv = sys.argv[1:]):
 
     tabix_handle.close()
     shutil.rmtree(tmpdir)
-
-    return 0
-    tabix.close()
 
     return 0
 

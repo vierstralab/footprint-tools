@@ -22,6 +22,8 @@ Declaration for functions called (in)directly by Cython libraries
 #define lgam	c_lgamma
 
 #define incbet	c_incbet
+#define beta	c_beta
+#define lbeta	c_lbeta
 
 #define chdtr	c_chdtr
 #define chdtrc	c_chdtrc
@@ -29,10 +31,15 @@ Declaration for functions called (in)directly by Cython libraries
 #define ndtr 	c_ndtr
 #define ndtri	c_ndtri
 
+#define psi		c_psi
+
+//const
+extern double PI;
+
 //math
 extern double exp ( double );
 extern double log ( double );
-extern double log1p ( double );
+extern double log1p ( double ); // unity.c
 extern double round ( double );
 extern double sqrt ( double );
 
@@ -58,5 +65,8 @@ extern double chdtrc( double, double ); //complemented
 // normal
 extern double ndtr( double );
 extern double ndtri( double );
+
+// psi
+extern double psi( double ); // psi.c
 
 #endif
