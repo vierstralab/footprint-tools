@@ -145,7 +145,6 @@ void shuffle_columns_fast(double* mat, int nx, int ny)
 		}
 	}
 
-	return 0;
 }
 
 
@@ -162,82 +161,32 @@ unsigned int get_msec(void)
 	return (timeval.tv_sec - first_timeval.tv_sec) * 1000 + (timeval.tv_usec - first_timeval.tv_usec) / 1000;
 }
 
-int pairwise_mutual_information_kraskov(double* mat, int nx, int ny, double *result, int a, int b, int c)
+int pairwise_mutual_information_kraskov(double* mat, int m, int n, double *result, int a, int b, int c)
 {
-
 
 	int i, j, k;
 
-	void *kd;
-	void **kd_array = (void*) malloc(sizeof(void *) * ny);
-	
-	struct kdres *kd_res;
+	kdtree_t **kdarr = (void*) malloc(sizeof(kdtree_t *) * n);
 
 	double pt[2];
 
-	for(i = 0; i < ny; i++)
+	for(i = 0; i < n; i++)
 	{
-		kd_array[i] = kd_create(1);
+		kdarr[i] = kd_create(1);
 
-		for(k = 0; k < nx; k++)
+		for(k = 0; k < m; k++)
 		{
-			pt[0] = mat[(k*ny) + i];
-			kd_insert(kd_array[i], &pt[0], 0);
+			pt[0] = mat[(k*n) + i];
+			kd_insert(kdarr[i], &pt[0]);
 		}
 	}
 
-	double *dist_vec = (double*)malloc(sizeof(double) * nx);
-
-	for(i = 0; i < ny; i++)
+	// clean up
+	for(i = 0; i < n; i++)
 	{
-		for(j = i+1; j < ny; j++)
-		{
-			kd = kd_create(2);
-
-			//build kd-tree
-			for(k = 0; k < nx; k++) {
-				pt[0] = mat[(k*ny) + i];
-				pt[1] = mat[(k*ny) + j];
-				kd_insert(kd, pt, 0);
-
-				fprintf(stderr, "insert: %0.2f, %0.2f\n", pt[0], pt[1] );
-			}
-
-			//find n closest points
-			for(k = 0; k < nx; k++) {
-
-				pt[0] = mat[(k*ny) + i];
-				pt[1] = mat[(k*ny) + j];
-
-				fprintf(stderr, "Search: %0.2f, %0.2f\n", pt[0], pt[1] );
-
-				kd_res = kd_nearest_n(kd, pt, RAND_MAX, 3);
-
-				while(!kd_res_end(kd_res))
-				{
-					kd_res_item(kd_res, buf_2d);
-					
-					fprintf(stderr, "-- %0.2f, %0.2f\n",buf_2d[0],buf_2d[1] );
-					
-					kd_res_next(kd_res);
-				}
-
-				kd_res_free(kd_res);
-			}
-
-			kd_free(kd);
-		}
+		free(kdarr[i]);
 	}
-
-	free(dist_vec);
-
-	for(i = 0; i < ny; i++)
-	{
-		kd_free(kd_array[i]);
-	}
-
-	free(kd_array);
-
+	free(kdarr);
 
 	return 0;
 

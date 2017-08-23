@@ -23,15 +23,15 @@ cdef extern from "mutual_information.h":
 
 cpdef mi_kraskov(np.ndarray[data_type_t, ndim = 2, mode = 'c'] mat, int k = 3):
 	
-	cdef int nx = mat.shape[0]
-	cdef int ny = mat.shape[1]
+	cdef int m = mat.shape[0]
+	cdef int n = mat.shape[1]
 
 	cdef data_type_t [:,:] mat_view = mat
 
-	cdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] result = np.zeros((ny, ny), dtype = np.float64, order = 'c')
+	cdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] result = np.zeros((n, n), dtype = np.float64, order = 'c')
 	cdef data_type_t [:,:] result_view = result
 
-	cdef int success = pairwise_mutual_information_kraskov(&mat_view[0,0], nx, ny, &result_view[0,0], ny, 1, 0)
+	cdef int success = pairwise_mutual_information_kraskov(&mat_view[0,0], m, n, &result_view[0,0], n, 1, 0)
 
 	return result
 
