@@ -173,7 +173,7 @@ int pairwise_mutual_information_kraskov(double* mat, int nx, int ny, double *res
 	
 	struct kdres *kd_res;
 
-	double buf_2d[2];
+	double pt[2];
 
 	for(i = 0; i < ny; i++)
 	{
@@ -181,8 +181,8 @@ int pairwise_mutual_information_kraskov(double* mat, int nx, int ny, double *res
 
 		for(k = 0; k < nx; k++)
 		{
-			buf_2d[0] = mat[(k*ny) + i];
-			kd_insert(kd_array[i], buf_2d, 0);
+			pt[0] = mat[(k*ny) + i];
+			kd_insert(kd_array[i], &pt[0], 0);
 		}
 	}
 
@@ -196,22 +196,22 @@ int pairwise_mutual_information_kraskov(double* mat, int nx, int ny, double *res
 
 			//build kd-tree
 			for(k = 0; k < nx; k++) {
-				buf_2d[0] = mat[(k*ny) + i];
-				buf_2d[1] = mat[(k*ny) + j];
-				kd_insert(kd, buf_2d, 0);
+				pt[0] = mat[(k*ny) + i];
+				pt[1] = mat[(k*ny) + j];
+				kd_insert(kd, pt, 0);
 
-				fprintf(stderr, "insert: %0.2f, %0.2f\n",buf_2d[0],buf_2d[1] );
+				fprintf(stderr, "insert: %0.2f, %0.2f\n", pt[0], pt[1] );
 			}
 
 			//find n closest points
 			for(k = 0; k < nx; k++) {
 
-				buf_2d[0] = mat[(k*ny) + i];
-				buf_2d[1] = mat[(k*ny) + j];
+				pt[0] = mat[(k*ny) + i];
+				pt[1] = mat[(k*ny) + j];
 
-				fprintf(stderr, "Search: %0.2f, %0.2f\n",buf_2d[0],buf_2d[1] );
+				fprintf(stderr, "Search: %0.2f, %0.2f\n", pt[0], pt[1] );
 
-				kd_res = kd_nearest_n(kd, buf_2d, 3, RAND_MAX);
+				kd_res = kd_nearest_n(kd, pt, RAND_MAX, 3);
 
 				while(!kd_res_end(kd_res))
 				{
