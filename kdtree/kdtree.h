@@ -2,22 +2,45 @@
 #define __KDTREE_H__
 
 
-struct kdnode;
-struct kdtree;
+typedef struct kdnode
+{
+	double *pos;
+	int dir;
 
-typedef struct kdnode kdnode_t;
-typedef struct kdtree kdtree_t;
+	struct kdnode *left, *right;
+} kdnode_t;
 
-struct res_node;
-typedef struct res_node res_node_t;
+typedef struct kdtree
+{
+	int dim;
+	struct kdnode *root;
+} kdtree_t;
 
-struct rheap;
-typedef struct rheap rheap_t;
+typedef struct res_node
+{
+	struct kdnode *item;
+	double dist;
+} res_node_t;
+
+
+typedef struct rheap
+{
+	int size;
+	int capacity;
+	struct res_node *heaparr;
+} rheap_t;
+
 
 //KDTREE
 #define SQ(x)			((x) * (x))
 
+typedef double (*distfunc_t)(const double*, const double*, int);
+
+double dist_max_norm(const double *x, const double *y, int dim);
+
 kdtree_t* kd_create(int dim);
+void kd_free_recursive(kdnode_t *node);
+void kd_free(kdtree_t *tree);
 
 /*
 void kd_swap_node(kdnode_t *a, kdnode_t *b, int dim);
@@ -28,10 +51,10 @@ kdnode_t* kd_build_tree(kdnode_t *node, int n, int dir, int dim);
 static int kd_insert_recursive(kdnode_t **nptr, const double *pos, int dir, int dim);
 int kd_insert(kdtree_t *tree, const double *pos);
 
-static int kd_nearest_range_recursive(kdnode_t *node, const double *pos, double range, rheap_t *res, int dim);
+static int kd_nearest_range_recursive(kdnode_t *node, const double *pos, double range, distfunc_t distfunc, int dim, rheap_t *res);
 rheap_t* kd_nearest_range(kdtree_t *tree, const double *pos, double range);
 
-static int kd_nearest_n_recursive(kdnode_t *node, const double *pos, double range, int n, rheap_t* res, int dim);
+static int kd_nearest_n_recursive(kdnode_t *node, const double *pos, double range, distfunc_t distfunc, int dim, int n, rheap_t* res);;
 rheap_t* kd_nearest_n(kdtree_t *tree, const double *pos, double range, int k);
 
 
@@ -42,9 +65,10 @@ rheap_t* kd_nearest_n(kdtree_t *tree, const double *pos, double range, int k);
 #define HEAP_INIT_SIZE 500
 
 rheap_t* rheap_init(void);
+void rheap_free(rheap_t *heap);
 
 void max_heapify(res_node_t* heaparr, int index, int size);
-void rheap_push(rheap_t *heap, kdnode_t *node, double dist_sq);
+void rheap_push(rheap_t *heap, kdnode_t *node, double dist);
 void rheap_remove(rheap_t *heap);
 res_node_t* rheap_max_element(rheap_t *heap);
 

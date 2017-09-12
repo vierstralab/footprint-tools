@@ -56,7 +56,7 @@ def parse_options(args):
 
     return parser.parse_args(args)
 
-#def process_func(queue, outfile, mi_cutoff = 0.1, filter_width = 3, min_contig_bases = 16):
+
 def process_func(queue, outfile, fps_cutoff = 0.0001):
 
     handle = open(outfile, "w")
@@ -94,24 +94,24 @@ def process_func(queue, outfile, fps_cutoff = 0.0001):
         
         # Remove cell types if 0 footprints are called with in the interval
         k = np.apply_along_axis(np.min, 1, I) == 0
-        I_reduced = np.array(I[k,:], dtype = np.intc, order = 'c')
+        I_reduced = np.array(I[k,:], dtype = np.float64, order = 'c')
 
-        m, m_null, p_mi = mutual_information.mutual_information_p(I_reduced, bins = 2, ntimes = 10000)
+        m, m_null, m_p = mutual_information.mutual_information_p(I_reduced, bins = 2, ntimes = 10000)
 
         res = ""
 
-        for i in range(p_mi.shape[0]):
-            for j in range(i+1, p_mi.shape[0]):
+        for i in range(m_p.shape[0]):
+            for j in range(i+1, m_p.shape[0]):
             
-                # remove the sites which permutation is unable come up with a reliable distribution
-                # granted that this is a little bit of hack to help estimate the FDR better
+                # We could remove the sites which permutation is unable come up with a reliable distribution
+                # granted that this is a little bit of hack to help estimate the FDR better. Report in output 
+                # files
 
-                if len(set(m_null[i, j, :])) <= 3:
-                    continue
+                null_complexity = len(set(m_null[i, j, :]))
 
                 # determine directionality of association
 
-                cnt = Counter((I_reduced[:,i] << 1) ^ I_reduced[:,j])
+                cnt = Counter((I_reduced[:,i].astype(int) << 1) ^ I_reduced[:,j].astype(int))
                 if cnt[0] + cnt[3] > cnt[1] + cnt[2]:
                     col = "0,0,255"  
                 else:
@@ -125,13 +125,15 @@ def process_func(queue, outfile, fps_cutoff = 0.0001):
                 wa = x1-x0
                 wb = y1-y0
 
-                res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\n" % (interval.chrom, interval.start+x0, interval.start+y1, -np.log(p_mi[i, j]), interval.start+x0, interval.start+y1, col, wa, wb, y0-x0)
+                res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\t%0.4f\n" % (interval.chrom, interval.start+x0, interval.start+y1, -np.log(m_p[i, j]), interval.start+x0, interval.start+y1, col, wa, wb, y0-x0, null_complexity)
 
         print(res, file = handle, end = "")
 
         queue.task_done()
 
     handle.close()
+
+
 
 class process_callback(object):
 

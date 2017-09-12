@@ -96,6 +96,16 @@ def read_func(tabix_files, intervals, queue):
     [handle.close() for handle in tabix_handles]
 
 
+def median_abs_dev(x):
+    med = np.median(x)
+    return med, np.median(np.abs(x - med))
+
+def find_outliers(x):
+    med, mad = median_abs_dev(x)
+    
+    dev = 0.6745 * (x - med) / mad
+    return np.abs(dev) > 3.5
+
 def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
 
     handle = open(outfile, 'w')
@@ -114,21 +124,26 @@ def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
 
         log2_obs_over_exp = np.log2((obs+1)/(exp+1))
 
-        # Step 1: Fit prior
-        inv_var = 1/np.var(log2_obs_over_exp[:,:], axis = 0)
+        #filter outliers
+        outliers = np.apply_along_axis(find_outliers, 0, log2_obs_over_exp)
+        log2_obs_over_exp[outliers] = np.nan
 
-        nu_0, tau2_0 = scipy.optimize.fmin(differential.invchi2_likelihood, [1, 1], args = (inv_var[np.isfinite(inv_var)],), full_output = False, disp = False)
-        sig2_0 = 1.0/tau2_0
+        # Step 1: Fit prior
+        variance = np.var(log2_obs_over_exp[:,:], axis = 0)
+        variance = variance[np.isfinite(variance)]
+        variance = variance[variance>0]
+
+        nu_0, sig2_0 = scipy.optimize.fmin(differential.invchi2_likelihood, [1, 1], args = (variance,), full_output = False, disp = False)
 
         logger.info("nu_0 = %f, sig2_0 =  %f" % (nu_0, sig2_0))
 
         # Calculate prior
-        pr_a = differential.compute_log_prior_t(log2_obs_over_exp[:l_group_a,:], x_values, nu_0, sig2_0)
-        pr_b = differential.compute_log_prior_t(log2_obs_over_exp[l_group_a:,:], x_values, nu_0, sig2_0)
-        pr_ab = differential.compute_log_prior_t(log2_obs_over_exp[:,:], x_values, nu_0, sig2_0)
+        pr_a = differential.compute_log_prior_t(log2_obs_over_exp[:l_group_a,:], nu_0, sig2_0, -6, 6, 100)
+        pr_b = differential.compute_log_prior_t(log2_obs_over_exp[l_group_a:,:], nu_0, sig2_0, -6, 6, 100)
+        pr_ab = differential.compute_log_prior_t(log2_obs_over_exp[:,:], nu_0, sig2_0, -6, 6, 100)
 
         # Calculate negative binomial log pmf
-        nb = differential.compute_logpmf_values(disp_models, obs[:,:], exp[:,:], np.power(2.0, x_values))
+        nb = differential.compute_logpmf_values(disp_models, obs[:,:], exp[:,:], -6, 6, 100)
 
         # psuedo-integration over 'depletion' scores
         pa = pr_a[:,:, np.newaxis] + nb[:,:,:l_group_a]
@@ -141,11 +156,9 @@ def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
 
         llr = La + Lb - Lab
         lrt = scipy.stats.chi2.sf(2*llr, df = 3)
-        
-        wlrt = windowing.stouffers_z(lrt, 3)
 
         for i in range(len(interval)):
-            print("{}\t{:d}\t{:d}\t{:f}\t{:f}".format(interval.chrom, interval.start+i, interval.start+i+1, -np.log(lrt[i]), -np.log(wlrt[i])), file = handle)
+            print("{}\t{:d}\t{:d}\t{:f}".format(interval.chrom, interval.start+i, interval.start+i+1, -np.log(lrt[i]), file = handle))
 
         queue.task_done()
 
@@ -164,15 +177,16 @@ def read_metadata_file(filename):
             if line[0] == "#":
                 continue
 
-            try:
-                (g, i, d, t) = line.strip().split("\t")
-            except:
-                print(line)
+            #try:
+            fields = line.strip().split("\t")
+            #print(fields)
+            groups.append(fields[0])
+            ids.append(fields[1])
+            dm_files.append(fields[2])
+            tabix_files.append(fields[3]) 
+            #except Exec:
+            #print("ERROR:" + line)
 
-            groups.append(g)
-            ids.append(i)
-            dm_files.append(d)
-            tabix_files.append(t) 
 
     return (np.array(groups), np.array(ids), np.array(dm_files), np.array(tabix_files))
 

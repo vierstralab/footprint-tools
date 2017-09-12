@@ -253,7 +253,7 @@ cdef class dispersion_model:
 
 		return res
 
-	cpdef data_type_t [:] resample_p_values(self, data_type_t [:] x, int times):
+	cpdef resample_p_values(self, data_type_t [:] x, int times):
 
 		cdef int i, j, n = x.shape[0]
 		cdef data_type_t r, mu, k

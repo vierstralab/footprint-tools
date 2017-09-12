@@ -3,13 +3,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "cephes.h"
 
 #include "kdtree.h"
 
 extern double c_log( double );
-
+extern double c_psi( double );
 
 
 /*
@@ -129,7 +130,8 @@ static int rand_int(int n)
 void shuffle_columns_fast(double* mat, int nx, int ny)
 {
 
-	int i, j, s, ii, jj, tmp;
+	int i, j, s, ii, jj;
+	double tmp;
 
 	for(j=0; j<ny; j++)
 	{
@@ -147,24 +149,14 @@ void shuffle_columns_fast(double* mat, int nx, int ny)
 
 }
 
-
-unsigned int get_msec(void)
-{
-	static struct timeval timeval, first_timeval;
-
-	gettimeofday(&timeval, 0);
-
-	if(first_timeval.tv_sec == 0) {
-		first_timeval = timeval;
-		return 0;
-	}
-	return (timeval.tv_sec - first_timeval.tv_sec) * 1000 + (timeval.tv_usec - first_timeval.tv_usec) / 1000;
-}
-
-int pairwise_mutual_information_kraskov(double* mat, int m, int n, double *result, int a, int b, int c)
+int pairwise_mutual_information_kraskov(double* mat, int m, int n, double *result, int nshuf)
 {
 
-	int i, j, k;
+	int i, j, k, s;
+
+	//copy data over
+	//double *mat = (double*)malloc(sizeof(double)*m*n);
+	//memcpy(mat, data, sizeof(double)*m*n);
 
 	kdtree_t **kdarr = (void*) malloc(sizeof(kdtree_t *) * n);
 
@@ -181,10 +173,69 @@ int pairwise_mutual_information_kraskov(double* mat, int m, int n, double *resul
 		}
 	}
 
+	kdtree_t *tree;
+	rheap_t *res;
+	res_node_t *resnode;
+
+	double d, avgi, avgj;
+	int offset;
+
+	for(s = 0; s < nshuf+1; s++)
+	{
+
+		if(s>0) shuffle_columns_fast(mat, m, n);
+
+		for(i = 0; i < n; i++)
+		{
+			for(j = i+1; j < n; j++)
+			{
+
+				tree = kd_create(2);
+
+				for(k = 0; k < m; k++) {
+					pt[0] = mat[(k*n)+i];
+					pt[1] = mat[(k*n)+j];
+					kd_insert(tree, pt);
+				}
+
+				avgi = avgj = 0.0;
+
+				for(k = 0; k < m; k++) {
+					pt[0] = mat[(k*n)+i];
+					pt[1] = mat[(k*n)+j];
+					
+					res = kd_nearest_n(tree, pt, RAND_MAX, 4);
+					resnode = rheap_max_element(res);
+					d = resnode->dist;
+					rheap_free(res);
+
+					res = kd_nearest_range(kdarr[i], &pt[0], d - 1e-16);
+					avgi += c_psi( (double)res->size );
+					rheap_free(res);
+
+					res = kd_nearest_range(kdarr[j], &pt[1], d - 1e-16);
+					avgj += c_psi( (double)res->size );
+					rheap_free(res);
+				}
+
+				avgi /= (double)m;
+				avgj /= (double)m;
+
+				//offset = (a*i) + (b*j) + c;
+				
+				offset = (nshuf+1)*n*i + (nshuf+1)*j + s;
+
+				result[offset] = (-avgi - avgj + c_psi(3.0) + c_psi((double)m)) / c_log(2.0);
+
+				kd_free(tree);
+			}
+		}
+	}
+
 	// clean up
 	for(i = 0; i < n; i++)
 	{
-		free(kdarr[i]);
+		kd_free(kdarr[i]);
 	}
 	free(kdarr);
 

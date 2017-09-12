@@ -8,6 +8,7 @@ import sys
 from setuptools import find_packages, setup
 from distutils.command.build_clib import build_clib
 from distutils.extension import Extension
+from distutils import log
 from Cython.Distutils import build_ext
 
 import numpy as np
@@ -37,14 +38,13 @@ ext_modules = [
 		sources = ["footprint_tools/stats/windowing.pyx"]),
 	Extension("footprint_tools.stats.distributions.nbinom",
 		 sources = ["footprint_tools/stats/distributions/nbinom.pyx"]),
-	#Extension("footprint_tools.stats.distributions.beta",
-	#	 sources = ["footprint_tools/stats/distributions/beta.pyx"]),
 	Extension("footprint_tools.stats.segment",
 		 sources = ["footprint_tools/stats/segment.pyx"]),
 	Extension("footprint_tools.stats.fdr.bisect",
 		 sources = ["footprint_tools/stats/fdr/bisect.pyx"]),
 	Extension("footprint_tools.stats.mutual_information",
-		 sources = ["footprint_tools/stats/mutual_information.pyx"]),
+		 sources = ["footprint_tools/stats/mutual_information.pyx"],
+		 extra_compile_args = ["-lm"]),
 	Extension("footprint_tools.stats.differential",
 		 sources = ["footprint_tools/stats/differential.pyx"])
 ]

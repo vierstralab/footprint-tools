@@ -22,4 +22,4 @@ cdef class dispersion_model:
 	cpdef data_type_t [:] pmf_values_0(self, data_type_t [:] exp, data_type_t [:] obs, data_type_t [:] res)
 
 	cpdef data_type_t [:] p_values(self, data_type_t [:] exp, data_type_t [:] obs)
-	cpdef data_type_t [:] resample_p_values(self, data_type_t [:] x, int times)
+	cpdef resample_p_values(self, data_type_t [:] x, int times)

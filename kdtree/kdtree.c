@@ -7,36 +7,6 @@
 #include "kdtree.h"
 
 
-struct kdnode
-{
-	double *pos;
-	int dir;
-
-	struct kdnode *left, *right;
-};
-
-struct kdtree
-{
-	int dim;
-	struct kdnode *root;
-	struct kdhyperrect *rect;
-};
-
-struct res_node
-{
-	struct kdnode *item;
-	double dist_sq;
-};
-
-
-struct rheap
-{
-	int size;
-	int capacity;
-	struct res_node *heaparr;
-};
-
-
 
 kdtree_t* kd_create(int dim)
 {
@@ -48,9 +18,27 @@ kdtree_t* kd_create(int dim)
 
 	tree->dim = dim;
 	tree->root = 0;
-	tree->rect = 0;
 
 	return tree;
+}
+
+void kd_free_recursive(kdnode_t *node)
+{
+	if (!node) return;
+
+	kd_free_recursive(node->left);
+	kd_free_recursive(node->right);
+
+	free(node->pos);
+	free(node);
+}
+
+void kd_free(kdtree_t *tree) {
+	if (tree)
+	{
+		kd_free_recursive(tree->root);
+		free(tree);
+	}
 }
 
 static int kd_insert_recursive(kdnode_t **nptr, const double *pos, int dir, int dim)
@@ -163,33 +151,33 @@ kdnode_t* kd_build_tree(kdnode_t *node, int n, int dir, int dim)
 }
 */
 
-static int kd_nearest_range_recursive(kdnode_t *node, const double *pos, double range, rheap_t *res, int dim)
+static int kd_nearest_range_recursive(kdnode_t *node, const double *pos, double range, distfunc_t distfunc, int dim, rheap_t *res)
 {
-	double dist_sq, dx;
+	double dist, dx;
 	int i, ret, ret_summed = 0;
 
 	if (!node) return 0;
 
-	dist_sq = 0;
-	for (i=0; i<dim; i++)
+	dist = distfunc(pos, node->pos, dim);;
+	/*for (i=0; i<dim; i++)
 	{
-		dist_sq += SQ(node->pos[i] - pos[i]);
-	}
+		dist += SQ(node->pos[i] - pos[i]);
+	}*/
 
-	if (dist_sq <= SQ(range))
+	if (dist <= range)
 	{	
-		rheap_push(res, node, dist_sq);
+		rheap_push(res, node, dist);
 		ret_summed = 1;
 	}
 
 	dx = pos[node->dir] - node->pos[node->dir];
 
-	ret = kd_nearest_range_recursive(dx <= 0.0 ? node->left : node->right, pos, range, res, dim);
+	ret = kd_nearest_range_recursive(dx <= 0.0 ? node->left : node->right, pos, range, distfunc, dim, res);
 
 	if (ret >= 0 && fabs(dx) < range)
 	{
 		ret_summed += ret;
-		ret = kd_nearest_range_recursive(dx <= 0.0 ? node->right : node->left, pos, range, res, dim);
+		ret = kd_nearest_range_recursive(dx <= 0.0 ? node->right : node->left, pos, range, distfunc, dim , res);
 	}
 
 	if (ret == -1) return -1;
@@ -199,43 +187,58 @@ static int kd_nearest_range_recursive(kdnode_t *node, const double *pos, double 
 	return ret_summed;
 }
 
+double dist_max_norm(const double *x, const double *y, int dim)
+{
+	int i;
+	double d, max = 0.0;
+	for(i = 0; i < dim; i++)
+	{
+		d = fabs(x[i] - y[i]);
+		max = d > max ? d : max;
+	}
+	return max;
+}
+
 rheap_t* kd_nearest_range(kdtree_t *tree, const double *pos, double range)
 {
 	rheap_t *res = rheap_init();
 
-	kd_nearest_range_recursive(tree->root, pos, range, res, tree->dim);
+	kd_nearest_range_recursive(tree->root, pos, range, &dist_max_norm, tree->dim, res);
 
 	return res;
 }
 
-static int kd_nearest_n_recursive(kdnode_t *node, const double *pos, double range, int k, rheap_t* res, int dim)
+static int kd_nearest_n_recursive(kdnode_t *node, const double *pos, double range, distfunc_t distfunc, int dim, int k, rheap_t* res)
 {
-	double dist_sq, dx;
+	double dist, dx;
 	int i, ret, ret_summed = 0;
 
 	if(!node) return 0;
 
-	dist_sq = 0;
-	for(i=0; i<dim; i++)
+	dist = distfunc(pos, node->pos, dim);;
+	/*for(i=0; i<dim; i++)
 	{
-		dist_sq += SQ(node->pos[i] - pos[i]);
-	}
+		dist += SQ(node->pos[i] - pos[i]);
+	}*/
 
-	if(dist_sq <= SQ(range))
+	if(dist <= range)
 	{
 		if(res->size >= k)
 		{
 			res_node_t *farthest = rheap_max_element(res);
-			if(farthest->dist_sq > dist_sq)
+
+			if(farthest->dist >= dist)
 			{
 				rheap_remove(res);
-				rheap_push(res, node, dist_sq);
+				rheap_push(res, node, dist);
 				ret_summed = 1;
 
-				range = sqrt(dist_sq);
+				farthest = rheap_max_element(res);
+				range = farthest->dist;
 			}
+
 		} else {
-			rheap_push(res, node, dist_sq);
+			rheap_push(res, node, dist);
 			ret_summed = 1;
 		}
 
@@ -243,12 +246,12 @@ static int kd_nearest_n_recursive(kdnode_t *node, const double *pos, double rang
 
 	dx = pos[node->dir] - node->pos[node->dir];
 
-	ret = kd_nearest_n_recursive(dx <= 0.0 ? node->left : node->right, pos, range, k, res, dim);
+	ret = kd_nearest_n_recursive(dx <= 0.0 ? node->left : node->right, pos, range, distfunc, dim,  k, res);
 
 	if (ret >= 0 && fabs(dx) < range)
 	{
 		ret_summed += ret;
-		ret = kd_nearest_n_recursive(dx <= 0.0 ? node->right : node->left, pos, range, k, res, dim);
+		ret = kd_nearest_n_recursive(dx <= 0.0 ? node->right : node->left, pos, range, distfunc, dim, k, res);
 	}
 
 	if (ret == -1) return -1;
@@ -263,7 +266,7 @@ rheap_t* kd_nearest_n(kdtree_t *tree, const double *pos, double range, int k)
 {
 	rheap_t *res = rheap_init();
 
-	kd_nearest_n_recursive(tree->root, pos, SQ(range), k, res, tree->dim);
+	kd_nearest_n_recursive(tree->root, pos, range, &dist_max_norm, tree->dim, k, res);
 
 	return res;
 }
@@ -279,6 +282,13 @@ rheap_t* rheap_init()
 	return heap;
 }
 
+void rheap_free(rheap_t *heap) {
+	if(heap->heaparr) {
+		free(heap->heaparr);
+	}
+	free(heap);
+}
+
 void max_heapify(res_node_t* heaparr, int index, int size)
 {
 	int left, right, largest;
@@ -288,11 +298,11 @@ void max_heapify(res_node_t* heaparr, int index, int size)
 	right = RCHILD(index);
 	largest = index;
 
-	if (left <= size && heaparr[left].dist_sq > heaparr[largest].dist_sq)
+	if (left <= size && heaparr[left].dist > heaparr[largest].dist)
 	{
 		largest = left;
 	}
-	if (right <= size && heaparr[right].dist_sq > heaparr[largest].dist_sq)
+	if (right <= size && heaparr[right].dist > heaparr[largest].dist)
 	{
 		largest = right;
 	}
@@ -306,7 +316,7 @@ void max_heapify(res_node_t* heaparr, int index, int size)
 	}
 }
 
-void rheap_push(rheap_t *heap, kdnode_t *node, double dist_sq)
+void rheap_push(rheap_t *heap, kdnode_t *node, double dist)
 {
 	int index, parent;
 
@@ -321,12 +331,12 @@ void rheap_push(rheap_t *heap, kdnode_t *node, double dist_sq)
 	for(;index;index = parent)
 	{
 		parent = PARENT(index);
-		if (heap->heaparr[parent].dist_sq >= dist_sq) break;
+		if (heap->heaparr[parent].dist >= dist) break;
 		heap->heaparr[index] = heap->heaparr[parent];
 	}
 
 	heap->heaparr[index].item = node;
-	heap->heaparr[index].dist_sq = dist_sq;
+	heap->heaparr[index].dist = dist;
 }
 
 void rheap_remove(rheap_t *heap)
