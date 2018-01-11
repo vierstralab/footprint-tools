@@ -1,0 +1,161 @@
+#!/usr/bin/which python
+
+from __future__ import print_function, division
+
+import sys, os, os.path, glob, tempfile, shutil
+import logging
+
+from argparse import ArgumentParser
+
+import multiprocessing as mp
+from multiprocessing import sharedctypes
+
+import numpy as np
+from numpy import ctypeslib
+
+import pandas as pd
+
+import scipy.stats
+
+from sklearn.metrics import mutual_info_score
+
+
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level = logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+
+def parse_options(args):
+
+    parser = ArgumentParser(description = "Compute occupancy matrix mutual information")
+
+    parser.add_argument("matrix_file", metavar = "matrix_file", type = str, 
+                        help = "File path to occupancy matrix file")
+
+
+    grp_st = parser.add_argument_group("statistical options")
+
+    grp_st.add_argument("--sample-n", metavar = "N", type = int,
+                        dest = "sample_n", default = 10000,
+                        help = "Number of random footprints to sample for p-value calculation"
+                        " (default: %(default)s)")
+
+    grp_ot = parser.add_argument_group("other options")
+
+    grp_ot.add_argument("--processors", metavar = "N", type = int,
+                        dest = "processors", default = mp.cpu_count(),
+                        help = "Number of processors to use."
+                        " (default: all available processors)")
+    
+    grp_ot.add_argument("--tmpdir", metavar = "", type = str,
+                        dest = "tmpdir", default = None,
+                        help = "Temporary directory to use"
+                        " (default: uses unix 'mkdtemp'")
+
+
+    return parser.parse_args(args)
+
+
+
+
+def calc_mi(x, y, bins):
+    c_xy = np.histogram2d(x, y, bins)[0]
+    mi = mutual_info_score(None, None, contingency=c_xy)
+    return mi/np.log(2)
+
+
+def process_func(queue, outfile, matrix_ctypes, matrix_shape, sample_n = 10000):
+
+    handle = open(outfile, "w")
+
+    mat = ctypeslib.as_array(matrix_ctypes)
+    mat.shape =  matrix_shape
+
+
+    while 1:
+
+        index = queue.get()
+
+        if index == None:
+            queue.task_done()
+            break
+
+
+        rand_index = np.random.choice(np.arange(mat.shape[0]), size = sample_n)
+        null = [calc_mi(mat[index,:], mat[i,:], bins = 2) for i in rand_index]
+
+        end = min(index+50, mat.shape[0])
+
+        for i in np.arange(index+1, end):
+            mi = calc_mi(mat[index,:], mat[i,:], bins = 2)
+            p = np.sum(null >= mi) / sample_n
+
+            print("%d\t%d\t%0.4f\t%0.4f" % (index, i, mi, p), file = handle)
+
+        queue.task_done()
+
+    handle.close()
+
+
+
+def main(argv = sys.argv[1:]):
+
+    args = parse_options(argv)
+
+    full_matrix = pd.read_csv(args.matrix_file, delimiter = "\t", header = None)
+    
+    # make reduced matrix
+    red_matrix = np.ascontiguousarray(full_matrix.iloc[:,4:].values)
+    
+    size = red_matrix.size
+    shape = red_matrix.shape
+
+    red_matrix.shape = size
+
+    red_matrix_ctypes = sharedctypes.RawArray('d', red_matrix)
+    red_matrix = np.frombuffer(red_matrix_ctypes, dtype = np.int, count = size)
+    red_matrix.shape = shape
+
+    #
+    tmpdir = tempfile.mkdtemp()
+    chunk_files = [os.path.join(tmpdir, "chunk%s" % i) for i in range(args.processors-1)]
+
+    q = mp.JoinableQueue()
+
+    processors = [ mp.Process(target = process_func, args = (q, f, red_matrix_ctypes, red_matrix.shape, args.sample_n)) for f in chunk_files ]
+
+    [processor.start() for processor in processors]
+
+    logger.info("Working (%d threads; chunked results in %s)" % (len(chunk_files), tmpdir))
+
+    for i in range(red_matrix.shape[0]-1):
+            
+        if i % 500 == 0:
+             logger.info("Processing footprint #%d" % i)
+
+        q.put(i)
+
+        while q.qsize() > 500:
+            pass
+
+    [q.put(None) for i in range(len(chunk_files))] # sends a return command to processing threads
+
+    logger.info("Finishing up final processing...")
+
+    q.join() # Wait for queue to unblock
+    [processor.join() for processor in processors] # wait for threads to stop
+ 
+    logger.info("Merging data...")
+
+    for file in chunk_files: 
+        with open(file, 'r') as handle:
+            for line in handle:
+                sys.stdout.write(line)
+
+    logger.info("Cleaning up...")
+
+    shutil.rmtree(tmpdir)
+
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
