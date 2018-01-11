@@ -2,7 +2,9 @@ cimport numpy as np
 
 ctypedef np.float64_t data_type_t
 
-cpdef data_type_t piecewise_three(data_type_t x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3) nogil
+cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3)
+cpdef data_type_t piecewise_three_fast(data_type_t x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3) nogil
+
 
 cdef class dispersion_model:
 	

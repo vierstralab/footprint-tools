@@ -11,6 +11,12 @@ mapq=1
 filtered_contigs="chrX,chrY,chrM"
 max_mem="16G"
 
+read_pos_offset=0
+read_neg_offset=0
+
+left_offset=-3
+right_offset=2
+
 tmpdir=$(mktemp -u)
 
 usage() {
@@ -19,12 +25,22 @@ usage() {
 }
 
 
-TEMP=`getopt -o f:m:b:t:h --long filtered-contigs:,max-mem:,bam-filters:,temporary-dir:,help -n 'test.sh' -- "$@"`
+TEMP=`getopt -o l:r:f:m:b:t:h --long left:,right:,filtered-contigs:,max-mem:,bam-filters:,temporary-dir:,help -n 'test.sh' -- "$@"`
 eval set -- "$TEMP"
 
 # extract options and their arguments into variables.
 while true ; do
     case "$1" in
+    	-l|--left)
+			case $2 in
+				"") shift 2;;
+				*) left_offset=$2 ; shift 2;;
+            esac ;;
+    	-r|--right)
+			case $2 in
+				"") shift 2;;
+				*) right_offset=$2 ; shift 2;;
+            esac ;;
         -f|--filtered-contigs)
             case "$2" in
                 "") shift 2;;
@@ -134,7 +150,7 @@ for line in sys.stdin:
 	end = int(fields[2])
 	
 	try:
-		print("%s\t%d\t%d\t%s\t%s" % (chrom, start, end, fasta[chrom][start-8:end-1], -fasta[chrom][start+1:end+8]))
+		print("%s\t%d\t%d\t%s\t%s" % (chrom, start, end, fasta[chrom][start+$left_offset:end+$right_offset], -fasta[chrom][start-$right_offset:end-$left_offset]))
 	except:
 		pass
 __EOF__
@@ -180,10 +196,10 @@ for line in sys.stdin:
 	strand = fields[5]
 
 	try:
-		region = fasta[chrom][start-8:end-1] if strand == '+' else -fasta[chrom][start+1:end+8]
+		region = fasta[chrom][start+$left_offset:end+$right_offset] if strand == '+' else -fasta[chrom][start-$right_offset:end-$left_offset]
 	
-		for i in range(8, len(region)+1):
-			kmer = region.seq[i-8:i]
+		for i in range(-$left_offset, len(region)-$right_offset):
+			kmer = region.seq[i+$left_offset:i+$right_offset+1]
 			cnts[kmer] = cnts.get(kmer, 0) + 1
 	except:
 		pass	

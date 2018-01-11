@@ -41,6 +41,11 @@ def parse_options(args):
                         help = "Only consider fooptrints with a consensus p-value <= this value."
                         " (default: %(default)s)")
 
+    grp_st.add_argument("--shuffle", metavar = "N", type = int,
+                        dest = "shuffle", default = 10000,
+                        help = "Number of times to shuffle data for p-value calculation"
+                        " (default: %(default)s)")
+
     grp_ot = parser.add_argument_group("other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
@@ -57,7 +62,7 @@ def parse_options(args):
     return parser.parse_args(args)
 
 
-def process_func(queue, outfile, fps_cutoff = 0.0001):
+def process_func(queue, outfile, fps_cutoff = 0.0001, shuffle = 10000):
 
     handle = open(outfile, "w")
 
@@ -92,12 +97,16 @@ def process_func(queue, outfile, fps_cutoff = 0.0001):
         
         I = np.apply_along_axis(np.digitize, 0, p, bins = [0, 0.1, 1], right = True) - 1
         
+        if np.sum(I) == 0:
+            continue
         # Remove cell types if 0 footprints are called with in the interval
-        k = np.apply_along_axis(np.min, 1, I) == 0
-        I_reduced = np.array(I[k,:], dtype = np.float64, order = 'c')
+        #k = np.apply_along_axis(np.min, 1, I) == 0
+        #I_reduced = np.array(I[k,:], dtype = np.float64, order = 'c')
 
-        m, m_null, m_p = mutual_information.mutual_information_p(I_reduced, bins = 2, ntimes = 10000)
+        I_reduced = np.array(I, dtype = np.float64, order = 'c')
+        m, m_null, m_p = mutual_information.mutual_information_p(I_reduced, bins = 2, ntimes = shuffle)
 
+    
         res = ""
 
         for i in range(m_p.shape[0]):
@@ -125,7 +134,7 @@ def process_func(queue, outfile, fps_cutoff = 0.0001):
                 wa = x1-x0
                 wb = y1-y0
 
-                res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\t%0.4f\n" % (interval.chrom, interval.start+x0, interval.start+y1, -np.log(m_p[i, j]), interval.start+x0, interval.start+y1, col, wa, wb, y0-x0, null_complexity)
+                res += "%s\t%d\t%d\t.\t%0.4f\t.\t%d\t%d\t%s\t2\t%d,%d\t0,%s\t%0.4f\t%0.4f\n" % (interval.chrom, interval.start+x0, interval.start+y1, -np.log(m_p[i, j]), interval.start+x0, interval.start+y1, col, wa, wb, y0-x0, m[i, j], null_complexity)
 
         print(res, file = handle, end = "")
 
@@ -164,7 +173,7 @@ def main(argv = sys.argv[1:]):
 
     q = mp.JoinableQueue()
 
-    processors = [ mp.Process(target = process_func, args = (q, f, args.fps_cutoff)) for f in chunk_files ]
+    processors = [ mp.Process(target = process_func, args = (q, f, args.fps_cutoff, args.shuffle)) for f in chunk_files ]
 
     [processor.start() for processor in processors]
 

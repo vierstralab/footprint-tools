@@ -13,8 +13,7 @@ cimport cython
 cimport numpy as np
 from ..stats.distributions cimport nbinom
 
-cpdef data_type_t piecewise_three(data_type_t x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3) nogil:
-
+cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3):
 	# x0,y0 : first breakpoint
 	# x1 : second breakpoint
 	# k1,k2,k3 : 3 slopes.
@@ -32,6 +31,20 @@ cpdef data_type_t piecewise_three(data_type_t x, data_type_t x0, data_type_t y0,
 	#(x<x0)              *   (y0 + k1*(x-x0))      +
 	#((x>=x0) & (x<x1))  *   (y0 + k2*(x-x0))      +
 	#(x>=x1)             *   (y1 + k3*(x-x1)))
+
+cpdef data_type_t piecewise_three_fast(data_type_t x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3) nogil:
+	# x0,y0 : first breakpoint
+	# x1 : second breakpoint
+	# k1,k2,k3 : 3 slopes.
+
+	cdef double y1=y0+ k2*(x1-x0) # for continuity
+	
+	if x<x0:
+		return y0 + k1*(x-x0)
+	elif x>=x1:
+		return y1 + k3*(x-x1)
+	else:
+		return y0 + k2*(x-x0)
 
 
 cdef class dispersion_model:
@@ -135,7 +148,7 @@ cdef class dispersion_model:
 		:returns mu: (float)
 		"""
 		cdef data_type_t [:] par = self._mu_params
-		cdef data_type_t res = piecewise_three(x, par[0], par[1], par[2], par[3], par[4], par[5])
+		cdef data_type_t res = piecewise_three_fast(x, par[0], par[1], par[2], par[3], par[4], par[5])
 
 		#cdef double res = self._mu_params_a + self._mu_params_b * x
 		#cdef data_type_t res = piecewise_three(x, self._mu_params[0], self._mu_params[1], self._mu_params[2], self._mu_params[3], self._mu_params[4], self._mu_params[5])
@@ -154,7 +167,7 @@ cdef class dispersion_model:
 
 		#cdef double res = 1.0 / (self._r_params_a + self._r_params_b * x)
 		cdef data_type_t [:] par = self._r_params
-		cdef data_type_t res = 1.0/piecewise_three(x, par[0], par[1], par[2], par[3], par[4], par[5])
+		cdef data_type_t res = 1.0/piecewise_three_fast(x, par[0], par[1], par[2], par[3], par[4], par[5])
 
 		#cdef double res = 1.0/piecewise_three(x, self._r_params[0], self._r_params[1], self._r_params[2], self._r_params[3], self._r_params[4], self._r_params[5])
 		#cdef double res = 1.0/self._r_func(x)
@@ -284,7 +297,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	expected vs. observed histogram
 	"""
 
-	size = h.shape[0]
+	size = int(h.shape[0])
 	n = np.zeros(size)
 	p = np.zeros(size)
 	r = np.zeros(size)
@@ -292,11 +305,11 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	#thresholded = []
 
 	# Make an initial negative binomial fit
-	for i in np.arange(size):
+	for i in range(size):
 	
 		pos = 0
-		x = np.zeros(np.sum(h[i,:]))
-		for j in np.arange(len(h[i,:])):
+		x = np.zeros(int(np.sum(h[i,:])))
+		for j in range(len(h[i,:])):
 			num = int(h[i, j])
 			x[pos:pos+num] = j
 			pos += num 

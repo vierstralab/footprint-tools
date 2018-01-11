@@ -49,7 +49,7 @@ ext_modules = [
 		 sources = ["footprint_tools/stats/differential.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-compute-mutual-information", "scripts/ftd-diff-test"]
+scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-compute-mutual-information", "scripts/ftd-occupancy-matrix", "scripts/ftd-occupancy-matrix-mi", "scripts/ftd-diff-test"]
 
 install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing", "genome_tools>=1.0"]
 
