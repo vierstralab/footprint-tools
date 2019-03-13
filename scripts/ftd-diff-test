@@ -18,7 +18,6 @@ from genome_tools import bed, genomic_interval
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment, differential, windowing
 
-
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -102,9 +101,18 @@ def median_abs_dev(x):
 
 def find_outliers(x):
     med, mad = median_abs_dev(x)
-    
-    dev = 0.6745 * (x - med) / mad
-    return np.abs(dev) > 3.5
+    if mad>0:    
+    	dev = 0.6745 * (x - med) / mad
+    	return np.abs(dev) > 3.5
+    else:
+        return np.zeros(len(x), dtype=bool)
+
+def ratio_diff(pra,prb):
+    x = np.linspace(-6, 6, 100)
+    mua = x[np.argmax(np.exp(pra))]
+    mub = x[np.argmax(np.exp(prb))]
+    return(mub-mua)
+
 
 def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
 
@@ -135,7 +143,7 @@ def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
 
         nu_0, sig2_0 = scipy.optimize.fmin(differential.invchi2_likelihood, [1, 1], args = (variance,), full_output = False, disp = False)
 
-        logger.info("nu_0 = %f, sig2_0 =  %f" % (nu_0, sig2_0))
+        #logger.info("nu_0 = %f, sig2_0 =  %f" % (nu_0, sig2_0))
 
         # Calculate prior
         pr_a = differential.compute_log_prior_t(log2_obs_over_exp[:l_group_a,:], nu_0, sig2_0, -6, 6, 100)
@@ -157,8 +165,12 @@ def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
         llr = La + Lb - Lab
         lrt = scipy.stats.chi2.sf(2*llr, df = 3)
 
+        stfz = windowing.stouffers_z(lrt, 3)
+
+        r = np.array([ratio_diff(pr_a[:,i], pr_b[:,i]) for i in range(len(interval))])
+
         for i in range(len(interval)):
-            print("{}\t{:d}\t{:d}\t{:f}".format(interval.chrom, interval.start+i, interval.start+i+1, -np.log(lrt[i]), file = handle))
+            print("{}\t{:d}\t{:d}\t{:f}\t{:f}\t{:f}".format(interval.chrom, interval.start+i, interval.start+i+1, -np.log(lrt[i]), -np.log(stfz[i]), r[i]), file = handle)
 
         queue.task_done()
 

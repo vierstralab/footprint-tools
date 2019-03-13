@@ -63,7 +63,7 @@ def calc_mi(x, y, bins):
     return mi/np.log(2)
 
 
-def process_func(queue, outfile, matrix_ctypes, matrix_shape, sample_n = 10000):
+def process_func(queue, outfile, matrix_ctypes, matrix_shape, indicies, sample_n = 10000):
 
     handle = open(outfile, "w")
 
@@ -89,7 +89,7 @@ def process_func(queue, outfile, matrix_ctypes, matrix_shape, sample_n = 10000):
             mi = calc_mi(mat[index,:], mat[i,:], bins = 2)
             p = np.sum(null >= mi) / sample_n
 
-            print("%d\t%d\t%0.4f\t%0.4f" % (index, i, mi, p), file = handle)
+            print("%s\t%s\t%0.4f\t%0.4f" % (indicies[index], indicies[i], mi, p), file = handle)
 
         queue.task_done()
 
@@ -105,7 +105,10 @@ def main(argv = sys.argv[1:]):
     
     # make reduced matrix
     red_matrix = np.ascontiguousarray(full_matrix.iloc[:,4:].values)
-    
+
+    # make
+    fps_index = full_matrix[0].str.cat([full_matrix[1].astype(str), full_matrix[2].astype(str), full_matrix[3]], sep = "\t").tolist()
+   
     size = red_matrix.size
     shape = red_matrix.shape
 
@@ -121,7 +124,7 @@ def main(argv = sys.argv[1:]):
 
     q = mp.JoinableQueue()
 
-    processors = [ mp.Process(target = process_func, args = (q, f, red_matrix_ctypes, red_matrix.shape, args.sample_n)) for f in chunk_files ]
+    processors = [ mp.Process(target = process_func, args = (q, f, red_matrix_ctypes, red_matrix.shape, fps_index, args.sample_n)) for f in chunk_files ]
 
     [processor.start() for processor in processors]
 
