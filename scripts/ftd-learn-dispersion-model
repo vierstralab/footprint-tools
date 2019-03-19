@@ -74,7 +74,7 @@ def parse_options(args):
                         " (SAM flag -- 1024)")
 
     grp_ot.add_argument("--bam-offset", metavar = "N", type = paired_ints,
-                        dest = "bam_offset", default = (0, 0),
+                        dest = "bam_offset", default = (0, -1),
                         help = "BAM file offset (support for legacy BAM/SAM format)"
                         " (default: %(default)s)")
 
