@@ -25,10 +25,6 @@ cephes_include = "cephes"
 cephes_src = glob("cephes/*.c")
 cehpes_lib = ('cephes', { 'sources': cephes_src })
 
-kdtree_include = "kdtree"
-kdtree_src = glob("kdtree/*.c")
-kdtree_lib = ('kdtree', { 'sources': kdtree_src })
-
 ext_modules = [
 	Extension("footprint_tools.modeling.predict", 
 		sources = ["footprint_tools/modeling/predict.pyx"]),
@@ -56,15 +52,15 @@ install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.8.2", "pyfaidx>=0.4.
 setup(
 	name = "footprint_tools",
 	version = __version__,
-	description = "",
+	description = "GPL-3.0-or-later",
 	long_description = "",
 	author = "Jeff Vierstra",
-	author_email = "jvierstra@altiusinstitute.org",
+	author_email = "jvierstra@altius.org",
 	zip_safe = False,
 	packages =  find_packages(),
-	libraries = [cehpes_lib, kdtree_lib],
+	libraries = [cehpes_lib],
     ext_modules = ext_modules,
-    include_dirs=[np.get_include(), cephes_include, kdtree_include],
+    include_dirs=[np.get_include(), cephes_include],
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
     install_requires = install_requires,
     scripts = scripts
