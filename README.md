@@ -164,53 +164,53 @@ The dispersion model is typically generated from a random subset of the accessib
 ### Step 6: Compute per-nucleotide expected cleavages
 
 	[jvierstra@test0 footprint-tools]$ ftd-compute-deviation -h
-usage: ftd-compute-deviation [-h] [--bm MODEL_FILE] [--half-win-width N]
-                             [--smooth-half-win-width N] [--smooth-clip N]
-                             [--dm MODEL_FILE] [--fdr-shuffle-n N]
-                             [--remove-dups] [--bam-offset N] [--processors N]
-                             bam_file fasta_file interval_file
+	usage: ftd-compute-deviation [-h] [--bm MODEL_FILE] [--half-win-width N]
+				     [--smooth-half-win-width N] [--smooth-clip N]
+				     [--dm MODEL_FILE] [--fdr-shuffle-n N]
+				     [--remove-dups] [--bam-offset N] [--processors N]
+				     bam_file fasta_file interval_file
 
-Compute the per-nucleotide cleavage deviation statistics
+	Compute the per-nucleotide cleavage deviation statistics
 
-positional arguments:
-  bam_file              Path to BAM-format tag sequence file
-  fasta_file            Path to genome FASTA file (requires associated FASTA
-                        index in same folder; see documentation on how to
-                        create an index)
-  interval_file         File path to BED file
+	positional arguments:
+	  bam_file              Path to BAM-format tag sequence file
+	  fasta_file            Path to genome FASTA file (requires associated FASTA
+				index in same folder; see documentation on how to
+				create an index)
+	  interval_file         File path to BED file
 
-optional arguments:
-  -h, --help            show this help message and exit
+	optional arguments:
+	  -h, --help            show this help message and exit
 
-bias modeling options:
-  --bm MODEL_FILE       Use a k-mer model for local bias (supplied by file).
-                        If argument is not provided the model defaults to
-                        uniform sequence bias.
-  --half-win-width N    Half window width to apply bias model. (default: 5)
+	bias modeling options:
+	  --bm MODEL_FILE       Use a k-mer model for local bias (supplied by file).
+				If argument is not provided the model defaults to
+				uniform sequence bias.
+	  --half-win-width N    Half window width to apply bias model. (default: 5)
 
-smoothing options:
-  --smooth-half-win-width N
-                        Half window width to apply smoothing model. When set
-                        to zero no smoothing is applied. (default: 50)
-  --smooth-clip N       Fraction of signal to clip when computing trimmed
-                        mean. (default: 0.01)
+	smoothing options:
+	  --smooth-half-win-width N
+				Half window width to apply smoothing model. When set
+				to zero no smoothing is applied. (default: 50)
+	  --smooth-clip N       Fraction of signal to clip when computing trimmed
+				mean. (default: 0.01)
 
-statistics options:
-  --dm MODEL_FILE       Dispersion model for negative binomial tests. If
-                        argument is not provided then no stastical output is
-                        provided. File is in JSON format and generated using
-                        the 'ftd-learn-dispersion-model' script included in
-                        the software package.
-  --fdr-shuffle-n N     Number of times to shuffle data for FDR calculation.
-                        (default: 50)
+	statistics options:
+	  --dm MODEL_FILE       Dispersion model for negative binomial tests. If
+				argument is not provided then no stastical output is
+				provided. File is in JSON format and generated using
+				the 'ftd-learn-dispersion-model' script included in
+				the software package.
+	  --fdr-shuffle-n N     Number of times to shuffle data for FDR calculation.
+				(default: 50)
 
-other options:
-  --remove-dups         Remove duplicate reads from analysis (SAM flag --
-                        1024)
-  --bam-offset N        BAM file offset (support for legacy BAM/SAM format)
-                        (default: (0, -1))
-  --processors N        Number of processors to use. (default: all available
-                        processors)
+	other options:
+	  --remove-dups         Remove duplicate reads from analysis (SAM flag --
+				1024)
+	  --bam-offset N        BAM file offset (support for legacy BAM/SAM format)
+				(default: (0, -1))
+	  --processors N        Number of processors to use. (default: all available
+				processors)
 
 The `compute_deviation.py` script writes to standard out. The ouptput format is quasi-bedGraph such that the columns contain information about (4) expected cleavages, (5) observed cleavages, (6) -log p-value of the per-nucleotide deviation from expected, (7) -log of the combined p-values using Stouffers Z-score method, and (8) the  calibrated FDR of column 6. 
 
