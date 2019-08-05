@@ -67,7 +67,7 @@ def compute_beta_prior(filename, fdr_cutoff, exp_cutoff):
 	handle.close()
 
 	ratios = np.array(ratios)
-	(a, b) = scipy.stats.beta.fit(ratios[ratios<1], floc = 0, fscale = 1)[0:2]
+	(a, b) = scipy.stats.beta.fit(ratios[np.isfinite(ratios) & (ratios>0) & (ratios<=1)], floc = 0, fscale = 1)[0:2]
 
 	return [a, b]
 
