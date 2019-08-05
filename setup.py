@@ -18,7 +18,7 @@ from glob import glob
 __version__ = "1.0"
 
 if sys.version_info[0] != 2 or sys.version_info[1] < 7:
-    print("Package requires Python version 2.7+")
+    print("Package requires Python version 2.7+ (3.0 not yet supported)")
     sys.exit(1)
 
 cephes_include = "cephes"

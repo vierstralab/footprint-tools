@@ -7,7 +7,7 @@
 
 #include "cephes.h"
 
-#include "kdtree.h"
+//#include "kdtree.h"
 
 extern double c_log( double );
 extern double c_psi( double );
@@ -148,7 +148,7 @@ void shuffle_columns_fast(double* mat, int nx, int ny)
 	}
 
 }
-
+/*
 int pairwise_mutual_information_kraskov(double* mat, int m, int n, double *result, int nshuf)
 {
 
@@ -242,6 +242,6 @@ int pairwise_mutual_information_kraskov(double* mat, int m, int n, double *resul
 	return 0;
 
 }
-
+*/
 
 #endif

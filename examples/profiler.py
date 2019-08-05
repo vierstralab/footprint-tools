@@ -10,7 +10,7 @@ import numpy as np
 import pysam
 import pyfaidx
 
-from genome_tools import bed, genomic_interval
+from genome_tools import bed, genomic_interval, genomic_interval_set
 
 def parse_options(args):
 
@@ -54,7 +54,7 @@ def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
 
-	intervals = genomic_interval.genomic_interval_set(bed.bed6_iterator(open(args.interval_file)))
+	intervals = genomic_interval_set(bed.bed6_iterator(open(args.interval_file)))
 	tabix = pysam.TabixFile(args.tabix_file)
 
 	fasta = pyfaidx.Fasta(args.fasta_file) if args.fasta_file else None
@@ -120,7 +120,7 @@ def main(argv = sys.argv[1:]):
 			p.fill(0)
 			for row in posterior_file.fetch(interval.chrom, start, end, parser = pysam.asTuple()):
 				j = np.int(row[1]) - start
-				p[j] = np.float(row[3+args.posterior_col-1])
+				p[j] = np.float(row[args.posterior_col-1])
 
 			if interval.strand == "+":
 				posterior[i,:] = p

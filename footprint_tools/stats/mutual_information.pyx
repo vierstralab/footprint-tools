@@ -83,7 +83,6 @@ cpdef mutual_information_p(np.ndarray[data_type_t, ndim = 2, mode = 'c'] mat, in
 from scipy.spatial import cKDTree
 from scipy.special import digamma
 
-
 cpdef compute_kraskov(data_type_t [:] x, data_type_t [:] y, treex, treey, int k = 3):
 	
 	cdef int n = x.shape[0]

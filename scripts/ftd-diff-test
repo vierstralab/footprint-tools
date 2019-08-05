@@ -14,7 +14,7 @@ import scipy.stats
 import scipy.optimize
 
 import pysam
-from genome_tools import bed, genomic_interval 
+from genome_tools import bed, genomic_interval, genomic_interval_set
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment, differential, windowing
 
@@ -240,7 +240,7 @@ def main(argv = sys.argv[1:]):
     #print(ids[o][l_group_a:])
 
     # Load intervals file
-    intervals = genomic_interval.genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
+    intervals = genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
     n_intervals = len(intervals)
     h = int(n_intervals / 2)
 
