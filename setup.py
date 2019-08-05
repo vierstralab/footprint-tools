@@ -1,4 +1,4 @@
-# Copyright 2015 Jeff Vierstra
+# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
 
 from __future__ import absolute_import, division, print_function
 
@@ -38,14 +38,11 @@ ext_modules = [
 		 sources = ["footprint_tools/stats/segment.pyx"]),
 	Extension("footprint_tools.stats.fdr.bisect",
 		 sources = ["footprint_tools/stats/fdr/bisect.pyx"]),
-	Extension("footprint_tools.stats.mutual_information",
-		 sources = ["footprint_tools/stats/mutual_information.pyx"],
-		 extra_compile_args = ["-lm"]),
 	Extension("footprint_tools.stats.differential",
 		 sources = ["footprint_tools/stats/differential.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-compute-mutual-information", "scripts/ftd-occupancy-matrix", "scripts/ftd-occupancy-matrix-mi", "scripts/ftd-diff-test"]
+scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-occupancy-matrix-mi", "scripts/ftd-diff-test"]
 
 install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.8.2", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing", "genome_tools>=1.0"]
 

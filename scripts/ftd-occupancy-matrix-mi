@@ -1,21 +1,18 @@
 #!/usr/bin/which python
 
+# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
+
 from __future__ import print_function, division
 
-import sys, os, os.path, glob, tempfile, shutil
-import logging
-
+import sys,logging, os, os.path, glob, tempfile, shutil
 from argparse import ArgumentParser
-
 import multiprocessing as mp
-from multiprocessing import sharedctypes
-
-import numpy as np
-from numpy import ctypeslib
 
 import pandas as pd
+import numpy as np
 
-import scipy.stats
+from multiprocessing import sharedctypes
+from numpy import ctypeslib
 
 from sklearn.metrics import mutual_info_score
 
@@ -31,15 +28,14 @@ def parse_options(args):
     parser.add_argument("matrix_file", metavar = "matrix_file", type = str, 
                         help = "File path to occupancy matrix file")
 
-
-    grp_st = parser.add_argument_group("statistical options")
+    grp_st = parser.add_argument_group("Statistical options")
 
     grp_st.add_argument("--sample-n", metavar = "N", type = int,
                         dest = "sample_n", default = 10000,
                         help = "Number of random footprints to sample for p-value calculation"
                         " (default: %(default)s)")
 
-    grp_ot = parser.add_argument_group("other options")
+    grp_ot = parser.add_argument_group("Other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count(),

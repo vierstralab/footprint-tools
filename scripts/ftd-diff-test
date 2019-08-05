@@ -1,11 +1,11 @@
 #!/usr/bin/which python
 
+# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
+
 from __future__ import print_function, division
 
-import sys, os, os.path, glob, tempfile, shutil
-import logging
+import sys, logging, os, os.path, glob, tempfile, shutil
 from argparse import ArgumentParser
-
 import multiprocessing as mp
 
 import numpy as np
@@ -14,7 +14,9 @@ import scipy.stats
 import scipy.optimize
 
 import pysam
+
 from genome_tools import bed, genomic_interval, genomic_interval_set
+
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment, differential, windowing
 
@@ -23,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute the posterior probability of cleavage data")
+    parser = ArgumentParser(description = "Perform a cleavage rate differential test between two groups")
 
     parser.add_argument("metadata_file", metavar = "metadata_file", type = str,
                         help = "Path to configuration file containing metadata for samples")
@@ -31,7 +33,7 @@ def parse_options(args):
     parser.add_argument("interval_file", metavar = "interval_file", type = str, 
                         help = "File path to BED file")
 
-    grp_ot = parser.add_argument_group("other options")
+    grp_ot = parser.add_argument_group("Other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count()-2,
@@ -57,15 +59,9 @@ def read_func(tabix_files, intervals, queue):
     for interval in intervals:
 
         l = len(interval)
-        
-        #if l > 25000:
-        #    logger.warning("%s too large to process!" % str(interval))
-        #    continue
 
         obs = np.zeros((n_datasets, l), dtype = np.float64)
         exp = np.zeros((n_datasets, l), dtype = np.float64)
-        #fpr = np.ones((n_datasets, l), dtype = np.float64)
-        #w = np.zeros((n_datasets, l), dtype = np.float64)
 
         i = 0
         j = 0
@@ -77,15 +73,12 @@ def read_func(tabix_files, intervals, queue):
                     j = int(row[1])-interval.start
                     exp[i, j] = np.float64(row[3])
                     obs[i, j] = np.float64(row[4])
-                    #fpr[i, j] = np.float64(row[7])
-                    #w[i, j] = 1
+
             except:
                 pass
 
             i += 1
 
-        #queue.put( (interval, exp[:,:l], obs[:,:l], fdr[:,:l], w[:,:l]) )
-        #queue.put( (interval, exp, obs, fpr, w) )
         queue.put( (interval, exp, obs) )
 
         # Stop memory from getting out of control
@@ -143,7 +136,7 @@ def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
 
         nu_0, sig2_0 = scipy.optimize.fmin(differential.invchi2_likelihood, [1, 1], args = (variance,), full_output = False, disp = False)
 
-        #logger.info("nu_0 = %f, sig2_0 =  %f" % (nu_0, sig2_0))
+        logger.info("nu_0 = %f, sig2_0 =  %f" % (nu_0, sig2_0))
 
         # Calculate prior
         pr_a = differential.compute_log_prior_t(log2_obs_over_exp[:l_group_a,:], nu_0, sig2_0, -6, 6, 100)
@@ -235,9 +228,6 @@ def main(argv = sys.argv[1:]):
     l_group_b = np.sum(groups == "B")
 
     assert(len(groups) == l_group_a + l_group_b)
-
-    #print(ids[o][:l_group_a])
-    #print(ids[o][l_group_a:])
 
     # Load intervals file
     intervals = genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))

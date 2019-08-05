@@ -1,18 +1,19 @@
 #!/usr/bin/which python
 
+# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
+
 from __future__ import print_function, division
 
-import sys, os, os.path, glob, tempfile, shutil
-import logging
+import sys, logging, os, os.path, glob, tempfile, shutil
 from argparse import ArgumentParser
-
 import multiprocessing as mp
 
 import numpy as np
 import scipy.stats
-
 import pysam
-from genome_tools import bed, genomic_interval 
+
+from genome_tools import bed, genomic_interval
+
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment
 
@@ -30,21 +31,21 @@ def parse_options(args):
     parser.add_argument("interval_file", metavar = "interval_file", type = str, 
                         help = "File path to BED file")
 
-    grp_st = parser.add_argument_group("statistical options")
+    grp_st = parser.add_argument_group("Statistical options")
 
     grp_st.add_argument("--fdr-cutoff", metavar = "N", type = float,
                         dest = "fdr_cutoff", default = 0.05,
                         help = "Only consider nucleotides with FDR <= this value."
                         " (default: %(default)s)")
 
-    grp_o = parser.add_argument_group("output options")
+    grp_o = parser.add_argument_group("Output options")
 
     grp_o.add_argument("--post-cutoff", metavar = "N", type = float,
-                        dest = "post_cutoff", default = -np.log(0.2),
-                        help = "Only consider nucleotides with FDR <= this value."
+                        dest = "post_cutoff", default = 0.2,
+                        help = "Only output nucleotides with posterior probability <= this value."
                         " (default: %(default)s)")
 
-    grp_ot = parser.add_argument_group("other options")
+    grp_ot = parser.add_argument_group("Other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count()-2,
@@ -60,24 +61,10 @@ def read_func(tabix_files, intervals, queue):
     tabix_handles = [pysam.TabixFile(f) for f in tabix_files]
     n_datasets = len(tabix_handles)
 
-#    obs = np.zeros((n_datasets, 25000), dtype = np.float64)
-#    exp = np.zeros((n_datasets, 25000), dtype = np.float64)
-#    fdr = np.ones((n_datasets, 25000), dtype = np.float64)
-#    w = np.zeros((n_datasets, 25000), dtype = np.float64)
-
      # Write to input queue
     for interval in intervals:
 
         l = len(interval)
-        
-        #if l > 25000:
-        #    logger.warning("%s too large to process!" % str(interval))
-        #    continue
-
-        #obs[:,:] = 0 
-        #exp[:,:] = 0
-        #fdr[:,:] = 1
-        #w[:,:] = 0
 
         obs = np.zeros((n_datasets, l), dtype = np.float64)
         exp = np.zeros((n_datasets, l), dtype = np.float64)
@@ -101,7 +88,6 @@ def read_func(tabix_files, intervals, queue):
 
             i += 1
 
-        #queue.put( (interval, exp[:,:l], obs[:,:l], fdr[:,:l], w[:,:l]) )
         queue.put( (interval, exp, obs, fdr, w) )
 
         # Stop memory from getting out of control
@@ -216,7 +202,7 @@ def main(argv = sys.argv[1:]):
     #
     q = mp.JoinableQueue()   
     readers = [ mp.Process(target = read_func, args = (tabix_files, intervals[:h], q)), mp.Process(target = read_func, args = (tabix_files, intervals[h:], q)) ]
-    processors = [ mp.Process(target = process_func, args = (disp_models, beta_priors, q, f, args.fdr_cutoff, args.post_cutoff)) for f in chunk_files ]
+    processors = [ mp.Process(target = process_func, args = (disp_models, beta_priors, q, f, args.fdr_cutoff, -np.log(args.post_cutoff))) for f in chunk_files ]
 
     [reader.start() for reader in readers]
     [processor.start() for processor in processors]
