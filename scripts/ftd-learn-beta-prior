@@ -22,8 +22,8 @@ def parse_options(args):
 
     parser = ArgumentParser(description = "Learn the genome-wide beta model prior for nucleotide protection")
 
-    parser.add_argument("tabix_files", metavar = "tabix_file", nargs = "+", type = str,
-                        help = "Path to TABIX-format file(s) (e.g., ouput"
+    parser.add_argument("tabix_file", metavar = "tabix_file", type = str,
+                        help = "Path to TABIX-format file (e.g., ouput"
                         " from 'ftd-compute-deviation')")
 
     grp_m = parser.add_argument_group("Model options")
@@ -37,13 +37,6 @@ def parse_options(args):
                         dest = "exp_cutoff", default = 10,
                         help = "Only consider nucleotides with expected cleavages >= this value."
                         " (default: %(default)s)")
-
-    grp_ot = parser.add_argument_group("Other options")
-
-    grp_ot.add_argument("--processors", metavar = "N", type = int,
-                        dest = "processors", default = mp.cpu_count(),
-                        help = "Number of processors to use."
-                        " (default: all available processors)")
 
     return parser.parse_args(args)
 
@@ -67,7 +60,7 @@ def compute_beta_prior(filename, fdr_cutoff, exp_cutoff):
 	handle.close()
 
 	ratios = np.array(ratios)
-	(a, b) = scipy.stats.beta.fit(ratios[np.isfinite(ratios) & (ratios>0) & (ratios<=1)], floc = 0, fscale = 1)[0:2]
+	(a, b) = scipy.stats.beta.fit(ratios[np.isfinite(ratios) & (ratios>0) & (ratios<1)], floc = 0, fscale = 1)[0:2]
 
 	return [a, b]
 
@@ -75,14 +68,10 @@ def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
 
-	pool = mp.Pool(min(args.processors, len(args.tabix_files)))
 
-	process_func = partial(compute_beta_prior, fdr_cutoff = args.fdr_cutoff, exp_cutoff = args.exp_cutoff)
+	prior = compute_beta_prior(args.tabix_file, fdr_cutoff = args.fdr_cutoff, exp_cutoff = args.exp_cutoff)
 
-	res = pool.map(process_func, args.tabix_files)
-
-	for prior in res:
-		print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = sys.stdout)
+	print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = sys.stdout)
 
 	return 0
 

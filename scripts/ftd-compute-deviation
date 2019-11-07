@@ -1,4 +1,4 @@
-#!/usr/bin/which python
+#!/usr/bin/which python2
 
 # Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
 
@@ -11,7 +11,7 @@ import multiprocessing as mp
 import pyfaidx
 import numpy as np
 
-from genome_tools import bed, genomic_interval 
+from genome_tools import bed, genomic_interval, genomic_interval_set
 
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
@@ -182,7 +182,7 @@ def main(argv = sys.argv[1:]):
 
     pool = mp.Pool(args.processors)
 
-    for interval in genomic_interval.genomic_interval_set(intervals):
+    for interval in genomic_interval_set(intervals):
 
         region = predict.prediction(reads, fasta, interval, args.bias_model, args.half_win_width, args.smooth_half_win_width, args.smooth_clip)
 

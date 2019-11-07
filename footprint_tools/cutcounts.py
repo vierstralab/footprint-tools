@@ -14,7 +14,6 @@ class GenotypeError(Exception):
 class bamfile(object):
 
 	"""Class to access a BAM file (largely inspired/copied from Piper et al.)"""
-	
 	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, chunksize = 1000, offset = (0, -1)):
 
 		try:
@@ -138,10 +137,8 @@ class bamfile(object):
 			if read2:
 				self.__add_read(read2, tmp_fw, tmp_rev)
 
-
 		fw_cutarray = np.array([tmp_fw.get(i, 0.0) for i in range(start, end)])
 		rev_cutarray = np.array([tmp_rev.get(i, 0.0) for i in range(start, end)])
-
 
 		return {
  			"+": rev_cutarray[::-1] if flip else fw_cutarray, 

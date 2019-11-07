@@ -9,57 +9,51 @@ from ..stats.distributions import nbinom
 import numpy as np
 from scipy import optimize
 
+import pwlf
+
 cimport cython
 cimport numpy as np
 from ..stats.distributions cimport nbinom
 
-cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3):
-	# x0,y0 : first breakpoint
-	# x1 : second breakpoint
-	# k1,k2,k3 : 3 slopes.
 
-	cdef double y1=y0+ k2*(x1-x0) # for continuity
+
+cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,
+	 								data_type_t y0, data_type_t y1, data_type_t y2,
+	 								data_type_t k0, data_type_t k1, data_type_t k2):
 	
-	if x<x0:
-		return y0 + k1*(x-x0)
-	elif x>=x1:
-		return y1 + k3*(x-x1)
-	else:
-		return y0 + k2*(x-x0)
+	return (
+        (x<x0) * (y0 + k0*(x)) +
+        ((x>=x0) & (x<x1)) * (y1 + k1*(x)) +
+        (x>=x1) * (y2 + k2*(x))
+    )
+
+cpdef data_type_t piecewise_four(x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, 
+	 								data_type_t y0, data_type_t y1, data_type_t y2, data_type_t y3,
+	 								data_type_t k0, data_type_t k1, data_type_t k2, data_type_t k3):
 	
-	#return (
-	#(x<x0)              *   (y0 + k1*(x-x0))      +
-	#((x>=x0) & (x<x1))  *   (y0 + k2*(x-x0))      +
-	#(x>=x1)             *   (y1 + k3*(x-x1)))
+	return (
+        (x<x0) * (y0 + k0*(x)) +
+        ((x>=x0) & (x<x1)) * (y1 + k1*(x)) +
+        ((x>=x1) & (x<x2)) * (y2 + k2*(x)) +
+        (x>=x2) * (y3 + k3*(x))
+    )
 
-cpdef data_type_t piecewise_three_fast(data_type_t x, data_type_t x0, data_type_t y0, data_type_t x1, data_type_t k1, data_type_t k2, data_type_t k3) nogil:
-	# x0,y0 : first breakpoint
-	# x1 : second breakpoint
-	# k1,k2,k3 : 3 slopes.
-
-	cdef double y1=y0+ k2*(x1-x0) # for continuity
+cpdef data_type_t piecewise_five(x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, data_type_t x4, 
+	 								data_type_t y0, data_type_t y1, data_type_t y2, data_type_t y3, data_type_t y4,
+	 								data_type_t k0, data_type_t k1, data_type_t k2, data_type_t k3, data_type_t k4):
 	
-	if x<x0:
-		return y0 + k1*(x-x0)
-	elif x>=x1:
-		return y1 + k3*(x-x1)
-	else:
-		return y0 + k2*(x-x0)
-
+	return (
+        (x<x0) * (y0 + k0*(x)) +
+        ((x>=x0) & (x<x1)) * (y1 + k1*(x)) +
+        ((x>=x1) & (x<x2)) * (y2 + k2*(x)) +
+        ((x>=x2) & (x<x3)) * (y3 + k3*(x)) +
+        (x>=x3) * (y4 + k4*(x))
+    )
 
 cdef class dispersion_model:
 	"""
 	Dispersion model base class
 	"""
-
-	#cdef np.ndarray _h
-	#cdef np.ndarray _p, _r
-
-	#cdef data_type_t _mu_params_a, _mu_params_b
-	#cdef data_type_t _r_params_a, _r_params_b
-
-	#cdef np.ndarray _mu_params, _r_params
-	#cdef public object _mu_func, _r_func
 
 	def __init__(self):
 		
@@ -70,32 +64,19 @@ cdef class dispersion_model:
 		self._p = None
 		self._r = None
 
-		# Regression parameters
-		#self._mu_params_a = self._mu_params_b = 0.0
-		#self._r_params_a = self._r_params_b = 0.0
-		
 		self._mu_params = self._r_params = None
-		#self._mu_func = self._r_func = None
 
 		pass
 
 	# Pickling function
 	def __reduce__(self):
 		x = {}
-		#x['h'] = self.h
-		#x['p'] = self.p
-		#x['r'] = self.r
-
 		x['mu_params'] = self.mu_params
 		x['r_params'] = self.r_params
 		return (dispersion_model, (), x)
 
 	# Pickling function
 	def __setstate__(self, x):
-		#self.h = x['h']
-		#self.p = x['p']
-		#self.r = x['r']
-		
 		self.mu_params = x['mu_params']
 		self.r_params = x['r_params']
 
@@ -119,25 +100,15 @@ cdef class dispersion_model:
 
 	property mu_params:
 		def __get__(self):
-			#return self._mu_params_a, self._mu_params_b
 			return self._mu_params
 		def __set__(self, x):
-			#self._mu_params_a = x[0]
-			#self._mu_params_b = x[1]
 			self._mu_params = np.array(x, order = 'c')
-			#self._mu_func = np.poly1d(self._mu_params)
-			#self._mu_func = partial(piecewise_three, x0 = x[0], y0 = x[1], x1 = x[2], k1 = x[3], k2 = x[4], k3 = x[5])
 
 	property r_params:
 		def __get__(self):
-			#return self._r_params_a, self._r_params_b
 			return self._r_params
 		def __set__(self, x):
-			#self._r_params_a = x[0]
-			#self._r_params_b = x[1]
 			self._r_params = np.array(x, order = 'c')
-			#self._r_func = np.poly1d(self._r_params)
-			#self._r_func = partial(piecewise_three, x0 = x[0], y0 = x[1], x1 = x[2], k1 = x[3], k2 = x[4], k3 = x[5])
 
 
 	cpdef data_type_t fit_mu(self, data_type_t x):
@@ -147,12 +118,9 @@ cdef class dispersion_model:
 		
 		:returns mu: (float)
 		"""
-		cdef data_type_t [:] par = self._mu_params
-		cdef data_type_t res = piecewise_three_fast(x, par[0], par[1], par[2], par[3], par[4], par[5])
 
-		#cdef double res = self._mu_params_a + self._mu_params_b * x
-		#cdef data_type_t res = piecewise_three(x, self._mu_params[0], self._mu_params[1], self._mu_params[2], self._mu_params[3], self._mu_params[4], self._mu_params[5])
-		#cdef double res = self._mu_func(x)
+		cdef data_type_t [:] par = self._mu_params
+		cdef data_type_t res = piecewise_three(x, *par)
 
 		return res if res > 0.0 else 0.1
 
@@ -165,20 +133,14 @@ cdef class dispersion_model:
 		:returns r: (float)
 		"""
 
-		#cdef double res = 1.0 / (self._r_params_a + self._r_params_b * x)
 		cdef data_type_t [:] par = self._r_params
-		cdef data_type_t res = 1.0/piecewise_three_fast(x, par[0], par[1], par[2], par[3], par[4], par[5])
+		cdef data_type_t res = 1.0/piecewise_five(x, *par)
 
-		#cdef double res = 1.0/piecewise_three(x, self._r_params[0], self._r_params[1], self._r_params[2], self._r_params[3], self._r_params[4], self._r_params[5])
-		#cdef double res = 1.0/self._r_func(x)
 		return res if res > 0.0 else 1e-6
 
 	def __str__(self):
 		"""Print model to string"""
-
-		#res = "mu = %0.4f + %0.4fx\n" % (self.mu_params)
-		#res += "r = %0.4f + %0.4fx" % (self.r_params)
-		res = "Oops...not yet implemented!"
+		res = "Oops...the functionality has not yet been implemented!"
 		return res
 
 	@cython.cdivision(True)
@@ -292,48 +254,48 @@ cdef class dispersion_model:
 @cython.boundscheck(True)
 @cython.wraparound(True)
 
+
 def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	"""Learn a dispersion model from the
 	expected vs. observed histogram
 	"""
 
 	size = int(h.shape[0])
-	n = np.zeros(size)
 	p = np.zeros(size)
 	r = np.zeros(size)
 
-	#thresholded = []
-
 	# Make an initial negative binomial fit
-	for i in range(size):
+	for i in range(0, size):
 	
 		pos = 0
 		x = np.zeros(int(np.sum(h[i,:])))
 		for j in range(len(h[i,:])):
 			num = int(h[i, j])
 			x[pos:pos+num] = j
-			pos += num 
+			pos += num
 
-		lower = int(np.floor(pos*(trim[0]/100.0)))
-		upper = int(np.ceil(pos*(trim[1]/100.0)))
+		# If more than 500k points downsample to
+		# make curve-fitting tractable
+		if len(x)>5e5:
+			x=np.random.choice(x, size=int(5e5))
+			x=np.sort(x)
 
-		n[i] = len(x)
+		if len(x) >= cutoff:		
 
-		if n[i] >= cutoff:
-			
-			#thresholded.append(i)
+			lower = int(np.floor(x.shape[0]*(trim[0]/100.0)))
+			upper = int(np.ceil(x.shape[0]*(trim[1]/100.0)))
+
 			mu = np.mean(x[lower:upper])
 			var = np.var(x[lower:upper])
 
 			est_r = (mu * mu) / (var - mu)
-			if est_r <= 0.0: est_r = 1.0
-
+			if est_r <= 0.0: 
+				est_r = 1.0
 			est_p = est_r / (est_r + mu)
 			
 			(p[i], r[i]) = nbinom.fit(x[lower:upper], p = est_p, r = est_r)
 
 		else:
-
 			p[i] = r[i] = np.nan
 
 	# Back-compute the mean values from the negative binomial parameters
@@ -343,61 +305,16 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	x = np.arange(size)
 	sele = np.isfinite(mus)
 
-	#w = np.log10(n)
+	first_x = np.min(x[sele])
+	last_x = np.max(x[sele])*0.75
 
-	# Extrapolate the fit
-	#import statsmodels.api as sm
-	
-	#xx = sm.add_constant(x)
-	
-	# Kind of a 'hacked' solution to fit the dispersion values; remove the first 5 thresholded datapoints
+	# fit mu with a 3 segments
+	fit_mu=pwlf.PiecewiseLinFit(x[sele], mus[sele])
+	res=fit_mu.fit_with_breaks(np.linspace(first_x, last_x, 4))
 
-	#model_mu = sm.WLS(mus[sele], xx[sele], w[sele]).fit()
-	#model_mu = np.polyfit(x[valid], mus[valid], deg = 1, w = w[valid])p0=(2,2,35, 1, 1, 1)
-	
-	x0 = 5
-	y0 = mus[x0]
-	k1 = (y0 - mus[0]) / (x0)
-
-	x1 = 10
-	y1 = mus[x1]
-	k2 = (y1 - y0) / (x1 - x0)
-
-	x2 = x[sele][-1]
-	y2 = mus[sele][-1]
-	k3 = (y2 - y1) / (x2 - x1)
-
-	# Set intial guess and parameter bounds
-	p0 = (x0, y0, x1, k1, k2, k3)
-	l_bound = [0, 0, 0, -np.inf, -np.inf, -np.inf]
-	u_bound = np.inf
-
-	model_mu, e = optimize.curve_fit(piecewise_three, x[sele], mus[sele], p0 = p0, bounds = (l_bound, u_bound))
-
-	# remove non-linear part of r parameters
-	# sele[:10] = False
-
-	#model_r = sm.WLS((1/r)[sele], xx[sele], w[sele]).fit()
-	#model_r = np.polyfit(x[valid], 1.0/r[valid], deg = 1, w = w[valid])
-	
-	x0 = 5
-	y0 = 1.0/r[x0]
-	k1 = (y0 - 1/r[0]) / (x0)
-
-	x1 = 10
-	y1 = 1.0/r[x1]
-	k2 = (y1 - y0) / (x1 - x0)
-
-	x2 = x[sele][-1]
-	y2 = 1.0/r[sele][-1]
-	k3 = (y2 - y1) / (x2 - x1)
-
-	# Set intial guess and parameter bounds
-	p0 = (x0, y0, x1, k1, k2, k3)
-	l_bound = [0, 0, 0, -np.inf, -np.inf, -np.inf]
-	u_bound = np.inf
-
-	model_r, e = optimize.curve_fit(piecewise_three, x[sele], 1.0/r[sele], p0 = p0, bounds = (l_bound, u_bound))
+	# fit r with 5 s segments
+	fit_r=pwlf.PiecewiseLinFit(x[sele], 1.0/r[sele])
+	res=fit_r.fit_with_breaks([first_x, 2, 7, 15, 25, last_x])
 
 	# Create a dispersion model class
 	res = dispersion_model()
@@ -405,10 +322,8 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	res.p = p
 	res.r = r
 
-	#res.mu_params = model_mu.params[::-1]
-	res.mu_params = model_mu
-	#res.r_params = model_r.params[::-1]
-	res.r_params = model_r
+	res.mu_params = list(fit_mu.fit_breaks[1:]) + list(fit_mu.intercepts) + list(fit_mu.slopes)
+	res.r_params = list(fit_r.fit_breaks[1:]) + list(fit_r.intercepts) + list(fit_r.slopes)
 	
 	return res
 
@@ -435,10 +350,8 @@ def read_dispersion_model(filename):
 
 	model = dispersion_model()
 	with open(filename) as f:
+
 		params = json.load(f)
-		
-		#model.mu_params = params["mu_params"]
-		#model.r_params = params["r_params"]
 
 		model.mu_params = base64decode(params["mu_params"])
 		model.r_params = base64decode(params["r_params"])
@@ -455,13 +368,6 @@ def read_dispersion_model(filename):
 def write_dispersion_model(model):
 
 	import json
-
-	#out = { "mu_params": [model.mu_params[0], model.mu_params[1]], 
-	#		"r_params": [model.r_params[0], model.r_params[1]],
-	#		"h": base64encode(np.asarray(model.h)),
-	#		"p": base64encode(np.asarray(model.p)),
-	#		"r": base64encode(np.asarray(model.r))
-	#	}
 
 	out = { "mu_params": base64encode(np.asarray(model.mu_params, order = 'C')), 
 			"r_params": base64encode(np.asarray(model.r_params, order = 'C')),
