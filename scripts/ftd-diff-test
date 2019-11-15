@@ -157,6 +157,7 @@ def process_func(disp_models, l_group_a, l_group_b, queue, outfile):
 
         llr = La + Lb - Lab
         lrt = scipy.stats.chi2.sf(2*llr, df = 3)
+        lrt[lrt==1.0]=(1.0-1e-6)
 
         stfz = windowing.stouffers_z(lrt, 3)
 
@@ -264,8 +265,9 @@ def main(argv = sys.argv[1:]):
                 sys.stdout.write(line)
 
     logger.info("Cleaning up...")
-
-    shutil.rmtree(tmpdir)
+    
+    if not args.tmpdir:
+        shutil.rmtree(tmpdir)
 
     return 0
 

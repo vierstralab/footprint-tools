@@ -276,8 +276,8 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 
 		# If more than 500k points downsample to
 		# make curve-fitting tractable
-		if len(x)>5e5:
-			x=np.random.choice(x, size=int(5e5))
+		if len(x)>1e5:
+			x=np.random.choice(x, size=int(1e5))
 			x=np.sort(x)
 
 		if len(x) >= cutoff:		
@@ -290,7 +290,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 
 			est_r = (mu * mu) / (var - mu)
 			if est_r <= 0.0: 
-				est_r = 1.0
+				est_r = 10.0
 			est_p = est_r / (est_r + mu)
 			
 			(p[i], r[i]) = nbinom.fit(x[lower:upper], p = est_p, r = est_r)
@@ -301,6 +301,9 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 	# Back-compute the mean values from the negative binomial parameters
 	mus = p*r/(1-p)
 
+	# hack
+	r[r>200]=200.
+
 	# Extrapolate using polynomial fit
 	x = np.arange(size)
 	sele = np.isfinite(mus)
@@ -310,11 +313,20 @@ def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
 
 	# fit mu with a 3 segments
 	fit_mu=pwlf.PiecewiseLinFit(x[sele], mus[sele])
-	res=fit_mu.fit_with_breaks(np.linspace(first_x, last_x, 4))
+	res=fit_mu.fit_with_breaks_force_points(np.linspace(first_x, last_x, 4), [0], [mus[0]])
 
 	# fit r with 5 s segments
 	fit_r=pwlf.PiecewiseLinFit(x[sele], 1.0/r[sele])
-	res=fit_r.fit_with_breaks([first_x, 2, 7, 15, 25, last_x])
+	res = optimize.minimize(fit_r.fit_with_breaks_opt, [3.0, 7.0, 15.0, 25.0])
+	
+	x0=np.zeros(6)
+	x0[0]=first_x
+	x0[-1]=last_x
+	x0[1:-1]=res.x
+
+	#res=fit_r.fit_with_breaks_force_points([first_x, 2, 7, 15, 25, last_x], [1], [1.0/r[1]])
+	res=fit_r.fit_with_breaks_force_points(x0, [1], [1.0/r[1]])
+
 
 	# Create a dispersion model class
 	res = dispersion_model()
