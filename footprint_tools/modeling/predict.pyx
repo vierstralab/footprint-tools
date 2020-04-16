@@ -57,7 +57,7 @@ def reverse_complement(seq):
 	"""
 
 	compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
-	return ''.join([ compl[base] for base in seq ])[::-1]
+	return ''.join([ compl.get(base, 'N') for base in seq ])[::-1]
 
 class prediction(object):
 

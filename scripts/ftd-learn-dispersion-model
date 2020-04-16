@@ -10,6 +10,7 @@ import multiprocessing as mp
 
 import pyfaidx
 import numpy as np
+import random
 
 from genome_tools import bed, genomic_interval, genomic_interval_set 
 
@@ -72,6 +73,10 @@ def parse_options(args):
                         help = "BAM file offset (support for legacy BAM/SAM format)"
                         " (default: %(default)s)")
 
+    grp_ot.add_argument("--seed", metavar = "N", type = int, dest = "seed",
+                        default = None, help = "Seed for random number generation"
+                        " (default: no seed)")
+
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count(),
                         help = "Number of processors to use."
@@ -110,6 +115,8 @@ class process_callback(object):
 def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
+	random.seed(args.seed)
+	np.random.seed(args.seed)
 
 	reads = cutcounts.bamfile(args.bam_file, remove_dups = args.remove_dups, offset = args.bam_offset)
 	fasta = pyfaidx.Fasta(args.fasta_file, one_based_attributes = False, sequence_always_upper = True)
