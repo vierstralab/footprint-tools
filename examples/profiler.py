@@ -17,7 +17,7 @@ def parse_options(args):
 	parser = ArgumentParser(description = "Compute an aggregated DNase I cleavage profile from a collection of regions")
 
 	parser.add_argument("tabix_file", metavar = "tabix_file", type = str,
-                        help = "Path to BAM-format tag sequence file")
+                        help = "Path to TABIX-format footpringing file")
 
 	parser.add_argument("interval_file", metavar = "interval_file", type = str, 
                         help = "File path to BED file")
