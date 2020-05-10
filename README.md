@@ -32,12 +32,12 @@ While the software package has a limited number of dependencies, some of them (a
 2. Verify that you have ```gcc``` version 4.7.2 installed (if not, try to load using the command ```module load gcc/4.7.2``` on a cluster node)
 3. Verify/install dependencies:
 	```
-		[jvierstra ~]$ python2 -m pip install cython --user
-		[jvierstra ~]$ python2 -m pip install numpy --user
-		[jvierstra ~]$ python2 -m pip install scipy --user
-		[jvierstra ~]$ python2 -m pip install pyfaidx --user
-		[jvierstra ~]$ python2 -m pip install pysam --user
-		[jvierstra ~]$ python2 -m pip install statsmodels --user
+	[jvierstra ~]$ python2 -m pip install cython --user
+	[jvierstra ~]$ python2 -m pip install numpy --user
+	[jvierstra ~]$ python2 -m pip install scipy --user
+	[jvierstra ~]$ python2 -m pip install pyfaidx --user
+	[jvierstra ~]$ python2 -m pip install pysam --user
+	[jvierstra ~]$ python2 -m pip install statsmodels --user
 	```
 4. Clone `FTD` repository and install:
 	```
@@ -102,7 +102,7 @@ The mappability file specifies the regions of the genome where the sequencing st
 
 ### Step 5: Create a dispersion (error) model
 
-FTD using a negative binomial to compute the significance of per-nucleotide cleavage devations from the expected. The negative binomial has two parameters, mu and r. The script `learn_dispersion_model.py` emperically fits mu and r from the observed cleavage data and then interpolates all values using linear regression. `learn_dispersion_model.py` writes a dispersion model in JSON format to standard out which can then be used with all FTD analyses.
+FTD uses a negative binomial to compute the significance of per-nucleotide cleavage devations from the expected. The negative binomial has two parameters, mu and r. The script `ftd-learn-dispersion-model` emperically fits mu and r from the observed cleavage data and then interpolates all values using linear regression. `ftd-learn-dispersion-model` writes a dispersion model in JSON format to standard out which can then be used with all FTD analyses.
 
 	[jvierstra@test0 footprint-tools]$ ftd-learn-dispersion-model -h
 	usage: ftd-learn-dispersion-model [-h] [--bm MODEL_FILE] [--half-win-width N]
@@ -189,10 +189,11 @@ The dispersion model is typically generated from a random subset of the accessib
 	  --processors N        Number of processors to use. (default: all available
 				processors)
 
-The `compute_deviation.py` script writes to standard out. The ouptput format is quasi-bedGraph such that the columns contain information about (4) expected cleavages, (5) observed cleavages, (6) -log p-value of the per-nucleotide deviation from expected, (7) -log of the combined p-values using Stouffers Z-score method, and (8) the  calibrated FDR of column 6. 
+The `ftd-compute-deviation` script writes to standard out. The ouptput format is quasi-bedGraph such that the columns contain information about (4) expected cleavages, (5) observed cleavages, (6) -log p-value of the per-nucleotide deviation from expected, (7) -log of the combined p-values using Stouffers Z-score method, and (8) the  calibrated FDR of column 6. 
 
-	[jvierstra@test0 footprint-tools]$ python scripts/compute_deviation.py --bm vierstra_et_al.txt --dm model.json
-		reads.bam genome.fa dhs.bed
+	[jvierstra@test0 footprint-tools]$ ftd-compute-deviation --bm vierstra_et_al.txt --dm model.json
+		reads.bam genome.fa dhs.bed > per-nucleotide.bedgraph
+	[jvierstra@test0 footprint-tools]$ head per-nucleotide.bedgraph
 	chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
 	chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
 	chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
@@ -204,14 +205,14 @@ The `compute_deviation.py` script writes to standard out. The ouptput format is 
 
 Footprints can be retrieved by thresholding on either p-values or the emperical FDR and then merging consecutive bases.
 
-#### P-value threshold 
-
-	[jvierstra@rotini footprint-tools]$ cat per-nucleotide.bed | awk -v OFS="\t" '$7 <= 0.05 { print; }' | bedops -m -
-
 #### FDR threshold
 
-	[jvierstra@rotini footprint-tools]$ cat per-nucleotide.bed | awk -v OFS="\t" '$8 <= 0.05 { print; }' | bedops -m -
-
+	cat per-nucleotide.bedgraph \
+		| awk -v OFS="\t" -v thresh=0.01 '$8 <= thresh { print $1, $2-3, $3+3; }' \
+		| sort-bed --max-mem 8G - \
+		| bedops -m - \
+	> ${output_dir}/interval.all.fps.\${thresh}.bed
+	
 ## SLURM parallelization
 
 See `examples/compute_deviation.slurm` for an example of how to parallelize footprint discovery on the a SLURM enabled cluster. 
