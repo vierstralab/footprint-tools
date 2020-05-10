@@ -53,7 +53,7 @@ setup(
 	description = "Genomic footprint detection",
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
-	url = "https:/github.com/jvierstra/footprint-tools",
+	url = "https://github.com/jvierstra/footprint-tools",
 	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.0.tar.gz",
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
@@ -68,7 +68,7 @@ setup(
 	    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
 	    'Intended Audience :: Developers',      # Define that your audience are developers
 	    'Topic :: Software Development :: Build Tools',
-	    'License :: OSI Approved :: GPL-3.0',   # Again, pick a license
+	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 	    'Programming Language :: Python :: 2.7',      #Specify which pyhton versions that you want to support
   ],
 )
