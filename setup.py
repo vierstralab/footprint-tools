@@ -42,17 +42,20 @@ ext_modules = [
 		 sources = ["footprint_tools/stats/differential.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
+scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-update-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
 
 install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing", "genome_tools>=1.0", "pwlf"]
 
 setup(
 	name = "footprint_tools",
 	version = __version__,
-	description = "GPL-3.0-or-later",
-	long_description = "",
+	licensce = "GPL-3.0-or-later",
+	description = "Genomic footprint detection",
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
+	url = "https:/github.com/jvierstra/footprint-tools",
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.0.tar.gz",
+	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),
 	libraries = [cehpes_lib],
@@ -60,5 +63,12 @@ setup(
     include_dirs=[np.get_include(), cephes_include],
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
     install_requires = install_requires,
-    scripts = scripts
+    scripts = scripts,
+    classifiers=[
+	    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
+	    'Intended Audience :: Developers',      # Define that your audience are developers
+	    'Topic :: Software Development :: Build Tools',
+	    'License :: OSI Approved :: GPL-3.0',   # Again, pick a license
+	    'Programming Language :: Python :: 2.7',      #Specify which pyhton versions that you want to support
+  ],
 )
