@@ -30,45 +30,23 @@ While the software package has a limited number of dependencies, some of them (a
 
 1. Verfiy that Python >= 2.7.3 is installed in your environment
 2. Verify that you have ```gcc``` version 4.7.2 installed (if not, try to load using the command ```module load gcc/4.7.2``` on a cluster node)
-3. Install Cython 0.22 (if necesary)
-	- Download Cython from ... and place in ```~/.local/src``` folder
+3. Verify/install dependencies:
+	- Cython
 	```
-		[jvierstra ~]$ cd ~/.local/src
-		[jvierstra ~/.local/src]$ wget 
+		[jvierstra ~]$ python2 -m pip install cython --user
+		[jvierstra ~]$ python2 -m pip install numpy --user
+		[jvierstra ~]$ python2 -m pip install scipy --user
+		[jvierstra ~]$ python2 -m pip install pyfaidx --user
+		[jvierstra ~]$ python2 -m pip install pysam --user
+		[jvierstra ~]$ python2 -m pip install statsmodels --user
 	```
-4. Install numpy/scipy:
-    - Before starting we must compile the linear algebra packages ALTAS/LAPACK from source
-      - Download ATLAS 3.10 from http://math-atlas.sourceforge.net and place in ```~/.local/src``` folder
-      - Download LAPACK from http://www.netlib.org/lapack/lapack-3.6.0.tgz and place in ```~/.local/src``` folder
-      - Compile and install ATLAS/LAPACK:
-      ```
-        [jvierstra ~/.local/src]$ tar xzf atlas3.10.2.tar.gz
-        [jvierstra ~/.local/src]$ cd ATLAS
-        [jvierstra src/ATLAS]$ mkdir BUILD
-        [jvierstra ATLAS/BUILD]$ ../configure --prefix=$HOME/.local --with-lapack-tgz=$HOME/.local/src/lapack-3.6.0.tgz
-        [jvierstra ATLAS/BUILD]$ make
-        [jvierstra ATLAS/BUILD]$ make install
-      ```
-      - Add the following line to your ```~/.bashrc``` file:
-      ```
-        export ATLAS=$HOME/.local/lib
-      ```
-      - Re-initialize the your enviroment by entering the command: 
-      ```
-        source ~/.bashrc
-      ```
-      - ATLAS/LAPACK should now be installed
-
-    - Download ```numpy``` to ```~/.local/src``` and uncompress, install:
-    ```
-    	[jvierstra ~/.local/src]$ cd numpy
-    	[jvierstra src/numpy]$ python setup.py install --user
-    ```
-    - Download ```scipy``` to ```~/.local/src``` and uncompress, install:
-    ```
-    	[jvierstra ~/.local/src]$ cd scipy
-    	[jvierstra src/scipy$ python setup.py install --user
-    ```
+4. Clone `FTD` repository and install:
+	```
+	[jvierstra ~]$ git clone https://github.com/jvierstra/footprint-tools.git
+	[jvierstra ~]$ cd footprint-tools
+	[jvierstra footprint-tools]$ python2 setup.py install --user
+	```
+5. If you don't get an errors, you should be ready to roll.
 
 ## Usage
 
