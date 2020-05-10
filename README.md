@@ -31,7 +31,6 @@ While the software package has a limited number of dependencies, some of them (a
 1. Verfiy that Python >= 2.7.3 is installed in your environment
 2. Verify that you have ```gcc``` version 4.7.2 installed (if not, try to load using the command ```module load gcc/4.7.2``` on a cluster node)
 3. Verify/install dependencies:
-	- Cython
 	```
 		[jvierstra ~]$ python2 -m pip install cython --user
 		[jvierstra ~]$ python2 -m pip install numpy --user
@@ -50,11 +49,11 @@ While the software package has a limited number of dependencies, some of them (a
 
 ## Usage
 
-Detecting footprints with FTD is easy and requires the execution of two scripts.
+Detecting footprints with FTD is easy and in the most basic mode requires the execution of two scripts.
 
 ### Step 1: Align sequenced DNase I cleavages
 
-FTD requires an alignment file in BAM format which can be made using any sequence alignment tool. FTD uses all reads with a MAPQ > 0. Typically, we also mark tags as QC fail.
+FTD requires an alignment file in BAM format which can be made using any sequence alignment tool. FTD uses all reads with a MAPQ > 0. Typically, we also mark tags as QC fail. Inclusion/exclusion of reads by MAPQ and other SAM flags can be specified during execution of the software.
 
 ### Step 2: Create an index of the reference genome FASTA file
 
@@ -64,7 +63,7 @@ The software uses an indexed FASTA file to enable rapid lookups of genomic seque
 
 ### Step 4: Download or create a 6-mer cleavage bias model
 
-The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any k-mer size, we typically use 6mers with the cleavage ocurring betwenn the 3rd and 4th base. You can make your own 6mer preference model with `examples/generate_bias_model.sh` or use the one provided in the `examples` folder.
+The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any k-mer size, we typically use 6mers with the cleavage ocurring betwenn the 3rd and 4th base. You can make your own 6mer preference model with `examples/generate_bias_model.sh` or use [one provided](data/vierstra_et_al.6mer-model.txt) in the `data` folder.
 	
 	ACTTGC	0.22214673145056082
 	ACTTAC	0.21531706520159422
@@ -80,7 +79,7 @@ The sequence bias model is the basis of FTD. A model file contains 2 columns tha
 
 #### Step 4a: Create a sequence preference model
 
-You can create your own sequence preference model using an provided template script `examples/generate_bias_model.sh`. The script counts the 6mer context of all the cleavage/insertional events such that the 5’ end of the tags is in position 3 (nnn-Nnn; N 5’ end of read oriented for strand mappped) and then compares it to the prevalence of that 6mer in the mappable genome. As such, prerequisites for creating a bias model are: (1) a BAM file from a naked DNase experiment, (2) a genome mappability file tune for the read length of the reads in the BAM file (see below), and (3) an indexed FASTA file for the genome your BAM file refers to.
+You can create your own sequence preference model using an provided template script `examples/generate_bias_model.sh`. The script counts the 6mer context of all the cleavage/insertional events such that the 5’ end of the tags is in position 3 (nnn-Nnn; N 5’ end of read oriented for strand mappped) and then compares it to the prevalence of that 6mer in the mappable genome. As such, prerequisites for creating a bias model are: (1) a BAM file from a naked DNaseI experiment, (2) a genome mappability file corresponding to the read length of the reads in the BAM file (see below), and (3) an indexed FASTA file for the genome your BAM file refers to.
 
 	[jvierstra@test0 examples]$ ./generate_bias_model.sh --temporary-dir /tmp/jvierstra reads.filtered.bam mappability.stranded.bed  /home/jvierstra/data/genomes/hg19/hg.ribo.all.fa naked.model.txt
 
@@ -90,7 +89,7 @@ The mappability file specifies the regions of the genome where the sequencing st
 	
 	# Creates a stranded mappability file for 36mer read length
 
-	wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign36mer.bigWig
+	wget http://hgdownload.cse.ucsc.edu/goldenpath/hg38/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign36mer.bigWig
 
 	bigWigToBedGraph wgEncodeCrgMapabilityAlign36mer.bigWig /dev/stdout 
 	| awk -v OFS="\t" '
