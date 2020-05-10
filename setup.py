@@ -17,8 +17,8 @@ from glob import glob
 
 __version__ = "1.0"
 
-if sys.version_info[0] != 2 or sys.version_info[1] < 7:
-    print("Package requires Python version 2.7+ (3.0 not yet supported)")
+if sys.version_info[0] != 3 or sys.version_info[1] > 5:
+    print("Package requires Python version 3.5 (3.5 not supported yet...)")
     sys.exit(1)
 
 cephes_include = "cephes"
@@ -44,7 +44,7 @@ ext_modules = [
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-update-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
 
-install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "multiprocessing", "genome_tools>=1.0", "pwlf"]
+install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "genome_tools>=1.0", "pwlf"]
 
 setup(
 	name = "footprint_tools",

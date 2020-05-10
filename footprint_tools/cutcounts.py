@@ -1,9 +1,11 @@
 # Copyright 2015 Jeff Vierstra
 
+from __future__ import absolute_import
 import pysam
 import numpy as np
 
 from collections import defaultdict
+from six.moves import range
 
 class ReadError(Exception):
 	pass
@@ -82,7 +84,7 @@ class bamfile(object):
 							yield read_dict[qname][0], read
 						del read_dict[qname]
 
-			except ReadError, e:
+			except ReadError as e:
 				continue
 
 
@@ -190,9 +192,9 @@ class bamfile(object):
 					self.__add_read(read2, fw, rev)
 				continue
 
-			except GenotypeError, e:
+			except GenotypeError as e:
 				continue
-			except IndexError, e:
+			except IndexError as e:
 				pass
 
 
@@ -222,9 +224,9 @@ class bamfile(object):
 
 				continue
 
-			except GenotypeError, e:
+			except GenotypeError as e:
 				continue
-			except IndexError, e:
+			except IndexError as e:
 				pass
 
 		ref_fw_cutarray = np.array([tmp_ref_fw.get(i, 0.0) for i in range(start, end)])

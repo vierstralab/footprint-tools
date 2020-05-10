@@ -2,12 +2,15 @@
 
 from __future__ import division
 
+from __future__ import absolute_import
 import operator
 
 from .bisect import *
 
 import numpy as np
 import scipy.stats
+from six.moves import range
+from six.moves import zip
 
 
 def emperical_fdr(pvals_null, pvals):
@@ -45,11 +48,11 @@ def pi0est(pvals, lamb = None):
 	
 	n = len(pvals)
 
-	pi0 = np.array(map(lambda l: np.mean(pvals>=l)/(1-l), lamb))
+	pi0 = np.array([np.mean(pvals>=l)/(1-l) for l in lamb])
 
 	#bootstrap method
 	minpi0 = np.percentile(pi0, q = 10)
-	W = np.array(map(lambda l: np.sum(pvals >= l), lamb))
+	W = np.array([np.sum(pvals >= l) for l in lamb])
 	mse = (W / (n**2 * (1-lamb)**2)) * (1 - W/n) + (pi0 - minpi0)**2
 
 	return min(pi0[mse== np.min(mse)], 1)
@@ -87,13 +90,13 @@ def bh_qvalue(pvals):
       level
     """
     m = len(pvals)
-    rank, sorted_pvals = zip(*sorted(enumerate(pvals), None, operator.itemgetter(1)))
+    rank, sorted_pvals = list(zip(*sorted(enumerate(pvals), None, operator.itemgetter(1))))
     if pvals[0] < 0 or pvals[-1] > 1:
         raise ValueError("p-values must be between 0 and 1")
     qvalues = np.zeros(m)
     mincoeff = sorted_pvals[-1]
     qvalues[rank[-1]] = mincoeff
-    for j in xrange(m-2, -1, -1):
+    for j in range(m-2, -1, -1):
         coeff = m*sorted_pvals[j]/float(j+1)
         if coeff < mincoeff:
             mincoeff = coeff

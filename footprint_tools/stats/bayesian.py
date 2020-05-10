@@ -1,7 +1,9 @@
 # Copyright 2015 Jeff Vierstra
 
+from __future__ import absolute_import
 import numpy as np
 import scipy.stats
+from six.moves import range
 
 def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
 	""" Returns prior of whether a TF is bound or not """
