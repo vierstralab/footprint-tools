@@ -16,7 +16,6 @@ cimport numpy as np
 from ..stats.distributions cimport nbinom
 
 
-
 cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,
 	 								data_type_t y0, data_type_t y1, data_type_t y2,
 	 								data_type_t k0, data_type_t k1, data_type_t k2):
@@ -81,24 +80,28 @@ cdef class dispersion_model:
 		self.r_params = x['r_params']
 
 	property h:
+		"""Histrogram of observed cleavages at each predicted cleavage rate"""
 		def __get__(self):
 			return self._h
 		def __set__(self, x):
 			self._h = x
 
 	property p:
+		"""Array of the negative binomial ML fit parameter `p`"""
 		def __get__(self):
 			return self._p
 		def __set__(self, x):
 			self._p = x
 
 	property r:
+		"""Array of the negative binomial ML fit parameter `r`"""
 		def __get__(self):
 			return self._r
 		def __set__(self, x):
 			self._r = x
 
 	property mu_params:
+		
 		def __get__(self):
 			return self._mu_params
 		def __set__(self, x):
@@ -130,7 +133,8 @@ cdef class dispersion_model:
 
 		:param x: predicted values to be converted to dispersion parameter r
 
-		:returns r: (float)
+		:returns: A fitted paramter for the negative bionomial distribution
+		:rtype: float
 		"""
 
 		cdef data_type_t [:] par = self._r_params
@@ -378,6 +382,12 @@ def read_dispersion_model(filename):
 	return model
 
 def write_dispersion_model(model):
+	"""Write a JSON format dispersion model
+
+	:param model: An instance of :class:`dispersion_model`
+	:return: JSON-formatted dump of dispersion model
+	:rtype: str
+	"""
 
 	import json
 

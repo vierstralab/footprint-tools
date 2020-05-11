@@ -12,26 +12,20 @@ class GenotypeError(Exception):
 	pass
 
 class bamfile(object):
-	"""Class to access a BAM file (largely inspired/copied from Piper et al.)
-
-		The basic functionality 
+	"""Class to access a BAM file (largely inspired/copied from Piper et al.) 
 
 		:param filepath: File path to BAM alignment file (must contain associated inddex)
 		:type filepath: str
 		:param min_qual: Filter reads by minimim mapping quality (MAPQ)
-		:type filepath: int
-		:param filepath: File path to BAM alignment file (must contain associated inddex)
-		:type filepath: str
-		:param filepath: File path to BAM alignment file (must contain associated inddex)
-		:type filepath: str
-		:param filepath: File path to BAM alignment file (must contain associated inddex)
-		:type filepath: str
-		:param filepath: File path to BAM alignment file (must contain associated inddex)
-		:type filepath: str
-		:param filepath: File path to BAM alignment file (must contain associated inddex)
-		:type filepath: str
+		:type min_qual: int
+		:param remove_dups: Remove reads with duplicate flag (512) set
+		:type remove_dups: bool
+		:param remove_qcfail: Remove reads with QC fail flag (1024) set
+		:type remove_qcfail: bool
+		:param offset: Position offsets to apply to the `+` and `-` strands (default =(0, -1))
+		:type filepath: tuple
 	"""
-	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, chunksize = 1000, offset = (0, -1)):
+	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, offset = (0, -1)):
 		"""Constructor"""
 		try:
 			self.samfile = pysam.Samfile(filepath, "rb")
@@ -40,7 +34,7 @@ class bamfile(object):
 			raise IOError("Cannot open BAM file: %s" % filepath)
 
 		self.offset = offset #-1 # a hack for the mis-aligned data from 2010
-		self.CHUNK_SIZE = chunksize
+
 
 		self.min_qual = min_qual
 		self.remove_dups = remove_dups
@@ -51,10 +45,10 @@ class bamfile(object):
 		Validate BAM tag
 
 		:param read: Alignment record from BAM/SAM/CRAM file
-		:type read: AlignmentRecord 
+		:type read: pysam.AlignedSegment 
 		
 		:return: Validated read 
-		:rtype: AlignmentRecord or `NoneType`
+		:rtype: :class:`pysam.AlignedSegment` or `NoneType`
 
 		:raises ReadError: If read does not pass 1) QC flag, 2) duplicate, or 3) minimum mapping quality	
 		"""
@@ -72,9 +66,9 @@ class bamfile(object):
 		Fetch the mate pair for paired-end reads
 
 		:param read: Alignment record from BAM/SAM/CRAM file
-		:type read: AlignmentRecord
+		:type read: pysam.AlignedSegment
 		:return: Mate pair read
-		:rtype: AlignmentRecord or `NoneType`
+		:rtype: :class:`pysam.AlignedSegment` or `NoneType`
 
 		"""
 		fpos = self.samfile.tell()
@@ -86,17 +80,19 @@ class bamfile(object):
 			self.samfile.seek(fpos)
 		return mate
 
-	def __read_pair_generator(self, chrom, start, end):
+	def read_pair_generator(self, chrom, start, end):
 		"""
 		Generator function that returns sequencing tags within a given region
-		
-		Parameters
-		----------
 
-
-		Returns
-		-------
-
+		:param chrom: Chromosome (contig
+		:type chrom:  str
+		:param start: Start coordinate
+		:type start: int
+		:param end: End coordinate
+		:type end: int
+	
+		:return: A tuple of :class:`pysam.AlignedSegments`. Elements may be `NoneType` if single-end sequencing or one of pairs falls outisde of query range.
+		:rtype: tuple
 
 		"""
 		read_dict = defaultdict(lambda: [None, None])
@@ -134,7 +130,7 @@ class bamfile(object):
 			except ReadError as e:
 				continue
 
-		""" Flush out the rest dictionary. (for example if one the 
+		""" Flush out the rest of dictionary. (for example if one the 
 		mates wasn't in the original region). It might be reasonable to 
 		manually grab the remaining read using `__get_read_mate`"""
 		for k, reads in read_dict.items():
@@ -164,7 +160,7 @@ class bamfile(object):
 		tmp_fw = {}
 		tmp_rev = {}
 
-		for read1, read2 in self.__read_pair_generator(chrom, max(start-10, 0), end+10):
+		for read1, read2 in self.read_pair_generator(chrom, max(start-10, 0), end+10):
 			if read1:
 				self.__add_read(read1, tmp_fw, tmp_rev)
 			if read2:
@@ -203,10 +199,9 @@ class bamfile(object):
 
 		mismatches=int(read.get_tag("XM", with_value_type=False))
 		if base_call==ref and mismatches<=1:
-			return 1
+			return ref
 		if  base_call==alt and mismatches<=2:
-			return 2
-		else:
+			return alt
 			raise GenotypeError()
 
 
@@ -224,7 +219,7 @@ class bamfile(object):
 		tmp_alt_fw = {}
 		tmp_alt_rev = {}
 
-		for read1, read2 in self.__read_pair_generator(chrom, max(start-10, 0), end+10):
+		for read1, read2 in self.read_pair_generator(chrom, max(start-10, 0), end+10):
 
 			#try read1 for genotype
 			try:
@@ -235,14 +230,14 @@ class bamfile(object):
 				read1_gt=self.__validate_genotype(read1)
 				read2_gt=self.__validate_genotype(read2)
 
-				if read1_gt==0 and read2_gt==0: # neither read overlaps SNV
-					raise GenotypeError()
-				elif read1_gt>0 and read2_gt>0 and read1_gt!=read2_gt: # discordant genotypes
-					raise GenotypeError()
-				elif read1_gt==1 or read2_gt==1: # mathces REF allele
+				if (not read1_gt) and (not read2_gt): # neither read overlaps SNV
+					continue # got to get read pair
+				elif (read1_gt and read2_gt) and read1_gt!=read2_gt: # discordant genotypes
+					raise GenotypeError("Discordant genotypes between mate reads!")
+				elif read1_gt==ref or read2_gt==ref: # Matches REF allele
 					fw=tmp_ref_fw
 					rev=tmp_ref_rev
-				elif read1_gt==2 or read2_gt==2: # matches ALT allele
+				elif read1_gt==alt or read2_gt==alt: # Matches ALT allele
 					fw=tmp_alt_fw
 					rev=tmp_alt_rev
 				else:
@@ -274,7 +269,13 @@ class bamfile(object):
 
 
 	def __getitem__(self, x):
-		""" Hi"""
+		"""
+		
+		:param x: genomic positions to overlap reads
+		:type x: genomic_interval or pysam.VariantRecord 
+		:return: Dictionary of :class:`numpy.array` corresponding to  counts of the 5` ends of reads mapping to the `+` and `-` strands
+		:rtype: dict
+		"""
 
 		if isinstance(x, genomic_interval):
 			return self.__lookup(x)

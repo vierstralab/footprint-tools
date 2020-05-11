@@ -1,12 +1,8 @@
 # Copyright 2015 Jeff Vierstra
-
-from __future__ import absolute_import
 import numpy as np
 import itertools
-
 import random
-from six.moves import range
-from six.moves import zip
+
 
 class bias_model(object):
 

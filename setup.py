@@ -17,7 +17,7 @@ from glob import glob
 
 __version__ = "1.0"
 
-if sys.version_info[0] != 3 or sys.version_info[1] > 5:
+if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
     print("Package requires Python version 3.5 (3.5 not supported yet...)")
     sys.exit(1)
 
