@@ -49,7 +49,7 @@ install_requires = ["numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2
 setup(
 	name = "footprint_tools",
 	version = __version__,
-	licensce = "GPL-3.0-or-later",
+	license = "GPL-3.0-or-later",
 	description = "Genomic footprint detection",
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",

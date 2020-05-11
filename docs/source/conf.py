@@ -13,6 +13,7 @@ extensions = [
 
 intersphinx_mapping = {
     'pysam': ('http://pysam.readthedocs.org/en/latest', None),
+    'numpy': ('http://numpy.readthedocs.org/en/latest', None),
 }
 
 
@@ -28,3 +29,6 @@ master_doc = 'index'
 pygments_style = 'sphinx'
 html_theme = "sphinx_rtd_theme"
 html_static_path = ['_static']
+
+
+autodoc_mock_imports = ['numpy', 'scipy', 'pysam']
