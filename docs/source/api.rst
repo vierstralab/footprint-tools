@@ -40,6 +40,8 @@ Basic usage
 Allelically-resolved cleavage counts
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+The following code example retrieves reads overlapping a SNV resolved to each allele.
+
 .. code:: python
 
 	import pysam
@@ -54,40 +56,32 @@ Allelically-resolved cleavage counts
 	alt_cleavages = counts[var.alt]['+'][1:] + counts[var.alt]['-'][:-1]
 
 
-Advanced usage with custom tag validation filters
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: python
-
-	dispersiond
-
-
 .. autoclass:: footprint_tools.cutcounts.bamfile
        :members:
 
        .. automethod:: __getitem__
 
 
-The ``bias_model`` class
-************************
+``bias`` module
+***************
 
-The ``bias_model`` class encodes functions apply a sequenced-based model when generating expected cleavage counts. ``bias_model`` is a parent class that contains inherited functions.
+The ``bias`` module contains classes/methods that apply a sequenced-based model when generating expected cleavage counts. ``bias_model`` is a parent class that contains inherited functions.
 
 .. autoclass:: footprint_tools.modeling.bias.bias_model
 	:members:
 	:undoc-members:
 	:show-inheritance:
 
-The ``kmer_model`` class
-^^^^^^^^^^^^^^^^^^^^^^^^
+``kmer_model`` class
+^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: footprint_tools.modeling.bias.kmer_model
 	:members:
 	:undoc-members:
 	:show-inheritance:
 
-The ``kmer_model`` class
-^^^^^^^^^^^^^^^^^^^^^^^^
+``uniform_model`` class
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: footprint_tools.modeling.bias.uniform_model
 	:members:
@@ -95,16 +89,19 @@ The ``kmer_model`` class
 	:show-inheritance:
 
 
-The ``dispersion_model`` class
-******************************
+``dispersion`` module
+*********************
 
 .. autoclass:: footprint_tools.modeling.dispersion.dispersion_model
-	:members:
-	:undoc-members:
 
+.. automethod:: footprint_tools.modeling.dispersion.learn_dispersion_model
 
-The ``prediction`` class
-************************
+.. automethod:: footprint_tools.modeling.dispersion.write_dispersion_model
+
+.. automethod:: footprint_tools.modeling.dispersion.read_dispersion_model
+
+``prediction`` class
+********************
 
 .. automodule:: footprint_tools.modeling.predict
 	:members:

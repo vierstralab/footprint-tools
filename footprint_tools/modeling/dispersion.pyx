@@ -3,6 +3,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
+# cython: embedsignature=True
 
 from ..stats.distributions import nbinom
 
@@ -259,9 +260,20 @@ cdef class dispersion_model:
 @cython.wraparound(True)
 
 
-def learn_dispersion_model(h, cutoff = 250, trim = [2.5, 97.5]):
-	"""Learn a dispersion model from the
-	expected vs. observed histogram
+def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
+	"""Learn a dispersion model from the expected vs. observed histogram
+	
+	:param h: 2-D :class:`numpy.array` containing the distribution of observerd cleavages at each expected cleavage rate
+	:type h: numpy.array
+	:param cutoff: Mininum number of observed cleavages tp perform ML negative binomial fit
+	:type cutoff: int
+	:param trim: Percent of data to trim  from the observed cleavage count (to mitigate outlier effects)
+	:type trim: tuple of int
+
+	:return: A dispersion model class :class:`dispersion_model`
+	:rtype: dispersion_model
+
+	:todo: Add exceptions for failure to fit, etc.
 	"""
 
 	size = int(h.shape[0])

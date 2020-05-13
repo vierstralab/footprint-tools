@@ -44,7 +44,7 @@ We also recomended these analysis tools (non-python):
 Installation
 ------------
 
-To install the latest release, type
+To install the latest release, type:
 
 .. code::  bash
 

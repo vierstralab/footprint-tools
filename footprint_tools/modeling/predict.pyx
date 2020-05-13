@@ -3,6 +3,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
+# cython: embedsignature=True
 
 cimport numpy as np
 
@@ -45,15 +46,8 @@ def reverse_complement(seq):
 	"""
 	Computes the reverse complement of a genomic sequence
 	
-	Parameters
-	----------
-	seq : string 
-		FASTA DNA sequence
-	
-	Returns
-	-------
-	value: string
-		Reverse complement of input sequence
+	:param seq: DNA sequence
+	:type seq: str
 	"""
 
 	compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
@@ -61,6 +55,28 @@ def reverse_complement(seq):
 
 class prediction(object):
 
+	"""Summary
+	
+	Attributes
+	----------
+	bm : bias_model
+	    Description
+	counts : TYPE
+	    Description
+	half_window_width : TYPE
+	    Description
+	interval : TYPE
+	    Description
+	padding : TYPE
+	    Description
+	seq : TYPE
+	    Description
+	smoothing_clip : TYPE
+	    Description
+	smoothing_half_window_width : TYPE
+	    Description
+	"""
+	
 	def __init__(self, reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.0):
 		
 		self.bm = bm
@@ -82,7 +98,13 @@ class prediction(object):
 		self.seq = fasta[pad_interval.chrom][pad_interval.start-bm.offset():pad_interval.end+bm.offset()].seq.upper()
 
 	def compute(self):
-
+		"""Computes the expected cleavvage counts from observed counts, a FASTA sequence and a sequence bias model
+		
+		Returns
+		-------
+		tuple
+		    (observerd, expected, wimdowed read counts)
+		"""
 		obs_counts = {'+': None, '-': None}
 		exp_counts = {'+': None, '-': None}
 		win_counts = {'+': None, '-': None}

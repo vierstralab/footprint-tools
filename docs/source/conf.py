@@ -8,6 +8,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
+    'sphinx.ext.napoleon'
 ]
 
 

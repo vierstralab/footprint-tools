@@ -10,6 +10,7 @@ from distutils.command.build_clib import build_clib
 from distutils.extension import Extension
 from distutils import log
 from Cython.Distutils import build_ext
+#from Cython.Build import cythonize
 
 import numpy as np
 
@@ -25,21 +26,15 @@ cephes_include = "cephes"
 cephes_src = glob("cephes/*.c")
 cehpes_lib = ('cephes', { 'sources': cephes_src })
 
-ext_modules = [
-	Extension("footprint_tools.modeling.predict", 
-		sources = ["footprint_tools/modeling/predict.pyx"]),
-	Extension("footprint_tools.modeling.dispersion", 
-		sources = ["footprint_tools/modeling/dispersion.pyx"]),
-	Extension("footprint_tools.stats.windowing", 
-		sources = ["footprint_tools/stats/windowing.pyx"]),
-	Extension("footprint_tools.stats.distributions.nbinom",
-		 sources = ["footprint_tools/stats/distributions/nbinom.pyx"]),
-	Extension("footprint_tools.stats.segment",
-		 sources = ["footprint_tools/stats/segment.pyx"]),
-	Extension("footprint_tools.stats.fdr.bisect",
-		 sources = ["footprint_tools/stats/fdr/bisect.pyx"]),
-	Extension("footprint_tools.stats.differential",
-		 sources = ["footprint_tools/stats/differential.pyx"])
+modules = [
+	dict(name="footprint_tools.modeling.predict", sources=["footprint_tools/modeling/predict.pyx"]),
+	dict(name="footprint_tools.modeling.predict", sources=["footprint_tools/modeling/predict.pyx"]),
+	dict(name="footprint_tools.modeling.dispersion", sources=["footprint_tools/modeling/dispersion.pyx"]),
+	dict(name="footprint_tools.stats.windowing", sources = ["footprint_tools/stats/windowing.pyx"]),
+	dict(name="footprint_tools.stats.distributions.nbinom", sources=["footprint_tools/stats/distributions/nbinom.pyx"]),
+	dict(name="footprint_tools.stats.segment", sources=["footprint_tools/stats/segment.pyx"]),
+	dict(name="footprint_tools.stats.fdr.bisect", sources=["footprint_tools/stats/fdr/bisect.pyx"]),
+	dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"])
 ]
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
@@ -59,9 +54,11 @@ setup(
 	zip_safe = False,
 	packages =  find_packages(),
 	libraries = [cehpes_lib],
-    ext_modules = ext_modules,
+    # ext_modules = cythonize([Extension(**opts) for opts in modules]),
+    ext_modules = [Extension(**opts) for opts in modules],
     include_dirs=[np.get_include(), cephes_include],
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
+    # cmdclass = {'build_clib': build_clib},
     install_requires = install_requires,
     scripts = scripts,
     classifiers=[
