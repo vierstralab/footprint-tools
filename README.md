@@ -15,18 +15,15 @@ packages:
 * cython (>=0.22)
 * numpy (>=1.10)
 * scipy (>=0.16)
-* genome_tools (>=1.01) (http://www.github.com/jvierstra/genome_tools)
+* genome_tools (1.0.1) (http://www.github.com/jvierstra/genome_tools)
 * pysam
 * pyfaidx
 * statsmodels
-* pwlf
 
+Additional recomended analysis tools:
 
-We also recomended these analysis tools (non-python):
-
-* bedops (https://bedops.readthedocs.io/en/latest/)
-* kentUtils (https://github.com/ucscGenomeBrowser/kent)
-
+* bedops
+* kentUtils
 
 ## Installation
 
@@ -35,6 +32,12 @@ To install the latest release, type:
 	pip install footprint-tools
 ```
 
-footprint-tools documentation is available [here](http://footprint-tools.readthedoc.org/en/latest)
+## Documentation & usage
 
-Question and comments should be sent to jvierstra (at) altius (dot) org
+User manual, API and examples can be found [here](http://footprint-tools.readthedocs.io)
+
+## Citation
+
+.. [Vierstra2020] Global reference mapping and dynamics of human transcription factor footprints. Vierstra J *et al.* (2020)
+   	    bioRxiv. 
+   	    `<https://doi.org/10.1101/2020.01.31.927798>`_

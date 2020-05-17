@@ -3,6 +3,8 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
+# cython: embedsignature=True
+
 
 from libc.stdlib cimport free
 
