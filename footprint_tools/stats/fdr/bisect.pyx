@@ -3,6 +3,8 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
+# cython: embedsignature=True
+
 
 import numpy as np
 

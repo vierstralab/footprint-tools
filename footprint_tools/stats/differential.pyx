@@ -1,8 +1,10 @@
+
 # Copyright 2017 Jeff Vierstra
 
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
+# cython: embedsignature=True
 
 
 import numpy as np

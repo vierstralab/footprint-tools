@@ -4,7 +4,24 @@ import numpy as np
 import scipy.stats
 
 def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
-	""" Returns prior of whether a TF is bound or not """
+	"""Returns prior of whether a TF is bound or not 
+	
+	Parameters
+	----------
+	fdr : numpy.array
+	    2D :class:`np.array` with FPR values for each datset and position
+	w : numpy.array
+	    Binary array whether samples is DHS
+	cutoff : float, optional
+	    FPR cutoff value to label as occupied when building prior
+	pseudo : float, optional
+	    Psuedocount to add as prior to Beta distribution
+	
+	Returns
+	-------
+	TYPE
+	    Description
+	"""
 
 	k = np.sum(fdr <= cutoff, axis = 0) # num of datasets w/ fp
 	n = np.sum(w, axis = 0) #np.sum(w) # num of datasets w/ HS
@@ -19,7 +36,26 @@ def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
 	return res
 
 def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = 0.05):
-	""" Returns a point estimate of exepected cleavage depletion with a footprint per nucleotide """
+	"""Returns a point estimate of exepected cleavage depletion with a footprint per nucleotide 
+	
+	Parameters
+	----------
+	obs : TYPE
+	    Description
+	exp : TYPE
+	    Description
+	fdr : TYPE
+	    Description
+	beta_prior : TYPE
+	    Description
+	cutoff : float, optional
+	    Description
+	
+	Returns
+	-------
+	TYPE
+	    Description
+	"""
 
 	(n, w) = obs.shape
 
@@ -47,14 +83,25 @@ def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = 0.05):
 import windowing
 
 def log_likelihood(obs, exp, dm, delta = 1, w = 3):
-	""" 
-	:param obs:
-	:param exp:
-	:param dm:
-	:param delta:
-	:param w:
-
-	:returns : Array of log likelihood values computed from local window
+	"""
+	
+	Parameters
+	----------
+	obs : TYPE
+	    Description
+	exp : TYPE
+	    Description
+	dm : TYPE
+	    Description
+	delta : int, optional
+	    Description
+	w : int, optional
+	    Description
+	
+	Returns
+	-------
+	TYPE
+	    Description
 	"""
 	res = np.ones((obs.shape[0], obs.shape[1]), order = 'c')
 
@@ -65,7 +112,21 @@ def log_likelihood(obs, exp, dm, delta = 1, w = 3):
 	return res
 
 def posterior(prior, ll_on, ll_off):
-	""" """
+	"""
+	Parameters
+	----------
+	prior : TYPE
+	    Description
+	ll_on : TYPE
+	    Description
+	ll_off : TYPE
+	    Description
+	
+	Returns
+	-------
+	TYPE
+	    Description
+	"""
 	prior_on = np.log(1-prior)
 	prior_off = np.log(prior)
 

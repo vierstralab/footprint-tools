@@ -4,6 +4,7 @@
 
 from __future__ import print_function, division
 
+from __future__ import absolute_import
 import sys, logging
 from argparse import ArgumentParser, Action, ArgumentError, ArgumentTypeError
 import multiprocessing as mp
@@ -16,6 +17,8 @@ from genome_tools import bed, genomic_interval, genomic_interval_set
 
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
+from six.moves import map
+from six.moves import zip
 
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
@@ -25,12 +28,12 @@ class kmer_action(Action):
     def __call__(self, parser, namespace, values, option_string = None):
         try:
             setattr(namespace, self.dest, bias.kmer_model(values[0]))
-        except IOError, e:
+        except IOError as e:
              raise ArgumentError(self, str(e))
 
 def paired_ints(arg):
 	try:
-		fw, rev = map(int, arg.split(','))
+		fw, rev = list(map(int, arg.split(',')))
 		return (fw, rev)
 	except:
 		raise ArgumentTypeError("Offset argument must be a in the format of int,int")

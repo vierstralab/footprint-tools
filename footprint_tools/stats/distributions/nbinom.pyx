@@ -1,5 +1,8 @@
 # Copyright 2015 Jeff Vierstra
 
+# cython: embedsignature=True
+
+
 import scipy.special
 import scipy.optimize
 import numpy as np
@@ -19,11 +22,22 @@ def mle(par, data, sm):
 
 	"""Objective function for MLE estimate according to
 	https://en.wikipedia.org/wiki/Negative_binomial_distribution#Maximum_likelihood_estimation
-
+	
 	Parameters
 	----------
+	par : TYPE
+	    Description
+	data : TYPE
+	    Description
+	sm : TYPE
+	    Description
 	data: the points to be fit
 	sm: \sum data / len(data)
+	
+	Returns
+	-------
+	TYPE
+	    Description
 	"""
 
 	p = par[0]
@@ -36,7 +50,22 @@ def mle(par, data, sm):
 
 
 def fit(data, p = None, r = None):
+	"""Summary
 	
+	Parameters
+	----------
+	data : TYPE
+	    Description
+	p : None, optional
+	    Description
+	r : None, optional
+	    Description
+	
+	Returns
+	-------
+	TYPE
+	    Description
+	"""
 	if p is None or r is None:
 		av = np.average(data)
 		va = np.var(data)

@@ -4,6 +4,7 @@
 
 from __future__ import print_function, division
 
+from __future__ import absolute_import
 import sys,logging, os, os.path, glob, tempfile, shutil
 from argparse import ArgumentParser
 import multiprocessing as mp
@@ -15,6 +16,7 @@ from multiprocessing import sharedctypes
 from numpy import ctypeslib
 
 from sklearn.metrics import mutual_info_score
+from six.moves import range
 
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level = logging.DEBUG)

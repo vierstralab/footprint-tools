@@ -1,9 +1,8 @@
 # Copyright 2015 Jeff Vierstra
-
 import numpy as np
 import itertools
-
 import random
+
 
 class bias_model(object):
 
@@ -33,7 +32,7 @@ class bias_model(object):
 		"""
 
 		ret = bias_model()
-		ret.model = { x: y for (x, y) in zip(self.model.keys(), sorted(self.model.values(), key = lambda k: random.random())) }
+		ret.model = { x: y for (x, y) in zip(list(self.model.keys()), sorted(list(self.model.values()), key = lambda k: random.random())) }
 		ret.offset = self.offset
 		return ret
 
