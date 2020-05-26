@@ -29,7 +29,7 @@ Additional recomended analysis tools:
 
 To install the latest release, type:
 ```
-	pip install footprint-tools
+pip install footprint-tools
 ```
 
 ## Documentation & usage
