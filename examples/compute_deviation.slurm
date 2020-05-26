@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Copyright 2015-2016 Jeff Vierstra
+# 2018 Jeff Vierstra
+# jvierstra@altius.org
 
 set -e -o pipefail
 
@@ -8,24 +9,28 @@ set -e -o pipefail
 
 bias_model_file=/home/jvierstra/proj/dnase-perspective/cleavage_model/vierstra_et_al.txt
 
-prefix=$1
-fasta_file=$2
-bam_file=$3
-interval_file=$4
-output_dir=$5
+prefix=$1 # Dataset name
+fasta_file=$2 # Genome FASTA file w/ index (.fai)
+bam_file=$3 # Alignment file w/ index (.bai)
+interval_file=$4 # File (BED-format) containing regions where footprint detection will occur (i.e., hotspots)
+output_dir=$5 # Path to directory where output will be stored (created by script if non-existent)
 
+# Change this if a standard UCSC chrom.sizes file doesn't follow this naming convention
 chrom_sizes_file="${fasta_file%.fa}.chrom.sizes"
+
+
+# Size of chunks when parallelzing (=# of cluster jobs)
+chunksize=10000
+
+# FPR thresholds to call footprints
+fps_thresh=(0.2 0.1 0.05 0.01)
+
 
 echo $prefix
 echo $fasta_file
 echo $bam_file
 echo $interval_file
 echo $output_dir
-
-chunksize=10000
-
-# FPR thresholds to call footprints
-fps_thresh=(0.2 0.1 0.05 0.01)
 
 ######## DO NOT CHANGE BELOW THIS LINE ######## 
 
@@ -53,13 +58,10 @@ mkdir -p \${TMPDIR}
 
 zcat -f ${interval_file} > \${TMPDIR}/intervals.bed
 
-#cat \${TMPDIR}/intervals.bed | random-lines --seed=1 --num=10000 --max=\`wc -l < \${TMPDIR}/intervals.bed\` > \${TMPDIR}/intervals.sampled.bed
-cat \${TMPDIR}/intervals.bed > \${TMPDIR}/intervals.sampled.bed
-
 ftd-learn-dispersion-model \
 	--bm ${bias_model_file} --half-win-width 5 \
 	--processors \${SLURM_CPUS_PER_TASK} \
-	${bam_file} ${fasta_file} \${TMPDIR}/intervals.sampled.bed \
+	${bam_file} ${fasta_file} \${TMPDIR}/intervals.bed \
 > ${output_dir}/dm.json
 
 rm -rf \${TMPDIR}
@@ -159,7 +161,7 @@ tabix -0 -p bed ${output_dir}/interval.all.bedgraph.gz
 rm -rf \${TMPDIR}
 __SCRIPT__
 
-
+# Make footprint calls
 cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_footprints
 #!/bin/bash
 #
@@ -189,7 +191,7 @@ tabix -0 -p bed ${output_dir}/interval.all.fps.\${thresh}.bed.gz
 rm -rf \${TMPDIR}
 __SCRIPT__
 
-
+# Make UCSC Browser tracks
 cat <<__SCRIPT__ > ${output_dir}/slurm.compute_deviation_browser_tracks
 #!/bin/bash
 #

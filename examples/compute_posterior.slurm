@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Copyright 2015 Jeff Vierstra
+# 2018 Jeff Vierstra
+# jvierstra@altius.org
 
 set -o pipefail
 
-interval_file=/home/jvierstra/proj/ftd/results.slurm/regions.bed
-
-base_dir=/home/jvierstra/proj/ftd/results.slurm
-output_dir=${base_dir}/posteriors
+metadata_file=$1 # Metadata file
+interval_file=$2 # File (BED-format) containing regions where footprint detection will occur (i.e., hotspots)
+output_dir=$3 # Path to directory where output will be stored (created by script if non-existent)
 
 chunksize=2500
 
@@ -19,8 +19,6 @@ mkdir -p ${output_dir}/logs
 
 # load modules
 module load bedops/2.4.3
-module load python/2.7.11
-module load gcc/5.3.0
 
 cat <<__SCRIPT__ > ${output_dir}/slurm.compute_posterior_chunk
 #!/bin/bash
@@ -67,14 +65,6 @@ sort -k1,1 -k2,2n -S 32G -m \${OUTPUT_FILES[@]} > \${TMPDIR}/interval.all.bed
 
 bgzip -c \${TMPDIR}/interval.all.bed > ${output_dir}/interval.all.bed.gz
 tabix -0 -p bed ${output_dir}/interval.all.bed.gz
-
-cat \${TMPDIR}/interval.all.bed \
-	| awk '{ m = 0; for(i=4; i<=NF; i++) { if($(i) > m) { m = $(i); } } if (m >= 4.6052) print; }' \
-	| sort-bed - | bedops --range 3 -m - | sort -k1,1 -k2,2n \
-> \${TMPDIR}/interval.all.fps.0.01.bed
-
-bgzip -c \${TMPDIR}/interval.all.fps.0.01.bed > ${output_dir}/interval.all.fps.0.01.bed.gz
-tabix -0 -p bed ${output_dir}/interval.all.fps.0.01.bed.gz
 
 rm -rf \${TMPDIR}
 __SCRIPT__

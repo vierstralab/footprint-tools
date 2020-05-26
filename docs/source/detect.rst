@@ -1,18 +1,28 @@
-De novo footprint detection
----------------------------
+.. |clear|  raw:: html
+
+  <div class="clear"></div>
+
+*De novo* footprint detection
+-----------------------------
+
+Overview
+~~~~~~~~
+
+.. figure:: _static/Diagram_footprinting.png
+  :scale: 60%
+  :alt: Conversion of sequencing tags to phosphodiester cleavage counts
+  :align: right
+
 
 The core functionality of footprints-tools is the de novo detection of footprints
 directly from a sequence alignment file. The process of calling footprints involves two
-steps: 1) learning the dispersion model used to assign stastical significance to the 
+steps: 1) learning the dispersion model used to assign statistical significance to the 
 observed per-nucleotide cleavage rates and 2) generation of expected cleavages and statistical
-testing cleavages rates per-nucleotide.
+testing of cleavages rates per-nucleotide within accessible DNA.
 
+Please see `our manuscript <https://doi.org/10.1101/2020.01.31.927798>`_ for futher details of how this works.
 
-Dispersion model
-~~~~~~~~~~~~~~~~~
-
-Footprint detection
-~~~~~~~~~~~~~~~~~~~
+|clear|
 
 
 Step-by-step guide
@@ -45,22 +55,11 @@ columns that contain a sequence k-mer and a relative preference value.
 While the bias model can be of any k-mer size, we typically use 6mers
 with the cleavage occurring between the 3rd and 4th base. You can make
 your own 6mer preference model with ``examples/generate_bias_model.sh``
-or use `one provided <data/vierstra_et_al.6mer-model.txt>`__ in the
-``data`` folder.
+or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
+``data`` folder).
 
-::
-
-   ACTTGC  0.22214673145056082
-   ACTTAC  0.21531706520159422
-   TCTTGC  0.20841281881342563
-   ACTTGT  0.2031757090292924
-   TCTCGC  0.19681882102542664
-   TCTTAC  0.19519174298158992
-   ACTCGC  0.1917931347689513
-   ACTCGT  0.18406049938472563
-   TCTTGT  0.18256420745577184
-   TCTCGA  0.17989100314058748
-   ...
+.. literalinclude:: ../../data/vierstra_et_al.6mer-model.txt
+  :lines: 1-5,4091-
 
 Step 3a: Create a sequence preference model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -76,19 +75,19 @@ mappability file corresponding to the read length of the reads in the
 BAM file (see below), and (3) an indexed FASTA file for the genome your
 BAM file refers to.
 
-::
+.. code:: bash
 
    [jvierstra@test0 examples]$ ./generate_bias_model.sh --temporary-dir /tmp/jvierstra reads.filtered.bam mappability.stranded.bed  /home/jvierstra/data/genomes/hg19/hg.ribo.all.fa naked.model.txt
 
 The mappability file specifies the regions of the genome where the
 sequencing strategy can detect cleavage events. Fortunately, the ENCODE
-project (Roderic Guigo’s lab at CRC Barcelona) has created a track that
+project (Roderic Guigo’s lab at CRG Barcelona) has created a track that
 predicts the alignability of positions by putative read length. The
 script above requires a file which contains regions where the 5’
 positions are mappable in a stranded fashion. It is simple to convert
-the CRC track into a stranded mappability track:
+the CRG track into a stranded mappability track:
 
-::
+.. code:: bash
 
    # Creates a stranded mappability file for 36mer read length
 
@@ -105,16 +104,16 @@ the CRC track into a stranded mappability track:
 Step 4: Create a dispersion (error) model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-FTD uses a negative binomial to compute the significance of
+We use a negative binomial to compute the significance of
 per-nucleotide cleavage devations from the expected. The negative
 binomial has two parameters, mu and r. The script
-``ftd-learn-dispersion-model`` emperically fits mu and r from the
+``ftd-learn-dispersion-model`` emperically fits :math:`\mu` and :math:`r` from the
 observed cleavage data and then interpolates all values using linear
 regression. ``ftd-learn-dispersion-model`` writes a dispersion model in
-JSON format to standard out which can then be used with all FTD
+JSON format to standard out which can then be used with all follow-on
 analyses.
 
-::
+.. code:: bash
 
    [jvierstra@test0 footprint-tools]$ ftd-learn-dispersion-model -h
    usage: ftd-learn-dispersion-model [-h] [--bm MODEL_FILE] [--half-win-width N]
@@ -157,9 +156,9 @@ Step 4a: Visualize dispersion model
 Step 5: Compute per-nucleotide expected cleavages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-::
+.. code:: bash
 
-   [jvierstra@test0 footprint-tools]$ ftd-compute-deviation -h
+   [jvierstra@test0 ~]$ ftd-compute-deviation -h
    usage: ftd-compute-deviation [-h] [--bm MODEL_FILE] [--half-win-width N]
                     [--smooth-half-win-width N] [--smooth-clip N]
                     [--dm MODEL_FILE] [--fdr-shuffle-n N]
@@ -209,22 +208,30 @@ Step 5: Compute per-nucleotide expected cleavages
                processors)
 
 The ``ftd-compute-deviation`` script writes to standard out. The ouptput
-format is quasi-bedGraph such that the columns contain information about
-(4) expected cleavages, (5) observed cleavages, (6) -log p-value of the
-per-nucleotide deviation from expected, (7) -log of the combined
-p-values using Stouffers Z-score method, and (8) the calibrated FDR of
-column 6.
+format is quasi-bedGraph format:
+
+1. Chromosome
+2. Positiom
+3. Position+1
+4. Expected cleavages
+5. Oberserved cleavages
+6. –log *p*-value of the deviation from expected
+7. –log combined *p*-value using Stouffer's Z-score method
+8. Corrected p-value (emperical FDR) 
+
+
+**Example output:**
 
 ::
 
-   [jvierstra@test0 footprint-tools]$ ftd-compute-deviation --bm vierstra_et_al.txt --dm model.json
+   [jvierstra@test0 ~]$ ftd-compute-deviation --bm vierstra_et_al.txt --dm model.json
        reads.bam genome.fa dhs.bed > per-nucleotide.bedgraph
    [jvierstra@test0 footprint-tools]$ head per-nucleotide.bedgraph
    chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
-   chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
-   chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
-   chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
-   chr1    39585441        39585442        0       0       0.1719  0.0017  1.1579
+   chr1    39585442        39585443        0       0       0.1719  0.0017  1.1579
+   chr1    39585443        39585444        0       0       0.1719  0.0017  1.1579
+   chr1    39585444        39585445        0       0       0.1719  0.0017  1.1579
+   chr1    39585445        39585446        0       0       0.1719  0.0017  1.1579
    ...
 
 Step 6: Retrieving footprints
@@ -244,5 +251,5 @@ emperical FDR and then merging consecutive bases.
 Appendix: SLURM parallelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-See ``examples/compute_deviation.slurm`` for an example of how to
+See :download:`this script <../../examples/compute_deviation.slurm>` for an example of how to
 parallelize footprint discovery on the a SLURM enabled cluster.

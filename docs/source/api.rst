@@ -1,7 +1,5 @@
-API usage
-=========
-
-
+API
+===
 
 The ``bamfile`` class
 **********************
@@ -75,6 +73,8 @@ The ``bias`` module contains classes/methods that apply a sequenced-based model 
 ``kmer_model`` class
 ^^^^^^^^^^^^^^^^^^^^
 
+We model DNase I cleavage using a 6-mer model. This class used to apply convolve DNA sequence string into a vector relative values corresponding to they relative cleavage preference. 
+
 .. autoclass:: footprint_tools.modeling.bias.kmer_model
 	:members:
 	:undoc-members:
@@ -82,6 +82,8 @@ The ``bias`` module contains classes/methods that apply a sequenced-based model 
 
 ``uniform_model`` class
 ^^^^^^^^^^^^^^^^^^^^^^^
+
+The class is sort is only really useful for testing, or if you are applying into data in which the underlying cleavage preference is unknown.
 
 .. autoclass:: footprint_tools.modeling.bias.uniform_model
 	:members:
@@ -91,6 +93,8 @@ The ``bias`` module contains classes/methods that apply a sequenced-based model 
 
 ``dispersion`` module
 *********************
+
+The ``dispersion`` module contains a :class:`dispersion_mdel` and helper functions to that learn and encode the stastical framework thst underpins footprint detection.
 
 .. autoclass:: footprint_tools.modeling.dispersion.dispersion_model
 

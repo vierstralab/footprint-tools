@@ -41,11 +41,11 @@ def parse_options(args):
 
 	parser.add_argument("--posterior", metavar = "PATH", type = str,
 					dest = "posterior_file",
-					help = "Return phyloP scores")
+					help = "Path to posterior footprint probability file")
 
 	parser.add_argument("--posterior-col", metavar = "PATH", type = int,
 					dest = "posterior_col", default = 1,
-					help = "Return phyloP scores")
+					help = "Column to extract from posterior probability file")
 
 
 	return parser.parse_args(args)
