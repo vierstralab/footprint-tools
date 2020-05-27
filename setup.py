@@ -10,16 +10,15 @@ from distutils.command.build_clib import build_clib
 from distutils.extension import Extension
 from distutils import log
 from Cython.Distutils import build_ext
-#from Cython.Build import cythonize
 
 import numpy as np
 
 from glob import glob
 
-__version__ = "1.0"
+__version__ = "1.1.0"
 
 if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
-    print("Package requires Python version 3.5 (3.5 not supported yet...)")
+    print("Package requires Python version 3.5+")
     sys.exit(1)
 
 cephes_include = "cephes"
@@ -63,8 +62,8 @@ setup(
     scripts = scripts,
     classifiers=[
 	    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
-	    'Intended Audience :: Developers',      # Define that your audience are developers
-	    'Topic :: Software Development :: Build Tools',
+	    'Intended Audience :: Science/Research',      # Define that your audience are developers
+	    'Topic :: Scientific/Engineering :: Bio-Informatics',
 	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
 	    'Programming Language :: Python :: 2.7',     #Specify which pyhton versions that you want to support
 	    'Programming Language :: Python :: 3',
