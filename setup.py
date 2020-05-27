@@ -1,9 +1,10 @@
-# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
+# Copyright (C) 2015-2020 Jeff Vierstra (jvierstra@altius.org)
 
-from __future__ import absolute_import, division, print_function
 
 import os
 import sys
+import pathlib
+
 
 from setuptools import find_packages, setup
 from distutils.command.build_clib import build_clib
@@ -15,7 +16,7 @@ import numpy as np
 
 from glob import glob
 
-__version__ = "1.1.0"
+__version__ = "1.1.1"
 
 if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
     print("Package requires Python version 3.5+")
@@ -24,6 +25,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
 cephes_include = "cephes"
 cephes_src = glob("cephes/*.c")
 cehpes_lib = ('cephes', { 'sources': cephes_src })
+# see MANIFEST.in -- a slight hack to include all of the header files in the source distrubution
 
 modules = [
 	dict(name="footprint_tools.modeling.predict", sources=["footprint_tools/modeling/predict.pyx"]),
@@ -37,35 +39,34 @@ modules = [
 ]
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
-
-install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "genome_tools>=1.0", "pwlf"]
+install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "genome_tools>=1.0.1", "pwlf"]
 
 setup(
 	name = "footprint_tools",
 	version = __version__,
 	license = "GPL-3.0-or-later",
 	description = "Genomic footprint detection",
+	long_description=(pathlib.Path(__file__).parent / "README.md").read_text(),
+    long_description_content_type="text/markdown",
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
-	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.0.tar.gz",
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.1.1.tar.gz",
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),
 	libraries = [cehpes_lib],
-    # ext_modules = cythonize([Extension(**opts) for opts in modules]),
     ext_modules = [Extension(**opts) for opts in modules],
     include_dirs=[np.get_include(), cephes_include],
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
-    # cmdclass = {'build_clib': build_clib},
     install_requires = install_requires,
     scripts = scripts,
     classifiers=[
-	    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
-	    'Intended Audience :: Science/Research',      # Define that your audience are developers
+	    'Development Status :: 5 - Production/Stable', 
+	    'Intended Audience :: Science/Research', 
 	    'Topic :: Scientific/Engineering :: Bio-Informatics',
 	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-	    'Programming Language :: Python :: 2.7',     #Specify which pyhton versions that you want to support
+	    'Programming Language :: Python :: 2.7',
 	    'Programming Language :: Python :: 3',
 	    'Programming Language :: Python :: 3.5', 
 ],

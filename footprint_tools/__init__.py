@@ -1,3 +1,4 @@
+__version__ = "1.1.1"
+
 __all__ = ["cutcounts"]
 
-__version__ = "0.1.0"
