@@ -10,7 +10,7 @@ in the phosphodiester backbone. Because the coordinates in alignment files repre
 a translation of base-pairs coordinates in the strand specific manner.
 
 .. figure:: _static/Diagram_mapping_and_counting.png
-	:scale: 25%
+	:scale: 50%
 	:alt: Conversion of sequencing tags to phosphodiester cleavage counts
 	:align: center
 

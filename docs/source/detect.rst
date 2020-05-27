@@ -5,24 +5,43 @@
 *De novo* footprint detection
 -----------------------------
 
+
 Overview
 ~~~~~~~~
+
+
+Footprint-tools implements a footprint detection algorithm that simulates expected cleavage rates using a 6-mer DNase I cleavage preference model combined with density smoothing. Statistical significance of per-nucleotide cleavages are computed from a series emperically fit negative binomial distribution.
 
 .. figure:: _static/Diagram_footprinting.png
   :scale: 60%
   :alt: Conversion of sequencing tags to phosphodiester cleavage counts
   :align: right
 
+The process of calling footprints involves the following steps: 
 
-The core functionality of footprints-tools is the de novo detection of footprints
-directly from a sequence alignment file. The process of calling footprints involves two
-steps: 1) learning the dispersion model used to assign statistical significance to the 
-observed per-nucleotide cleavage rates and 2) generation of expected cleavages and statistical
-testing of cleavages rates per-nucleotide within accessible DNA.
+1. Computing expected cleavage counts and learning the dispersio (variance) model used to assign statistical significance to the observed per-nucleotide cleavage ratese
+2. Statistical testing of observed vs. expected cleavages *per-nucleotide*
+3. Combining adjacent p-values
+4. Adjusting p-values for multiple testing by resampling
 
-Please see `our manuscript <https://doi.org/10.1101/2020.01.31.927798>`_ for futher details of how this works.
+The above steps are performed by scripts installed as part of the ``footprint-tools`` python package.
+
+While we give a short overview of how this works below, please see `our manuscript <https://doi.org/10.1101/2020.01.31.927798>`_ for futher details.
 
 |clear|
+
+
+Computing expected cleavages
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+dfsdf
+
+
+.. _dispersion-model:
+
+Building a dispersion model
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Because the vast majority of nucleotides are unoccupied on the genome, we can safely assume that most cleavages represent "background". We take advantage of this to directly estimate the the variance in the observed cleavage counts at expected cleavage rates. In brief, we collect all nucleotides for a given expected cleavage rate (:math:`n=1,2,3,4,..`) and fit a negative binomial to the distribution of observed cleavage counts (rates) at these nucleotides. Testing whether the observed cleavage at an individual nucleotide significantly deviates from expected is straightforward, we just pull up the negative binomial  distribution for the expected cleavage counts and compute the probability of the observed cleavage counts.
 
 
 Step-by-step guide
@@ -208,7 +227,7 @@ Step 5: Compute per-nucleotide expected cleavages
                processors)
 
 The ``ftd-compute-deviation`` script writes to standard out. The ouptput
-format is quasi-bedGraph format:
+format is quasi-bedGraph:
 
 1. Chromosome
 2. Positiom
