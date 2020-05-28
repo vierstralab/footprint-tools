@@ -69,19 +69,17 @@ Step 2: Create a metadata file
 
 Next, we create a metadata file that contains the pertinent information for each dataset. The format of this file is **tab-delimited**.
 
-+---------------------------+-------------------------------------------------+
-| Column                    | Description                                     |
-+===========================+=================================================+
-| ``id``                    | Dataset identifier                              |
-+---------------------------+-------------------------------------------------+
-| ``dispersion_model_file`` | Dispersion model filepath  (JSON file)          |
-+---------------------------+-------------------------------------------------+
-| ``tabix_file``            | Output file from ``ftd-compute-deviation`` |br| |
-|                           | Note: must be gzipped with tabix index          |
-+---------------------------+-------------------------------------------------+
-| ``beta_prior_file``       | Beta distribution parameters filepath |br|      |
-|                           | Output from ``ftd-learn-beta-prior``            |
-+---------------------------+-------------------------------------------------+
+=== =========================  ==========================================
+#   Column                     Description
+=== =========================  ==========================================
+1   ``id``                     Dataset identifier 
+2   ``dispersion_model_file``  Dispersion model filepath  (JSON file) 
+3   ``tabix_file``             Output file from ``ftd-compute-deviation`` |br|
+                               Note: must be gzipped with tabix index 
+4   ``beta_prior_file``        Beta distribution parameters filepath |br|
+                               Output from ``ftd-learn-beta-prior``
+=== =========================  ==========================================
+
 
 
 Step 3: Run ``ftd-compute-posterior``

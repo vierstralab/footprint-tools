@@ -14,8 +14,10 @@ Footprint-tools implements a footprint detection algorithm that simulates expect
 
 .. figure:: _static/Diagram_footprinting.png
   :scale: 60%
-  :alt: Conversion of sequencing tags to phosphodiester cleavage counts
+  :alt: De novo genomic footprinting
   :align: right
+
+  **De novo** footprint detection.
 
 The process of calling footprints involves the following steps: 
 
@@ -26,22 +28,30 @@ The process of calling footprints involves the following steps:
 
 The above steps are performed by scripts installed as part of the ``footprint-tools`` python package.
 
-While we give a short overview of how this works below, please see `our manuscript <https://doi.org/10.1101/2020.01.31.927798>`_ for futher details.
+Please see `our manuscript <https://doi.org/10.1101/2020.01.31.927798>`_ for further details.
 
 |clear|
 
 
+.. _expected-cleavages:
+
 Computing expected cleavages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-dfsdf
 
+We use a hierarchical approach to model the expected cleavages. First, for each base we compute the total cleavages within a small window (typically +/-5nt, total 11nt). We then smooth this values by computing the trimmed mean within a larger window. These values thus reflect both the local density of DNaseI cleavage (in 11 bp windows) and also the shape and magnitude of the entire DHS.
 
 .. _dispersion-model:
 
 Building a dispersion model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Because the vast majority of nucleotides are unoccupied on the genome, we can safely assume that most cleavages represent "background". We take advantage of this to directly estimate the the variance in the observed cleavage counts at expected cleavage rates. In brief, we collect all nucleotides for a given expected cleavage rate (:math:`n=1,2,3,4,..`) and fit a negative binomial to the distribution of observed cleavage counts (rates) at these nucleotides. Testing whether the observed cleavage at an individual nucleotide significantly deviates from expected is straightforward, we just pull up the negative binomial  distribution for the expected cleavage counts and compute the probability of the observed cleavage counts.
+Because the vast majority of nucleotides are unoccupied on the genome, we can safely assume that most cleavages represent "background". We take advantage of this to directly estimate the the variance in the observed cleavage counts at expected cleavage rates. In brief, we collect all nucleotides for a given expected cleavage rate (:math:`n=1,2,3,4,..`) and fit a negative binomial to the distribution of observed cleavage counts (rates) at these nucleotides. Testing whether the observed cleavage at an individual nucleotide significantly deviates from expected is straightforward, we just pull up the negative binomial  distribution for the expected cleavage count (at an idividual nucleotide) and compute the probability of the observed cleavage count (i.e., cumulative lower-tail probability).
+
+.. figure:: _static/dispersion_model.png
+  :alt: Example dispersion model
+  :align: center
+
+  **Example dispersion model.** Left and middle, histogram of observed cleavages counts at nucleotides with 15 (left) and 60 (middle) expected cleavages. Red, maximum likelihood fit of negative binomial distribution. Blue, Poisson distribution with :math:`\lambda` set to 15 or 60. Right, mean of observed cleavages vs. expected cleavages.
 
 
 Step-by-step guide
@@ -50,17 +60,12 @@ Step-by-step guide
 Step 1: Align sequenced DNase I cleavages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-FTD requires an alignment file in BAM format which can be made using any
-sequence alignment tool. FTD uses all reads with a MAPQ > 0. Typically,
-we also mark tags as QC fail. Inclusion/exclusion of reads by MAPQ and
-other SAM flags can be specified during execution of the software.
+FTD requires an alignment file in BAM format which can be made using any sequence alignment tool. FTD uses all reads with a MAPQ > 0. Typically, we also mark tags as QC fail. Inclusion/exclusion of reads by MAPQ and other SAM flags can be specified during execution of the software.
 
 Step 2: Create an index of the reference genome FASTA file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The software uses an indexed FASTA file to enable rapid lookups of
-genomic sequences utilized by the sequence bias model. A FASTA file can
-be indexed using ``samtools``.
+The software uses an indexed FASTA file to enable rapid lookups of genomic sequences utilized by the sequence bias model. A FASTA file can be indexed using ``samtools``.
 
 .. code::  bash
 
@@ -69,12 +74,7 @@ be indexed using ``samtools``.
 Step 3: Download or create a 6-mer cleavage bias model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The sequence bias model is the basis of FTD. A model file contains 2
-columns that contain a sequence k-mer and a relative preference value.
-While the bias model can be of any k-mer size, we typically use 6mers
-with the cleavage occurring between the 3rd and 4th base. You can make
-your own 6mer preference model with ``examples/generate_bias_model.sh``
-or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
+The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any k-mer size, we typically use 6mers with the cleavage occurring between the 3rd and 4th base. You can make your own 6mer preference model with ``examples/generate_bias_model.sh`` or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
 ``data`` folder).
 
 .. literalinclude:: ../../data/vierstra_et_al.6mer-model.txt
@@ -226,18 +226,22 @@ Step 5: Compute per-nucleotide expected cleavages
      --processors N        Number of processors to use. (default: all available
                processors)
 
-The ``ftd-compute-deviation`` script writes to standard out. The ouptput
-format is quasi-bedGraph:
+The ``ftd-compute-deviation`` script writes to standard out. 
 
-1. Chromosome
-2. Positiom
-3. Position+1
-4. Expected cleavages
-5. Oberserved cleavages
-6. –log *p*-value of the deviation from expected
-7. –log combined *p*-value using Stouffer's Z-score method
-8. Corrected p-value (emperical FDR) 
+**Ouptput file format:**
 
+=== ============ ===========
+#   Column       Description
+=== ============ ===========
+1   ``contig``   Chromosome
+2   ``start``    Position (0-based)
+3   ``end``      Position+1
+4   ``expected`` Expected cleavages
+5   ``observed`` Observed cleavages
+6   ``lnp``      –log *p*-value of the deviation from expected
+7   ``winlp``    –log combined *p*-value (Stouffer's Z-score)
+8   ``fpr``      Corrected p-value (emperical FPR)
+=== ============ ===========
 
 **Example output:**
 

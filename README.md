@@ -15,15 +15,17 @@ packages:
 * cython (>=0.22)
 * numpy (>=1.10)
 * scipy (>=0.16)
-* genome_tools (1.0.1) (http://www.github.com/jvierstra/genome_tools)
-* pysam
-* pyfaidx
 * statsmodels
+* pysam
+* genome_tools (1.0.1) (http://www.github.com/jvierstra/genome_tools)
+* pyfaidx (https://github.com/mdshw5/pyfaidx)
+* pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
 
-Additional recomended analysis tools:
+We also recommend these non-python analysis tools:
 
-* bedops
-* kentUtils
+* [samtools](http://www.htslib.org/)
+* [BEDOPS](http://bedops.readthedocs.io)
+* [kentUtils](https://github.com/ucscGenomeBrowser/kent/tree/master/src/utils)
 
 ## Installation
 
@@ -38,6 +40,4 @@ User manual, API and examples can be found [here](http://footprint-tools.readthe
 
 ## Citation
 
-.. [Vierstra2020] Global reference mapping and dynamics of human transcription factor footprints. Vierstra J *et al.* (2020)
-   	    bioRxiv. 
-   	    `<https://doi.org/10.1101/2020.01.31.927798>`_
+[Vierstra2020](https://doi.org/10.1101/2020.01.31.927798) Global reference mapping and dynamics of human transcription factor footprints. Vierstra J *et al.* (2020) bioRxiv.

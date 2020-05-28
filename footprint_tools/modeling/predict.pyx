@@ -43,38 +43,44 @@ cdef predict(data_type_t [:] obs, data_type_t [:] probs, int half_window_width, 
 	return exp, win
 
 def reverse_complement(seq):
-	"""
-	Computes the reverse complement of a genomic sequence
+	"""Computes reverse complement of a DNA sequence
 	
-	:param seq: DNA sequence
-	:type seq: str
+	Parameters
+	----------
+	seq : str
+	    DNA sequence string
+ 	
+	Returns
+	-------
+	str
+	    Reverse complement of ``seq``
 	"""
-
 	compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
 	return ''.join([ compl.get(base, 'N') for base in seq ])[::-1]
 
 class prediction(object):
 
-	"""Summary
+	"""Class that holds a wrapper function to 
+		compute the expected cleavage counts
 	
 	Attributes
 	----------
-	bm : bias_model
-	    Description
-	counts : TYPE
-	    Description
-	half_window_width : TYPE
-	    Description
-	interval : TYPE
-	    Description
-	padding : TYPE
-	    Description
-	seq : TYPE
-	    Description
-	smoothing_clip : TYPE
-	    Description
-	smoothing_half_window_width : TYPE
-	    Description
+	bm : bias.bias_model
+	    Bias model class
+	counts : dict
+	    Dictionary of observed cleavage counts {'+': [...], '-': [...]}
+	half_window_width : int
+	    Window width to apply bias model (final windows size = 2W+1)
+	interval : genome_tools.genomic_interval
+	    Genomic region to computed expected cleavages
+	padding : int
+	    Padding applied to ``interval`` when retrieving per-nucleotide data
+	seq : str
+	    FASTA sequence within 
+	smoothing_clip : float
+	    Fraction of nucleotides to trim when computing smoothed mean
+	smoothing_half_window_width : int
+	    Desc
 	"""
 	
 	def __init__(self, reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.0):
@@ -98,12 +104,13 @@ class prediction(object):
 		self.seq = fasta[pad_interval.chrom][pad_interval.start-bm.offset():pad_interval.end+bm.offset()].seq.upper()
 
 	def compute(self):
-		"""Computes the expected cleavvage counts from observed counts, a FASTA sequence and a sequence bias model
+		"""Computes the expected cleavage counts from observed 
+			counts, a FASTA sequence and a sequence bias model
 		
 		Returns
 		-------
 		tuple
-		    (observerd, expected, wimdowed read counts)
+		    (observerd, expected, wimdowed per-nucleotide counts)
 		"""
 		obs_counts = {'+': None, '-': None}
 		exp_counts = {'+': None, '-': None}

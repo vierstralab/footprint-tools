@@ -13,20 +13,45 @@ class GenotypeError(Exception):
 
 class bamfile(object):
 	"""Class to access a BAM file (largely inspired/copied from Piper et al.) 
-
-		:param filepath: File path to BAM alignment file (must contain associated inddex)
-		:type filepath: str
-		:param min_qual: Filter reads by minimim mapping quality (MAPQ)
-		:type min_qual: int
-		:param remove_dups: Remove reads with duplicate flag (512) set
-		:type remove_dups: bool
-		:param remove_qcfail: Remove reads with QC fail flag (1024) set
-		:type remove_qcfail: bool
-		:param offset: Position offsets to apply to the `+` and `-` strands (default =(0, -1))
-		:type filepath: tuple
+	
+	Attributes
+	----------
+	min_qual : int
+	    Filter reads by minimim mapping quality (MAPQ)
+	offset : tuple
+	    Position offsets to apply to the `+` and `-` strands (default =(0, -1))
+	remove_dups : bool
+	    Remove reads with duplicate flag (512) set
+	remove_qcfail : bool
+	    Remove reads with QC fail flag (1024) set
+	samfile : pysam.Samfile
+	    SAM/BAM file object
 	"""
+
+
+
 	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, offset = (0, -1)):
-		"""Constructor"""
+		"""Constructor
+		
+		Parameters
+		----------
+		filepath : TYPE
+		    Description
+		min_qual : int, optional
+		    Description
+		remove_dups : bool, optional
+		    Description
+		remove_qcfail : bool, optional
+		    Description
+		offset : tuple, optional
+		    Description
+		
+		Raises
+		------
+		IOError
+		    Description
+		"""
+
 		try:
 			self.samfile = pysam.Samfile(filepath, "rb")
 		except:
@@ -43,15 +68,24 @@ class bamfile(object):
 	def validate_read(self, read):
 		"""
 		Validate BAM tag
-
-		:param read: Alignment record from BAM/SAM/CRAM file
-		:type read: pysam.AlignedSegment 
 		
-		:return: Validated read 
-		:rtype: :class:`pysam.AlignedSegment` or `NoneType`
-
-		:raises ReadError: If read does not pass 1) QC flag, 2) duplicate, or 3) minimum mapping quality	
+		Parameters
+		----------
+		read : pysam.AlignedSegment
+		    Read from BAM/SAM file
+		
+		Returns
+		-------
+		pysam.AlignedSegment
+		    Same read as input
+		
+		Raises
+		------
+		ReadError
+		    Raises error if read fails QC flag, is a duplicate or MAPQ < minimum
 		"""
+
+
 		if self.remove_qcfail and read.is_qcfail:
 			raise ReadError()
 		if self.remove_dups and read.is_duplicate:
@@ -64,13 +98,19 @@ class bamfile(object):
 	def get_read_mate(self, read):
 		"""
 		Fetch the mate pair for paired-end reads
-
-		:param read: Alignment record from BAM/SAM/CRAM file
-		:type read: pysam.AlignedSegment
-		:return: Mate pair read
-		:rtype: :class:`pysam.AlignedSegment` or `NoneType`
-
+		
+		Parameters
+		----------
+		read : pysam.AlignedSegment
+			One  of the read-pairs
+		
+		Returns
+		-------
+		pysam.AlignedSegment
+		    The corresponding mate read
+		
 		"""
+
 		fpos = self.samfile.tell()
 		try:
 			mate = self.samfile.mate(read)
@@ -83,18 +123,24 @@ class bamfile(object):
 	def read_pair_generator(self, chrom, start, end):
 		"""
 		Generator function that returns sequencing tags within a given region
-
-		:param chrom: Chromosome (contig
-		:type chrom:  str
-		:param start: Start coordinate
-		:type start: int
-		:param end: End coordinate
-		:type end: int
-	
-		:return: A tuple of :class:`pysam.AlignedSegments`. Elements may be `NoneType` if single-end sequencing or one of pairs falls outisde of query range.
-		:rtype: tuple
-
+		
+		Parameters
+		----------
+		chrom : str
+		    Chromosome
+		start : int
+		    Start coordinate
+		end : int
+		    End coordinate
+		
+		Yields
+		------
+		tuple
+		    A tuple of :class:`pysam.AlignedSegments`. Elements may be `NoneType` if single-end sequencing or one of pairs falls outisde of query range.
+		
 		"""
+
+
 		read_dict = defaultdict(lambda: [None, None])
 
 		for read in self.samfile.fetch(chrom, max(start-10, 0), end+10):
@@ -269,14 +315,23 @@ class bamfile(object):
 
 
 	def __getitem__(self, x):
-		"""
+		"""Getter function to retrieve cutcounts
 		
-		:param x: genomic positions to overlap reads
-		:type x: genomic_interval or pysam.VariantRecord 
-		:return: Dictionary of :class:`numpy.array` corresponding to  counts of the 5` ends of reads mapping to the `+` and `-` strands
-		:rtype: dict
+		Parameters
+		----------
+		x : genome_tools.genomic_interval or pysam.VariantRecord
+		    Retrieve cleavages over a windowed region or resolve allelically over a known variant
+		
+		Returns
+		-------
+		dict
+		    A dictionary of read counts resolved to each strand, and each allele (if approriate)
+		
+		Raises
+		------
+		TypeError
+		    If input is neither a genome_tools.genomic_interval nor a pysam.VariantRecord
 		"""
-
 		if isinstance(x, genomic_interval):
 			return self.__lookup(x)
 		elif isinstance(x, VariantRecord):

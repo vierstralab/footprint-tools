@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'footprint-tools'
 copyright = '2020, Jeff Vierstra'
 author = 'Jeff Vierstra'
-release = '1.0.0'
+release = '1.1.1'
 templates_path = ['_templates']
 source_suffix = '.rst'
 master_doc = 'index'

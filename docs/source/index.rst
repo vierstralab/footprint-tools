@@ -11,6 +11,11 @@ footprint-tools is a python module for *de novo* detection of genomic footprints
 - API for programmatic access to cleavage data directly from sequence alignment files
 
 
+.. warning::
+
+	Please note that is documentation is a work in progress. Please contact us with any questions.
+
+
 Contents
 --------
 
@@ -28,20 +33,21 @@ Requirements
 ``footprint-tools`` requires Python (>=3.5) and depends on the following additional
 packages:
 
--  cython (>=0.22)
--  numpy (>=1.10)
--  scipy (>=0.16)
--  genome_tools (http://www.github.com/jvierstra/genome_tools)
--  pysam
--  pyfaidx
--  statsmodels
--  pwlf
+- cython (>=0.22)
+- numpy (>=1.10)
+- scipy (>=0.16)
+- pysam 
+- statsmodels
+- genome_tools (>=1.0.1) (http://www.github.com/jvierstra/genome_tools)
+- pyfaidx (https://github.com/mdshw5/pyfaidx)
+- pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
 
 
-We also recomended these analysis tools (non-python):
+We also recommend these non-python analysis tools:
 
--  bedops
--  kentUtils
+- `samtools <http://www.htslib.org/>`_
+- `BEDOPS <http://bedops.readthedocs.io>`_: fast and simpler ``bedtools`` alternative
+- `kentUtils <https://github.com/ucscGenomeBrowser/kent/tree/master/src/utils>`_
 
 Installation
 ------------
@@ -52,10 +58,8 @@ To install the latest release, type:
 
 	pip install footprint-tools
 
-
 Citation
 --------
-
 
 .. [Vierstra2020] Global reference mapping and dynamics of human transcription factor footprints. Vierstra J *et al.* (2020)
    	    bioRxiv. 
