@@ -9,7 +9,7 @@ The ``bamfile`` class converts a sequence alignment file into a count array that
 in the phosphodiester backbone. Because the coordinates in alignment files represent base-pairs and not phosphate bonds, this class performs
 a translation of base-pairs coordinates in the strand specific manner.
 
-.. figure:: _static/diagram_mapping_and_counting.png
+.. figure:: _static/diagram_mapping_and_counting-01.png
 	:scale: 50%
 	:alt: Conversion of sequencing tags to phosphodiester cleavage counts
 	:align: center
