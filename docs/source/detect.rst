@@ -10,18 +10,18 @@ Overview
 ~~~~~~~~
 
 
-Footprint-tools implements a footprint detection algorithm that simulates expected cleavage rates using a 6-mer DNase I cleavage preference model combined with density smoothing. Statistical significance of per-nucleotide cleavages are computed from a series emperically fit negative binomial distribution.
+Footprint-tools implements a footprint detection algorithm that simulates expected cleavage rates using a 6-mer DNase I cleavage preference model combined with density smoothing. Statistical significance of per-nucleotide cleavages are computed from a series emperically fit negative binomial distributions.
 
-.. figure:: _static/Diagram_footprinting.png
-  :scale: 60%
+.. figure:: _static/diagram_footprinting-01.png
+  :scale: 30%
   :alt: De novo genomic footprinting
   :align: right
 
-  **De novo** footprint detection.
+  **Example of de novo footprint detection** at the *TMEM143* promoter in CD19+ B cells.
 
 The process of calling footprints involves the following steps: 
 
-1. Computing expected cleavage counts and learning the dispersio (variance) model used to assign statistical significance to the observed per-nucleotide cleavage ratese
+1. Computing expected cleavage counts and learning the dispersion (variance) model used to assign statistical significance to the observed per-nucleotide cleavage ratese
 2. Statistical testing of observed vs. expected cleavages *per-nucleotide*
 3. Combining adjacent p-values
 4. Adjusting p-values for multiple testing by resampling

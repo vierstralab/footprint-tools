@@ -25,16 +25,16 @@ where,
 	p_j = \frac{r_j}{r_j + \mu_j}
 
 
-Here, :math:`\Phi_{NB}(y_j)` corresponds to the parameters :math:`(r, \mu)` of the fitted negative binomial at the expected cleveage rate :math:`y_j` (see :ref:`dispersion-model`).
+Here, :math:`\Phi_{NB}(y_j)` is a function that returns the parameters :math:`(r, \mu)` of the fitted negative binomial at the expected cleavage rate :math:`y_j` (see :ref:`dispersion-model`).
 
 
 The likelihood function corresponding to an **occupied nucleotide**, :math:`\mathcal{L}(X,Y │θ_+)`, is determined similar to the unoccupied case after scaling the expected cleavage rate by the expected depletion of cleavage at occupied nucleotides:
 
 .. math::
 
-	(\mu^{+}_j, r^{+}_j)  \leftarrow \Phi_{NB}(y_j \sigma_j)
+	(\mu^{+}_j, r^{+}_j)  \leftarrow \Phi_{NB}(y_j \lambda_j)
 
-where :math:`\sigma_j` is the expected depletion of cleavage at an occupied nucleotide. We determine :math:`\sigma_j` by considering all datasets with an FDR 5% footprint at position :math:`j`. First, for each dataset we fit a Beta distribution to the ratio of observed over expected cleavages (depletion ratio) at all FDR 5% footprints identified within individual datasets (capping the ratio values at 1.0). Then, for each nucleotide we re-estimate the depletion ratio by updating the Beta distribution (:math:`\alpha' = \alpha + x_i`, :math:`\beta’ = (y_i–x_i) + \beta`). These updated parameters are used to generate maximum a posteriori (MAP) estimates of the depletion ratio (:math:`\mu_{MAP}`) and expected variation of this ratio (:math:`\sigma^2_{MAP}`) at each nucleotide. A per-nucleotide footprint depletion estimate is then finally calculated from the average of the MAP mean estimates weighted by the inverse of the MAP standard deviation considering all datasets with an identified footprint at that nucleotide. 
+where :math:`\lambda_j` is the expected depletion of cleavage at an occupied nucleotide. We determine :math:`\lambda_j` by considering all datasets with an FDR 5% footprint at position :math:`j`. First, for each dataset we fit a Beta distribution to the ratio of observed over expected cleavages (depletion ratio) at all FDR 5% footprints identified within individual datasets (capping the ratio values at 1.0). Then, for each nucleotide we re-estimate the depletion ratio by updating the Beta distribution (:math:`\alpha' = \alpha + x_i`, :math:`\beta’ = (y_i–x_i) + \beta`). These updated parameters are used to generate maximum a posteriori (MAP) estimates of the depletion ratio (:math:`\mu_{MAP}`) and expected variation of this ratio (:math:`\sigma^2_{MAP}`) at each nucleotide. A per-nucleotide footprint depletion estimate is then finally calculated from the average of the MAP mean estimates weighted by the inverse of the MAP standard deviation considering all datasets with an identified footprint at that nucleotide. 
 
 Step-by-step guide
 ~~~~~~~~~~~~~~~~~~~
@@ -123,7 +123,7 @@ This script writes to standard output. Each row consists of an individual nucleo
 
 .. note::
 
-	Because this is potentially huge operation (millions of DHS vs. hundreds of samples), we split the input file (DHSs) into chunks and the parallel process the chunks.
+	Because this is a potentially huge operation (millions of DHS vs. hundreds of samples), we typicall split the input file (DHSs) into chunks and the parallel process the chunks.
 
 	.. code:: bash
 
@@ -133,6 +133,8 @@ This script writes to standard output. Each row consists of an individual nucleo
 		regions.chunk.0001
 		regions.chunk.0002
 		...
+
+	See :ref:`posterior-appendix-slurm-parallelization` for an example of how to parallelize.
 
 Step 4: Retrieve footprints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -148,6 +150,8 @@ Footprints (per dataset) can be retrieved by thresholding on posterior probabili
        | bedops -m - \
    > footprints.bed
 
+
+.. _posterior-appendix-slurm-parallelization:
 
 Appendix: SLURM parallelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

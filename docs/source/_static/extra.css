@@ -1,3 +1,17 @@
 .clear {
 	clear: both;
 }
+
+div.figure {
+	display: inline-block;
+}
+
+div.figure.align-right {
+	text-align: center;
+}
+
+p.caption {
+	box-sizing: border-box;
+	width: 0px;
+	min-width: 100%;
+}

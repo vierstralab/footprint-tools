@@ -12,7 +12,7 @@ class GenotypeError(Exception):
 	pass
 
 class bamfile(object):
-	"""Class to access a BAM file (largely inspired/copied from Piper et al.) 
+	"""Class to access BAM files
 	
 	Attributes
 	----------
@@ -27,29 +27,27 @@ class bamfile(object):
 	samfile : pysam.Samfile
 	    SAM/BAM file object
 	"""
-
-
-
+	
 	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, offset = (0, -1)):
 		"""Constructor
 		
 		Parameters
 		----------
-		filepath : TYPE
-		    Description
+		filepath : str
+		    Fileath to SAM/BAM file
 		min_qual : int, optional
-		    Description
+		    Filter reads by minimim mapping quality (MAPQ)
 		remove_dups : bool, optional
-		    Description
+		    Remove reads with duplicate flag (512) set
 		remove_qcfail : bool, optional
-		    Description
+		    Remove reads with QC fail flag (1024) set
 		offset : tuple, optional
-		    Description
+		    Position offsets to apply to the `+` and `-` strands (default =(0, -1))
 		
 		Raises
 		------
 		IOError
-		    Description
+		    If file is not found, has no index, or something else bad happened while trying to open BAM file
 		"""
 
 		try:
