@@ -11,7 +11,7 @@ To call footprints jointly considering hundreds-to-thousands of datasets, we hav
 .. math::
 	p(\theta_+|X, Y) = \frac{P(\theta_+) \mathcal{L}(X,Y|\theta_+)}{	p(\theta_+) \mathcal{L}(X,Y|\theta_+) + (1-P(\theta_+)) \mathcal{L}(X,Y|\theta_-)}
 
-where :math:`X` is the observed cleavage rates and :math:`Y` is the expected cleavage rates. The footprint prior, :math:`P(\theta_+)`, is the number of datasets that a nucleotide is found within a footprint (FDR<0.05; user-defined) divided by the number datasets in which that nucleotide lays within a DNase I hypersensitive site (as defined by `hotspot2 <https://github.com/Altius/hotspot2>`_). The likelihood function corresponding an **unoccupied nucleotide**, :math:`\mathcal{L}(\theta_-|X,Y)`, is the product of individual negative binomial probabilities corresponding to the dispersion model parameterized by the expected cleavage rate. 
+where :math:`X` is the observed cleavage rates and :math:`Y` is the expected cleavage rates. The footprint prior, :math:`P(\theta_+)`, is the number of datasets that a nucleotide is found within a footprint (FDR<0.05; user-defined) divided by the number datasets in which that nucleotide lays within a DNase I hypersensitive site (as defined by `hotspot2 <https://github.com/Altius/hotspot2>`_). The likelihood function corresponding an **unoccupied nucleotide**, :math:`\mathcal{L}(X,Y|\theta_-)`, is the product of individual negative binomial probabilities corresponding to the dispersion model parameterized by the expected cleavage rate. 
 
 .. math::
 	\mathcal{L}(X,Y|\theta_-) = \sum_{j=i-3}^{i+3} \left( \begin{array}{c} x_j + r_j -1 \\ x_j \end{array} \right) (1-p_j)^{r_j} {p_j}^{x_j}
@@ -25,7 +25,7 @@ where,
 	p_j = \frac{r_j}{r_j + \mu_j}
 
 
-Here, :math:`\Phi_{NB}(y_j)` is a function that returns the parameters :math:`(r, \mu)` of the fitted negative binomial at the expected cleavage rate :math:`y_j` (see :ref:`dispersion-model`).
+Here, :math:`\Phi_{NB}(y_j)` is a function that returns the parameters :math:`(\mu, r)` of the fitted negative binomial at the expected cleavage rate :math:`y_j` (see :ref:`dispersion-model`).
 
 
 The likelihood function corresponding to an **occupied nucleotide**, :math:`\mathcal{L}(X,Y │θ_+)`, is determined similar to the unoccupied case after scaling the expected cleavage rate by the expected depletion of cleavage at occupied nucleotides:
@@ -34,7 +34,7 @@ The likelihood function corresponding to an **occupied nucleotide**, :math:`\mat
 
 	(\mu^{+}_j, r^{+}_j)  \leftarrow \Phi_{NB}(y_j \lambda_j)
 
-where :math:`\lambda_j` is the expected depletion of cleavage at an occupied nucleotide. We determine :math:`\lambda_j` by considering all datasets with an FDR 5% footprint at position :math:`j`. First, for each dataset we fit a Beta distribution to the ratio of observed over expected cleavages (depletion ratio) at all FDR 5% footprints identified within individual datasets (capping the ratio values at 1.0). Then, for each nucleotide we re-estimate the depletion ratio by updating the Beta distribution (:math:`\alpha' = \alpha + x_i`, :math:`\beta’ = (y_i–x_i) + \beta`). These updated parameters are used to generate maximum a posteriori (MAP) estimates of the depletion ratio (:math:`\mu_{MAP}`) and expected variation of this ratio (:math:`\sigma^2_{MAP}`) at each nucleotide. A per-nucleotide footprint depletion estimate is then finally calculated from the average of the MAP mean estimates weighted by the inverse of the MAP standard deviation considering all datasets with an identified footprint at that nucleotide. 
+where :math:`\lambda_j` is the expected depletion of cleavage at an occupied nucleotide. We determine :math:`\lambda_j` by considering all datasets with an FDR 5% footprint at position :math:`j`. First, for each dataset we fit a Beta distribution to the ratio of observed over expected cleavages (depletion ratio) at all FDR 5% footprints identified within individual datasets (capping the ratio values at 1.0). Then, for each nucleotide we re-estimate the depletion ratio by updating the Beta distribution (:math:`\alpha' = \alpha + x_i`, :math:`\beta’ = \beta + (y_i–x_i)`). These updated parameters are used to generate maximum a posteriori (MAP) estimates of the depletion ratio (:math:`\mu_{MAP}`) and expected variation of this ratio (:math:`\sigma^2_{MAP}`) at each nucleotide. A per-nucleotide footprint depletion estimate is then finally calculated from the average of the MAP mean estimates weighted by the inverse of the MAP standard deviation considering all datasets with an identified footprint at that nucleotide. 
 
 Step-by-step guide
 ~~~~~~~~~~~~~~~~~~~
