@@ -5,8 +5,7 @@
 # cython: nonecheck=False
 # cython: embedsignature=True
 
-from ..stats.distributions import nbinom
-
+from footprint_tools.stats.distributions import nbinom
 import numpy as np
 from scipy import optimize
 
@@ -14,7 +13,8 @@ import pwlf
 
 cimport cython
 cimport numpy as np
-from ..stats.distributions cimport nbinom
+
+from footprint_tools.stats.distributions cimport nbinom
 
 
 cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,

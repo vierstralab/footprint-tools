@@ -3,6 +3,8 @@
 import numpy as np
 import scipy.stats
 
+from footprint_tools.stats import windowing
+
 def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
 	"""Returns prior of whether a TF is bound or not 
 	
@@ -79,8 +81,6 @@ def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = 0.05):
 	delta[np.isnan(delta)] = 1
 
 	return delta
-
-import windowing
 
 def log_likelihood(obs, exp, dm, delta = 1, w = 3):
 	"""

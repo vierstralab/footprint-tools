@@ -1,16 +1,9 @@
 # Copyright 2015 Jeff Vierstra
 
-from __future__ import division
-
-from __future__ import absolute_import
-import operator
-
 from .bisect import *
 
 import numpy as np
 import scipy.stats
-from six.moves import range
-from six.moves import zip
 
 
 def emperical_fdr(pvals_null, pvals):

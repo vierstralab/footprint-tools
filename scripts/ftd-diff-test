@@ -1,4 +1,5 @@
-#!/usr/bin/which python
+#!/usr/bin/which python3
+
 
 # Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
 
@@ -20,7 +21,6 @@ from genome_tools import bed, genomic_interval, genomic_interval_set
 
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment, differential, windowing
-from six.moves import range
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__name__)
