@@ -32,7 +32,10 @@ copyright = '2020, Jeff Vierstra'
 author = 'Jeff Vierstra'
 release = '1.1.3'
 templates_path = ['_templates']
-source_suffix = '.rst'
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "markdown",
+}
 master_doc = 'index'
 pygments_style = 'sphinx'
 html_theme = "sphinx_rtd_theme"

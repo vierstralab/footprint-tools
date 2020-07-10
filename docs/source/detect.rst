@@ -74,7 +74,7 @@ The software uses an indexed FASTA file to enable rapid lookups of genomic seque
 Step 3: Download or create a 6-mer cleavage bias model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any *k*-mer size, we typically use 6mers with the cleavage occurring between the 3rd and 4th base. You can make your own 6mer preference model with :download:`examples/generate_bias_model.sh`<../../examples/generate_bias_model.sh> or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
+The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any *k*-mer size, we typically use 6mers with the cleavage occurring between the 3rd and 4th base. You can make your own 6mer preference model with :download:`examples/generate_bias_model.sh<../../examples/generate_bias_model.sh>` or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
 ``data`` folder).
 
 .. literalinclude:: ../../data/vierstra_et_al.6mer-model.txt
@@ -171,6 +171,8 @@ accessible regions wthin the genome.
 
 Step 4a: Visualize dispersion model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+See the :doc:`here <examples/dispersion>` for an example of how to visualize the dispersion model using python and matplotlib
 
 Step 5: Compute per-nucleotide expected cleavages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

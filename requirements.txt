@@ -6,4 +6,3 @@ statsmodels
 pwlf
 cython
 genome_tools>=1.0.1
-nbsphinx
