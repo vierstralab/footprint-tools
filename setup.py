@@ -16,7 +16,7 @@ import numpy as np
 
 from glob import glob
 
-__version__ = "1.1.2"
+__version__ = "1.1.3"
 
 if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
     print("Package requires Python version 3.5+")
@@ -51,7 +51,7 @@ setup(
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
-	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.1.2.tar.gz",
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.1.3.tar.gz",
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),

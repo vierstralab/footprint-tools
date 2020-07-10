@@ -26,6 +26,7 @@ Contents
         posterior.rst
         differential.rst
         api.rst
+        examples.rst
 
 Requirements
 ------------

@@ -23,8 +23,8 @@ The process of calling footprints involves the following steps:
 
 1. Computing expected cleavage counts and learning the dispersion (variance) model used to assign statistical significance to the observed per-nucleotide cleavage ratese
 2. Statistical testing of observed vs. expected cleavages *per-nucleotide*
-3. Combining adjacent p-values
-4. Adjusting p-values for multiple testing by resampling
+3. Combining adjacent *p*-values
+4. Adjusting *p*-values for multiple testing by resampling
 
 The above steps are performed by scripts installed as part of the ``footprint-tools`` python package.
 
@@ -38,14 +38,14 @@ Please see `our manuscript <https://doi.org/10.1101/2020.01.31.927798>`_ for fur
 Computing expected cleavages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-We use a hierarchical approach to model the expected cleavages. First, for each base we compute the total cleavages within a small window (typically +/-5nt, total 11nt). We then smooth this values by computing the trimmed mean within a larger window. These values thus reflect both the local density of DNaseI cleavage (in 11 bp windows) and also the shape and magnitude of the entire DHS.
+We use a hierarchical approach to model the expected cleavages. First, for each base we compute the total cleavages within a small window (typically +/-5nt, total 11nt). We then smooth this values by computing the trimmed mean within a larger window. These values thus reflect both the local density of DNaseI cleavage (in 11 bp windows) and also the shape and magnitude of the entire DHS itself.
 
 .. _dispersion-model:
 
 Building a dispersion model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Because the vast majority of nucleotides are unoccupied on the genome, we can safely assume that most cleavages represent "background". We take advantage of this to directly estimate the the variance in the observed cleavage counts at expected cleavage rates. In brief, we collect all nucleotides for a given expected cleavage rate (:math:`n=1,2,3,4,..`) and fit a negative binomial to the distribution of observed cleavage counts (rates) at these nucleotides. Testing whether the observed cleavage at an individual nucleotide significantly deviates from expected is straightforward, we just pull up the negative binomial  distribution for the expected cleavage count (at an idividual nucleotide) and compute the probability of the observed cleavage count (i.e., cumulative lower-tail probability).
+Because the vast majority of nucleotides are unoccupied on the genome, we can safely assume that most cleavages represent "background". We take advantage of this to directly estimate the the variance in the observed cleavage counts at expected cleavage rates. To do this, we collect all nucleotides for a given expected cleavage rate (:math:`n=1,2,3,4,..`) and fit a negative binomial to the distribution of observed cleavage counts (rates) at these nucleotides. Testing whether the observed cleavage at an individual nucleotide significantly deviates from expected is straightforward, we just pull up the negative binomial  distribution for the expected cleavage count (at an idividual nucleotide) and compute the probability of the observed cleavage count (i.e., cumulative lower-tail probability).
 
 .. figure:: _static/dispersion_model.png
   :alt: Example dispersion model
@@ -74,7 +74,7 @@ The software uses an indexed FASTA file to enable rapid lookups of genomic seque
 Step 3: Download or create a 6-mer cleavage bias model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any k-mer size, we typically use 6mers with the cleavage occurring between the 3rd and 4th base. You can make your own 6mer preference model with ``examples/generate_bias_model.sh`` or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
+The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any *k*-mer size, we typically use 6mers with the cleavage occurring between the 3rd and 4th base. You can make your own 6mer preference model with :download:`examples/generate_bias_model.sh`<../../examples/generate_bias_model.sh> or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
 ``data`` folder).
 
 .. literalinclude:: ../../data/vierstra_et_al.6mer-model.txt

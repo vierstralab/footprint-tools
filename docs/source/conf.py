@@ -11,7 +11,9 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.mathjax",
-    'sphinx.ext.autosectionlabel'
+    "sphinx.ext.autosectionlabel",
+    "nbsphinx",
+    "sphinx_gallery.load_style",
 ]
 
 autosectionlabel_prefix_document = True
@@ -28,7 +30,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'footprint-tools'
 copyright = '2020, Jeff Vierstra'
 author = 'Jeff Vierstra'
-release = '1.1.1'
+release = '1.1.3'
 templates_path = ['_templates']
 source_suffix = '.rst'
 master_doc = 'index'

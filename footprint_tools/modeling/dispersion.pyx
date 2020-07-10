@@ -367,7 +367,7 @@ def base64encode(x):
 def base64decode(x):
 
 	dtype = np.dtype(x[0])
-	arr = np.frombuffer(base64.decodestring(x[1]), dtype)
+	arr = np.frombuffer(base64.b64decode(x[1]), dtype)
 	if len(x) > 2:
 		return arr.reshape(x[2])
 	return arr
@@ -375,22 +375,28 @@ def base64decode(x):
 def read_dispersion_model(filename):
 	
 	import json
+	import urllib.request as request
+
+	if filename.startswith('http'):
+		file = request.urlopen(filename)
+	else:
+		file = open(filename, 'r')
+
+	params = json.load(file)
+
+	file.close()
 
 	model = dispersion_model()
-	with open(filename) as f:
+	model.mu_params = base64decode(params["mu_params"])
+	model.r_params = base64decode(params["r_params"])
 
-		params = json.load(f)
+	if "h" in params:
+		model.h = base64decode(params["h"])
+	if "p" in params:
+		model.p = base64decode(params["p"])
+	if "r" in params:
+		model.r = base64decode(params["r"])
 
-		model.mu_params = base64decode(params["mu_params"])
-		model.r_params = base64decode(params["r_params"])
-
-		if "h" in params:
-			model.h = base64decode(params["h"])
-		if "p" in params:
-			model.p = base64decode(params["p"])
-		if "r" in params:
-			model.r = base64decode(params["r"])
-		
 	return model
 
 def write_dispersion_model(model):
