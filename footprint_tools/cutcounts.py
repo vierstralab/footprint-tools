@@ -1,8 +1,9 @@
 # Copyright 2015 Jeff Vierstra
 
+import genome_tools
 import pysam
-import numpy as np
 
+import numpy as np
 from collections import defaultdict
 
 class ReadError(Exception):
@@ -53,12 +54,9 @@ class bamfile(object):
 		try:
 			self.samfile = pysam.Samfile(filepath, "rb")
 		except:
-
 			raise IOError("Cannot open BAM file: %s" % filepath)
 
 		self.offset = offset #-1 # a hack for the mis-aligned data from 2010
-
-
 		self.min_qual = min_qual
 		self.remove_dups = remove_dups
 		self.remove_qcfail = remove_qcfail
@@ -82,7 +80,6 @@ class bamfile(object):
 		ReadError
 		    Raises error if read fails QC flag, is a duplicate or MAPQ < minimum
 		"""
-
 
 		if self.remove_qcfail and read.is_qcfail:
 			raise ReadError()
@@ -138,7 +135,6 @@ class bamfile(object):
 		
 		"""
 
-
 		read_dict = defaultdict(lambda: [None, None])
 
 		for read in self.samfile.fetch(chrom, max(start-10, 0), end+10):
@@ -174,7 +170,7 @@ class bamfile(object):
 			except ReadError as e:
 				continue
 
-		""" Flush out the rest of dictionary. (for example if one the 
+		"""Flush out the rest of dictionary. (for example if one the 
 		mates wasn't in the original region). It might be reasonable to 
 		manually grab the remaining read using `__get_read_mate`"""
 		for k, reads in read_dict.items():
@@ -267,7 +263,6 @@ class bamfile(object):
 
 			#try read1 for genotype
 			try:
-
 				# Check reads for proper genotypes; raise Genotype error
 				# if some thing is problematic, if a read pair doesn't exist or
 				# doesn't overlap the SNV then returns 0
@@ -330,9 +325,9 @@ class bamfile(object):
 		TypeError
 		    If input is neither a genome_tools.genomic_interval nor a pysam.VariantRecord
 		"""
-		if isinstance(x, genomic_interval):
+		if isinstance(x, genome_tools.genomic_interval):
 			return self.__lookup(x)
-		elif isinstance(x, VariantRecord):
+		elif isinstance(x, pysam.VariantRecord):
 			return self.__lookup_allelic(x)
 		else:
 			raise TypeError()
