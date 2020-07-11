@@ -12,12 +12,12 @@ are computed from a series emperically fit negative binomial distribution.
 ``footprint-tools`` requires Python (>=3.5) and depends on the following additional
 packages:
 
-* cython (>=0.22)
-* numpy (>=1.10)
-* scipy (>=0.16)
+* cython
+* numpy
+* scipy
 * statsmodels
 * pysam
-* genome_tools (1.0.1) (http://www.github.com/jvierstra/genome_tools)
+* genome_tools (http://www.github.com/jvierstra/genome_tools)
 * pyfaidx (https://github.com/mdshw5/pyfaidx)
 * pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
 
