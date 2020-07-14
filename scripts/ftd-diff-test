@@ -33,7 +33,7 @@ def parse_options(args):
                         help = "Path to configuration file containing metadata for samples")
 
     parser.add_argument("interval_file", metavar = "interval_file", type = str, 
-                        help = "File path to BED file")
+                        help = "File path to BED3 file")
 
     grp_ot = parser.add_argument_group("Other options")
 
@@ -46,7 +46,7 @@ def parse_options(args):
     grp_ot.add_argument("--tmpdir", metavar = "", type = str,
                         dest = "tmpdir", default = None,
                         help = "Temporary directory to use"
-                        " (default: uses unix 'mkdtemp'")
+                        " (default: uses unix 'mkdtemp')")
 
     return parser.parse_args(args)
 

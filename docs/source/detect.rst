@@ -2,6 +2,8 @@
 
   <div class="clear"></div>
 
+.. _denovo-footprint-detection:
+
 *De novo* footprint detection
 -----------------------------
 

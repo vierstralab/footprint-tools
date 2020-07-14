@@ -41,7 +41,7 @@ Step-by-step guide
 Step 1: Call footprints in individual datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To build the priors and likelihood functions, footprints need to first be identified in each individual dataset. Please see  ":doc:`detect`" for this task.
+To build the priors and likelihood functions, footprints need to first be identified in each individual dataset. Please see  :doc:`<detect>` for this task.
 
 Step 2: Compute the per-dataset footprint priors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
