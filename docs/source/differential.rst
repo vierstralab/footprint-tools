@@ -32,7 +32,7 @@ Next, we create a metadata file that contains the pertinent information for each
 
 
 Step 3: Run ``ftd-diff-test`` to identity differentially occupied nucleotides
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: bash
 
@@ -64,5 +64,5 @@ The ``ftd-diff-test`` script writes to standard out.
 3   ``end``      Position+1
 4   ``lrt``      Likelihood ratio test -log *p*-value
 5   ``winlp``    –log combined *p*-value (Stouffer's Z-score)
-6   ``lf2c``    Estimated log2 difference between groups
+6   ``lf2c``     Estimated log2 difference between groups
 === ============ ===========
