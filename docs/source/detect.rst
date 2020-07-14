@@ -60,7 +60,7 @@ Step-by-step guide
 Step 1: Align sequenced DNase I cleavages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-FTD requires an alignment file in BAM format which can be made using any sequence alignment tool. FTD uses all reads with a MAPQ > 0. Typically, we also mark tags as QC fail. Inclusion/exclusion of reads by MAPQ and other SAM flags can be specified during execution of the software.
+footprint-tools requires an alignment file in BAM format which can be made using any sequence alignment tool. The software uses all reads with a MAPQ > 0. Typically, we also mark tags as QC fail. Inclusion/exclusion of reads by MAPQ and other SAM flags can be specified during execution of the software.
 
 Step 2: Create an index of the reference genome FASTA file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -74,7 +74,7 @@ The software uses an indexed FASTA file to enable rapid lookups of genomic seque
 Step 3: Download or create a 6-mer cleavage bias model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The sequence bias model is the basis of FTD. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any *k*-mer size, we typically use 6mers with the cleavage occurring between the 3rd and 4th base. You can make your own 6mer preference model with :download:`examples/generate_bias_model.sh<../../examples/generate_bias_model.sh>` or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
+The sequence bias model is the basis of footprint detection. A model file contains 2 columns that contain a sequence k-mer and a relative preference value. While the bias model can be of any *k*-mer size, we typically use 6mers with the cleavage occurring between the 3rd and 4th base. You can make your own 6mer preference model with :download:`examples/generate_bias_model.sh<../../examples/generate_bias_model.sh>` or use :download:`this pre-computed model <../../data/vierstra_et_al.6mer-model.txt>` (also found in
 ``data`` folder).
 
 .. literalinclude:: ../../data/vierstra_et_al.6mer-model.txt

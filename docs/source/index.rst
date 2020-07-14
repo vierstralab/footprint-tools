@@ -20,44 +20,14 @@ Contents
 --------
 
 .. toctree::
-        :maxdepth: 2
+        :maxdepth: 1
         
+        installation.rst
         detect.rst
         posterior.rst
         differential.rst
         api.rst
         examples.rst
-
-Requirements
-------------
-
-``footprint-tools`` requires Python (>=3.5) and depends on the following additional
-packages:
-
-- cython (>=0.22)
-- numpy (>=1.10)
-- scipy (>=0.16)
-- pysam 
-- statsmodels
-- genome_tools (>=1.0.1) (http://www.github.com/jvierstra/genome_tools)
-- pyfaidx (https://github.com/mdshw5/pyfaidx)
-- pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
-
-
-We also recommend these non-python analysis tools:
-
-- `samtools <http://www.htslib.org/>`_
-- `BEDOPS <http://bedops.readthedocs.io>`_: fast and simpler ``bedtools`` alternative
-- `kentUtils <https://github.com/ucscGenomeBrowser/kent/tree/master/src/utils>`_
-
-Installation
-------------
-
-To install the latest release, type:
-
-.. code::  bash
-
-	pip install footprint-tools
 
 Citation
 --------

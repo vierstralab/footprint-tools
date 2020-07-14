@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'footprint-tools'
 copyright = '2020, Jeff Vierstra'
 author = 'Jeff Vierstra'
-release = '1.1.4'
+release = '1.1.5'
 templates_path = ['_templates']
 source_suffix = {
     ".rst": "restructuredtext",

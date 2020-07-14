@@ -16,7 +16,7 @@ import numpy as np
 
 from glob import glob
 
-__version__ = "1.1.4"
+__version__ = "1.1.5"
 
 if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
     print("Package requires Python version 3.5+")

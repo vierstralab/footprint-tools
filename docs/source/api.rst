@@ -1,7 +1,7 @@
 API
 ===
 
-The ``bamfile`` class
+``bamfile`` class
 **********************
 
 

@@ -99,7 +99,12 @@ def parse_options(args):
                         help = "Number of times to shuffle data for FDR calculation."
                         " (default: %(default)s)")
 
-    grp_ot = parser.add_argument_group("ther options")
+    grp_ot = parser.add_argument_group("Other options")
+
+    grp_ot.add_argument("--min_qual", metavar = "N", type = int,
+                        dest = "min_qual", default = 1,
+                        help = "Filter reads with mapping quality lower than this threshold."
+                        " (default: %(default)s)")
 
     grp_ot.add_argument("--remove-dups", action = "store_true",
                         dest = "remove_dups", help = "Remove duplicate reads from analysis"
@@ -113,7 +118,6 @@ def parse_options(args):
     grp_ot.add_argument("--seed", metavar = "N", type = int, dest = "seed",
                         default = None, help = "Seed for random number generation"
                         " (default: no seed)")
-
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count(),
@@ -187,7 +191,7 @@ def main(argv = sys.argv[1:]):
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    reads = cutcounts.bamfile(args.bam_file, remove_dups = args.remove_dups, offset = args.bam_offset)
+    reads = cutcounts.bamfile(args.bam_file, min_qual = args.min_qual, remove_dups = args.remove_dups, offset = args.bam_offset)
     fasta = pyfaidx.Fasta(args.fasta_file, one_based_attributes = False, sequence_always_upper = True)
     intervals = bed.bed3_iterator(open(args.interval_file))
 
