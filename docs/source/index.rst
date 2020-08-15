@@ -12,7 +12,7 @@ footprint-tools is a python module for *de novo* detection of genomic footprints
 
 .. warning::
 
-	Please note that is documentation is a work in progress. Please contact us with any questions.
+	Please note that is documentation is a work in progress. Please `contact us <mailto:jvierstra@altius.org>`_ with any questions.
 
 Contents
 --------
@@ -26,6 +26,11 @@ Contents
         differential.rst
         api.rst
         examples.rst
+
+Pre-processed data
+-------------------
+
+As part of the `ENCODE Consortium <http://encodeproject.org>`_ we have generated digital genomic footprinting data for >240 cell types and tissues. These data and their metadata are hosted at both `<http://vierstra.org/resources/dgf>`_ and `ZENDODO <https://doi.org/10.5281/zenodo.3603548>`_.
 
 Citation
 --------

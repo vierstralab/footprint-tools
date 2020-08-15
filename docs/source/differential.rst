@@ -1,7 +1,7 @@
 Differential footprint testing
 ==============================
 
-To identify differences in footprint occupancy at true nucleotide resolution, we have developed a full Bayesian DFO (differential footprinting occupancy) test. The full documentation for this feature is currently under-construction; please see the Methods section of `Vierstra *et al.*, 2020 <https://doi.org/10.1038/s41586-020-2528-x>`_ for details.
+To identify differences in footprint occupancy at true nucleotide resolution, we have developed a full Bayesian DFO (differential footprinting occupancy) test. The full documentation for this feature is currently under-construction; please see the Methods section of [Vierstra2020]_ for details.
 
 
 Step 1: Call footprints on each dataset to be included in test
