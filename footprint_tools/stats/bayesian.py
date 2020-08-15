@@ -38,20 +38,21 @@ def compute_prior_weighted(fdr, w, cutoff = 0.05, pseudo = 0.5):
 	return res
 
 def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff = 0.05):
-	"""Returns a point estimate of exepected cleavage depletion with a footprint per nucleotide 
+	"""Returns a point estimate of exepected cleavage 
+	depletion with a footprint at each nucleotide 
 	
 	Parameters
 	----------
-	obs : TYPE
-	    Description
-	exp : TYPE
-	    Description
-	fdr : TYPE
-	    Description
-	beta_prior : TYPE
+	obs : np.array
+	     2D :class:`np.array` with observed cleavages counts
+	exp : np.array
+	     2D :class:`np.array` with expectd cleavages counts
+	fdr : np.array
+	    2D :class:`np.array` with adjusted p-values (FDR)
+	beta_prior : np.array
 	    Description
 	cutoff : float, optional
-	    Description
+	    FPR cutoff value to label as occupied when building prior
 	
 	Returns
 	-------

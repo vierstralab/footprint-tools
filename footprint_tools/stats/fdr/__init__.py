@@ -7,22 +7,9 @@ import scipy.stats
 
 
 def emperical_fdr(pvals_null, pvals):
+	"""Computes emperical FDR from a distribution of null (sampled) p-values
+
 	"""
-	"""
-
-	''' DEPRECATED
-	sorted_pvals_null = np.sort(pvals_null, axis = 0)
-	sorted_pvals_idx = np.argsort(pvals)
-
-	n = np.arange(1, pvals.shape[0]+1, dtype = np.float64)
-
-	counts = np.apply_along_axis(lambda x: bisect(x, np.asarray(pvals)[sorted_pvals_idx]), 0, sorted_pvals_null)
-	false_positive_rates = np.mean(counts, axis = 1) / n
-	
-	false_positive_rates[false_positive_rates > 1] = 1
-
-	return false_positive_rates[np.argsort(sorted_pvals_idx)]
-	'''
 
 	sorted_pvals_null = np.sort(np.ravel(pvals_null))
 	sorted_pvals_idx = np.argsort(pvals)

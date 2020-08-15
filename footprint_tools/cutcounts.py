@@ -61,6 +61,12 @@ class bamfile(object):
 		self.remove_dups = remove_dups
 		self.remove_qcfail = remove_qcfail
 
+	def close(self):
+		return self.samfile.close()
+
+	def __del__(self):
+		return self.close()
+
 	def validate_read(self, read):
 		"""
 		Validate BAM tag

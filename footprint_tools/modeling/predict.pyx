@@ -83,7 +83,7 @@ class prediction(object):
 	    Desc
 	"""
 	
-	def __init__(self, reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.0):
+	def __init__(self, reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.01):
 		
 		self.bm = bm
 		self.half_window_width = half_window_width
@@ -133,4 +133,5 @@ class prediction(object):
 			win_counts[strand] = win[self.padding:w]
 
 		return (obs_counts, exp_counts, win_counts)
+
 

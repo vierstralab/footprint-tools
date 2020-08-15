@@ -40,4 +40,4 @@ User manual, API and examples can be found [here](http://footprint-tools.readthe
 
 ## Citation
 
-[Vierstra2020](https://doi.org/10.1101/2020.01.31.927798) Global reference mapping and dynamics of human transcription factor footprints. Vierstra J *et al.* (2020) bioRxiv.
+[Vierstra2020](https://doi.org/10.1038/s41586-020-2528-x) Vierstra, J., Lazar, J., Sandstrom, R. *et al.* Global reference mapping of human transcription factor footprints. *Nature* **583**, 729–736 (2020)
