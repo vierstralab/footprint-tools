@@ -250,8 +250,6 @@ class bamfile(object):
 			return alt
 			raise GenotypeError()
 
-
-
 		return read.flag & (1<<12)
 
 	def __lookup_allelic(self, chrom, start, end, pos, ref, alt, flip=False):
