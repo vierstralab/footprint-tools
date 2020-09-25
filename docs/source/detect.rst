@@ -112,7 +112,7 @@ the CRG track into a stranded mappability track:
 
    # Creates a stranded mappability file for 36mer read length
 
-   wget http://hgdownload.cse.ucsc.edu/goldenpath/hg38/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign36mer.bigWig
+   wget http://hgdownload.cse.ucsc.edu/goldenpath/hg19/encodeDCC/wgEncodeMapability/wgEncodeCrgMapabilityAlign36mer.bigWig
 
    bigWigToBedGraph wgEncodeCrgMapabilityAlign36mer.bigWig /dev/stdout 
    | awk -v OFS="\t" '
@@ -121,6 +121,10 @@ the CRG track into a stranded mappability track:
        '
    | sort-bed --max-mem 16G - 
    > mappability.stranded.bed
+
+.. note::
+
+  The model provided in the repository was generated from UCSC genome build hg19. There should be not be a problem using this model for footprint detection in hg38.
 
 Step 4: Create a dispersion (error) model
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
