@@ -13,7 +13,7 @@ base_url = "https://resources.altius.org/~jvierstra/projects/footprinting.2020/p
 bam_file_url = base_url + "reads.bam"
 
 bm_file_path = "data/vierstra_et_al.6mer-model.txt"
-fasta_file_path = "/Users/jeffvierstra/data/genomes/hg38/hg.all.fa"
+fasta_file_path = "/home/jvierstra/data/genomes/hg38/hg.all.fa"
 
 
 interval = genomic_interval('chr19', 48363826, 48364602)
