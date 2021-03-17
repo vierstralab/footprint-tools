@@ -407,8 +407,6 @@ def write_dispersion_model(model):
 	:rtype: str
 	"""
 
-	import json
-
 	out = { "mu_params": base64encode(np.asarray(model.mu_params, order = 'C')), 
 			"r_params": base64encode(np.asarray(model.r_params, order = 'C')),
 			"h": base64encode(np.asarray(model.h, order = 'C')),
