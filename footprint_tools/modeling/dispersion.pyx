@@ -357,7 +357,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
 # Read and write functions for making a portable dispersion model
 
-import json
+import simplejson as json
 import base64
 
 def base64encode(x):
