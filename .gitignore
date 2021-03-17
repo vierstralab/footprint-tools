@@ -1,0 +1,12 @@
+*.py[cod]
+
+dist/
+sdist/
+build/
+*.egg-info/
+
+docs/build/
+
+env_devel/
+
+.DS_Store

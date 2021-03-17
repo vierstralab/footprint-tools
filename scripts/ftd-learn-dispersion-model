@@ -4,12 +4,12 @@
 
 from __future__ import print_function, division
 
-from __future__ import absolute_import
 import sys, logging
 from argparse import ArgumentParser, Action, ArgumentError, ArgumentTypeError
+
 import multiprocessing as mp
 
-import pyfaidx
+import pysam
 import numpy as np
 import random
 

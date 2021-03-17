@@ -62,7 +62,9 @@ class bamfile(object):
 		self.remove_qcfail = remove_qcfail
 
 	def close(self):
-		return self.samfile.close()
+		if self.samfile:
+			self.samfile.close()
+		return True
 
 	def __del__(self):
 		return self.close()
@@ -249,8 +251,6 @@ class bamfile(object):
 		if  base_call==alt and mismatches<=2:
 			return alt
 			raise GenotypeError()
-
-
 
 		return read.flag & (1<<12)
 
