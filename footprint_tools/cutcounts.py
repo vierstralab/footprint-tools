@@ -7,7 +7,17 @@ import numpy as np
 from collections import defaultdict
 
 class ReadError(Exception):
-	pass
+	
+	ERROR_ALIGNMENT = (0, "Read alignment problematic (QC fail, duplicate, or MAPQ < 1)")
+	ERROR_5PROXIMITY = (1, "Variant too close to 5' end of tag") 
+	ERROR_BASEQ = (2, "Base quality < 20")
+	ERROR_GENOTYPE = (3, "Base does not match reference or expected alternate allele")
+	ERROR_MISMATCH = (4, "Read contains too many mismatches")
+	
+	def __init__(self, e):
+		self.value = e[0]
+		self.message = e[1]
+
 
 class GenotypeError(Exception):
 	pass
@@ -20,7 +30,8 @@ class bamfile(object):
 	min_qual : int
 	    Filter reads by minimim mapping quality (MAPQ)
 	offset : tuple
-	    Position offsets to apply to the `+` and `-` strands (default =(0, -1))
+	    Position offsets to apply to the `+` and `-` strands,. DNase I data (0, -1).
+        Tn5-derived data would use (4,-5). (default = (0, -1))
 	remove_dups : bool
 	    Remove reads with duplicate flag (512) set
 	remove_qcfail : bool
@@ -29,7 +40,7 @@ class bamfile(object):
 	    SAM/BAM file object
 	"""
 	
-	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, offset = (0, -1)):
+	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, offset = (0, -1), return_type="counts"):
 		"""Constructor
 		
 		Parameters
@@ -44,7 +55,8 @@ class bamfile(object):
 		    Remove reads with QC fail flag (1024) set
 		offset : tuple, optional
 		    Position offsets to apply to the `+` and `-` strands (default =(0, -1))
-		
+		return_type: string, optional
+            Type of data to return; currently supports "counts" (stranded cutcounts) or "fragments" (mapped fragments).
 		Raises
 		------
 		IOError
@@ -60,7 +72,7 @@ class bamfile(object):
 		self.min_qual = min_qual
 		self.remove_dups = remove_dups
 		self.remove_qcfail = remove_qcfail
-
+        
 	def close(self):
 		if self.samfile:
 			self.samfile.close()
@@ -90,11 +102,11 @@ class bamfile(object):
 		"""
 
 		if self.remove_qcfail and read.is_qcfail:
-			raise ReadError()
+			raise ReadError(ReadError.ERROR_ALIGNMENT)
 		if self.remove_dups and read.is_duplicate:
-			raise ReadError()
+			raise ReadError(ReadError.ERROR_ALIGNMENT)
 		if read.mapping_quality < self.min_qual:
-			raise ReadError()
+			raise ReadError(ReadError.ERROR_ALIGNMENT)
 
 		return read
 
@@ -183,8 +195,7 @@ class bamfile(object):
 		manually grab the remaining read using `__get_read_mate`"""
 		for k, reads in read_dict.items():
 			yield reads[0], reads[1]
-
-
+            
 	def __add_read(self, read, fw, rev):
 		"""
 
@@ -196,7 +207,21 @@ class bamfile(object):
 			a = int(read.reference_start)+self.offset[0]
 			fw[a] = fw.get(a, 0.0) + 1.0
 
-	def __lookup(self, interval):
+	def __get_fragment(self, read):
+		"""
+		Returns a fragement from a mapped read
+		"""
+		tlen = read.template_length
+		if read.is_reverse:
+			end = int(read.reference_end)+self.offset[1]
+			start = end + tlen
+		else:
+			start = int(read.reference_start)+self.offset[0]
+			end = start + tlen
+
+		return genome_tools.genomic_interval(read.reference_name, start, end)   
+
+	def lookup(self, interval):
 		"""
 
 		"""	
@@ -207,19 +232,22 @@ class bamfile(object):
 
 		tmp_fw = {}
 		tmp_rev = {}
+		reads = []
 
 		for read1, read2 in self.read_pair_generator(chrom, max(start-10, 0), end+10):
 			if read1:
 				self.__add_read(read1, tmp_fw, tmp_rev)
+				reads.append(self.__get_fragment(read1))
 			if read2:
 				self.__add_read(read2, tmp_fw, tmp_rev)
-
+            
 		fw_cutarray = np.array([tmp_fw.get(i, 0.0) for i in range(start, end)])
 		rev_cutarray = np.array([tmp_rev.get(i, 0.0) for i in range(start, end)])
 
 		return {
  			"+": rev_cutarray[::-1] if flip else fw_cutarray, 
-			"-": fw_cutarray[::-1] if flip else rev_cutarray
+			"-": fw_cutarray[::-1] if flip else rev_cutarray,
+			"fragments": reads
 			}
 
 	def __validate_genotype(self, read, pos, ref, alt):
@@ -238,23 +266,43 @@ class bamfile(object):
 		if not read:
 			return 0
 
-		var_offset=pos-read.reference_start
-
 		try:
-			base_call=read.query_sequence[var_offset]
+
+			offset = pos-read.reference_start
+			if offset<0:
+				raise IndexError
+
+			base_call = read.query_sequence[offset]
+			qual = read.query_qualities[offset]
+
+			if qual<20:
+				raise ReadError(ReadError.ERROR_BASEQ)
+
+			offset_5p = read.reference_end-1-pos if read.is_reverse else pos-read.reference_start
+			if offset_5p<=3:
+				raise ReadError(ReadError.ERROR_5PROXIMITY)
+
+			mm = int(read.get_tag("XM", with_value_type = False))
+
+			if base_call==ref: 
+				if mm>1:
+					raise ReadError(ReadError.ERROR_MISMATCH)
+				return ref
+			elif base_call==alt:
+				if mm>2:
+					raise ReadError(ReadError.ERROR_MISMATCH)
+				return alt
+			else:
+				raise ReadError(ReadError.ERROR_GENOTYPE)
+		
+		# throws when variant pos is outside of read, handle these differently
 		except IndexError as e:
 			return 0
 
-		mismatches=int(read.get_tag("XM", with_value_type=False))
-		if base_call==ref and mismatches<=1:
-			return ref
-		if  base_call==alt and mismatches<=2:
-			return alt
-			raise GenotypeError()
 
-		return read.flag & (1<<12)
 
-	def __lookup_allelic(self, chrom, start, end, pos, ref, alt, flip=False):
+
+	def lookup_allelic(self, chrom, start, end, pos, ref, alt, flip=False):
 		"""
 
 		"""
@@ -264,7 +312,13 @@ class bamfile(object):
 		tmp_ref_rev = {}
 		tmp_alt_fw = {}
 		tmp_alt_rev = {}
+		tmp_non_fw = {}
+		tmp_non_rev = {}
 
+		reads_ref = []
+		reads_alt = []
+		reads_non = []
+        
 		for read1, read2 in self.read_pair_generator(chrom, max(start-10, 0), end+10):
 
 			#try read1 for genotype
@@ -272,43 +326,61 @@ class bamfile(object):
 				# Check reads for proper genotypes; raise Genotype error
 				# if some thing is problematic, if a read pair doesn't exist or
 				# doesn't overlap the SNV then returns 0
-				read1_gt=self.__validate_genotype(read1)
-				read2_gt=self.__validate_genotype(read2)
+				read1_gt = self.__validate_genotype(read1, pos, ref, alt)
+				read2_gt = self.__validate_genotype(read2, pos, ref, alt)
 
 				if (not read1_gt) and (not read2_gt): # neither read overlaps SNV
-					continue # got to get read pair
-				elif (read1_gt and read2_gt) and read1_gt!=read2_gt: # discordant genotypes
-					raise GenotypeError("Discordant genotypes between mate reads!")
-				elif read1_gt==ref or read2_gt==ref: # Matches REF allele
-					fw=tmp_ref_fw
-					rev=tmp_ref_rev
-				elif read1_gt==alt or read2_gt==alt: # Matches ALT allele
-					fw=tmp_alt_fw
-					rev=tmp_alt_rev
+					fw = tmp_non_fw
+					rev = tmp_non_rev
+					reads = reads_non
+				elif (read1_gt and read2_gt) and read1_gt!=read2_gt: # Both reads have a GT, but discordant genotypes
+					raise ReadError(ReadError.ERROR_GENOTYPE)
+				elif read1_gt == ref or read2_gt == ref: # Matches REF allele
+					fw = tmp_ref_fw
+					rev = tmp_ref_rev
+					reads = reads_ref
+				elif read1_gt == alt or read2_gt == alt: # Matches ALT allele
+					fw = tmp_alt_fw
+					rev = tmp_alt_rev
+					reads = reads_alt
 				else:
-					raise GenotypeError()
+					raise ReadError()
 
 				if read1:
 					self.__add_read(read1, fw, rev)
 				if read2:
-					self.__add_read(read2, fw, rev)				
+					self.__add_read(read2, fw, rev)					
 
-			except GenotypeError as e:
+				if read1:
+					reads.append(self.__get_fragment(read1))
+				else:
+					reads.append(self.__get_fragment(read2))
+	
+			except ReadError as e:
 				continue
 	
 		ref_fw_cutarray = np.array([tmp_ref_fw.get(i, 0.0) for i in range(start, end)])
 		ref_rev_cutarray = np.array([tmp_ref_rev.get(i, 0.0) for i in range(start, end)])
 		alt_fw_cutarray = np.array([tmp_alt_fw.get(i, 0.0) for i in range(start, end)])
 		alt_rev_cutarray = np.array([tmp_alt_rev.get(i, 0.0) for i in range(start, end)])
+		non_fw_cutarray = np.array([tmp_non_fw.get(i, 0.0) for i in range(start, end)])
+		non_rev_cutarray = np.array([tmp_non_rev.get(i, 0.0) for i in range(start, end)])
 
 		return {
 			ref: {
 				"+": ref_rev_cutarray[::-1] if flip else ref_fw_cutarray, 
-				"-": ref_fw_cutarray[::-1] if flip else ref_rev_cutarray
+				"-": ref_fw_cutarray[::-1] if flip else ref_rev_cutarray,
+				"fragments": reads_ref
 				},
 			alt: {
 				"+": alt_rev_cutarray[::-1] if flip else alt_fw_cutarray, 
-				"-": alt_fw_cutarray[::-1] if flip else alt_rev_cutarray
+				"-": alt_fw_cutarray[::-1] if flip else alt_rev_cutarray,
+				"fragments": reads_alt
+			},
+			"non": {
+				"+": non_rev_cutarray[::-1] if flip else non_fw_cutarray, 
+				"-": non_fw_cutarray[::-1] if flip else  non_rev_cutarray,
+				"fragments": reads_non
 			}
 		}
 
@@ -332,8 +404,8 @@ class bamfile(object):
 		    If input is neither a genome_tools.genomic_interval nor a pysam.VariantRecord
 		"""
 		if isinstance(x, genome_tools.genomic_interval):
-			return self.__lookup(x)
+			return self.lookup(x)
 		elif isinstance(x, pysam.VariantRecord):
-			return self.__lookup_allelic(x)
+			return self.lookup_allelic(x)
 		else:
 			raise TypeError()
