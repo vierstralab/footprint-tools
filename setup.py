@@ -39,7 +39,8 @@ modules = [
 ]
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
-install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf"]
+
+install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson"]
 
 setup(
 	name = "footprint_tools",
