@@ -297,10 +297,7 @@ class bamfile(object):
 		
 		# throws when variant pos is outside of read, handle these differently
 		except IndexError as e:
-			return 0
-
-
-
+			return None
 
 	def lookup_allelic(self, chrom, start, end, pos, ref, alt, flip=False):
 		"""
@@ -333,7 +330,7 @@ class bamfile(object):
 					fw = tmp_non_fw
 					rev = tmp_non_rev
 					reads = reads_non
-				elif (read1_gt and read2_gt) and read1_gt!=read2_gt: # Both reads have a GT, but discordant genotypes
+				elif (read1_gt and read2_gt) and read1_gt != read2_gt: # Both reads have a GT, but discordant genotypes
 					raise ReadError(ReadError.ERROR_GENOTYPE)
 				elif read1_gt == ref or read2_gt == ref: # Matches REF allele
 					fw = tmp_ref_fw
@@ -361,8 +358,10 @@ class bamfile(object):
 	
 		ref_fw_cutarray = np.array([tmp_ref_fw.get(i, 0.0) for i in range(start, end)])
 		ref_rev_cutarray = np.array([tmp_ref_rev.get(i, 0.0) for i in range(start, end)])
+
 		alt_fw_cutarray = np.array([tmp_alt_fw.get(i, 0.0) for i in range(start, end)])
 		alt_rev_cutarray = np.array([tmp_alt_rev.get(i, 0.0) for i in range(start, end)])
+		
 		non_fw_cutarray = np.array([tmp_non_fw.get(i, 0.0) for i in range(start, end)])
 		non_rev_cutarray = np.array([tmp_non_rev.get(i, 0.0) for i in range(start, end)])
 
@@ -377,7 +376,7 @@ class bamfile(object):
 				"-": alt_fw_cutarray[::-1] if flip else alt_rev_cutarray,
 				"fragments": reads_alt
 			},
-			"non": {
+			"other": {
 				"+": non_rev_cutarray[::-1] if flip else non_fw_cutarray, 
 				"-": non_fw_cutarray[::-1] if flip else  non_rev_cutarray,
 				"fragments": reads_non

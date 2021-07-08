@@ -138,9 +138,11 @@ class prediction(object):
 		    Observed, expected and windowed cleavage counts
 		"""
 
-		if isinstance(x, (list, genomic_interval_set)):
-			return [self.compute(i) for i in x]
-
+		# if isinstance(x, (list, genomic_interval_set)):
+		# 	print("LIST")
+		# 	for i in x:
+		# 		yield self.compute(i)
+	
 		# Note: We clip the first base when recombining the positive 
 		# and negative strand, so add an extra base upfront
 		pad_interval = x.widen(self.padding)
@@ -149,7 +151,6 @@ class prediction(object):
 		# Get the raw cleavage counts and FASTA sequence
 		raw_counts = self.read_func[pad_interval]
 		raw_seq = self.fasta_func.fetch(pad_interval.chrom, pad_interval.start-self.bm.offset(), pad_interval.end+self.bm.offset()).upper()
-
 
 		obs_counts = {'+': None, '-': None}
 		exp_counts = {'+': None, '-': None}
@@ -171,6 +172,6 @@ class prediction(object):
 			exp_counts[strand] = exp[self.padding:w]
 			win_counts[strand] = win[self.padding:w]
 
-		return (obs_counts, exp_counts, win_counts)
+		return obs_counts, exp_counts, win_counts
 
 
