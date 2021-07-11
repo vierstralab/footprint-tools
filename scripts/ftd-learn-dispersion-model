@@ -10,9 +10,9 @@ import math
 
 from argparse import ArgumentParser, Action, ArgumentError, ArgumentTypeError
 
+import multiprocessing as mp
 from tqdm import tqdm
 
-import multiprocessing as mp
 import numpy as np
 
 import pysam
@@ -109,13 +109,7 @@ class process_callback(object):
 	def __call__(self, other):
 		self.x += other
 
-def error_callback(e):
-    print('error')
-    print(dir(e), "\n")
-    print("-->{}<--".format(e.__cause__))
-
-
-def process_func(bam_file, fasta_file, bias_model, intervals, hist_size, proc_id, **kwargs):
+def process_func(bam_file, fasta_file, bm, intervals, hist_size, proc_id, **kwargs):
 	"""
 	Function that can be used to parallize reading 
 	the BAM files and computing expected counts
@@ -125,7 +119,7 @@ def process_func(bam_file, fasta_file, bias_model, intervals, hist_size, proc_id
 	bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
 	fasta_reader = pysam.FastaFile(fasta_file)
 
-	predictor = predict.prediction(bam_reader, fasta_reader, bias_model, **kwargs)
+	predictor = predict.prediction(bam_reader, fasta_reader, bm, **kwargs)
 
 	res_hist = np.zeros(hist_size)
 
@@ -178,7 +172,7 @@ def main(argv = sys.argv[1:]):
 	logger.info("Using {} threads to computed expected cleavage counts".format(args.processors))
 
 	for i, chunk in enumerate(chunkify(intervals, args.processors)):
-		pool.apply_async(process_func, args=(args.bam_file, args.fasta_file, args.bias_model, chunk, hist_size, i,), kwds=proc_kwargs, callback=hist_agg, error_callback=error_callback)
+		pool.apply_async(process_func, args=(args.bam_file, args.fasta_file, args.bias_model, chunk, hist_size, i), kwds=proc_kwargs, callback=hist_agg)
 
 	pool.close()
 	pool.join()
