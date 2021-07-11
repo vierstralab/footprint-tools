@@ -23,7 +23,6 @@ from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing
 
-
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -113,7 +112,7 @@ def parse_options(args):
 
     grp_rf.add_argument("--remove-dups", action = "store_true",
                         dest = "remove_dups", help = "Remove duplicate reads from analysis"
-                        " (SAM flag -- 1024)")
+                        " (SAM flag -- 512)")
     grp_rf.add_argument("--remove-qcfail", action = "store_true",
                         dest = "remove_qcfail", help = "Remove QC-failed reads from analysis"
                         " (SAM flag -- 1024)")

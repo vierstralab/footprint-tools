@@ -1,10 +1,8 @@
 # Copyright (C) 2015-2020 Jeff Vierstra (jvierstra@altius.org)
 
-
 import os
 import sys
 import pathlib
-
 
 from setuptools import find_packages, setup
 from distutils.command.build_clib import build_clib
@@ -67,7 +65,6 @@ setup(
 	    'Intended Audience :: Science/Research', 
 	    'Topic :: Scientific/Engineering :: Bio-Informatics',
 	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-	    'Programming Language :: Python :: 2.7',
-	    'Programming Language :: Python :: 3',
+	    'Programming Language :: Python :: 3.5',
 ],
 )
