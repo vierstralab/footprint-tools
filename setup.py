@@ -16,7 +16,7 @@ import numpy as np
 
 from glob import glob
 
-__version__ = "1.2"
+__version__ = "1.3"
 
 if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
     print("Package requires Python version 3.5+")
@@ -40,7 +40,7 @@ modules = [
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
 
-install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson"]
+install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson"]
 
 setup(
 	name = "footprint_tools",
@@ -52,7 +52,7 @@ setup(
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
-	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.1.3.tar.gz",
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.3.tar.gz",
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),
