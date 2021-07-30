@@ -41,6 +41,10 @@ class dispersion_model_action(Action):
              raise ArgumentError(self, str(e))
 
 def paired_ints(arg):
+    """
+    Parse a pair of integers delimited by a comma (used by ArgParser)
+    """
+
     try:
         fw, rev = list(map(int, arg.split(',')))
         return (fw, rev)
@@ -93,7 +97,7 @@ def parse_options(args):
                         " JSON format and generated using the 'ftd-learn-dispersion-model'"
                         " script included in the software package.")
 
-    # TODO: implement
+    # Not yet implemented
     # grp_st.add_argument("--fdr_cutoffs", nargs = 1, metavar = "[N, ...]", dest = "fdr_cutoffs",
     #                     action = list_parse_action, default = [],
     #                     help = "FDR cutoff at which to report footprints.")
@@ -135,7 +139,10 @@ def parse_options(args):
 
     return parser.parse_args(args)
 
-def read_func(bam_file, fasta_file, bm, dm, intervals, q, proc_id, **kwargs):
+def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
+    """
+    Reads BAM file, computes expected cleavages and associated statistics and outputs to a multiprocessing pool queue
+    """
 
     bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "offset"] }
     bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
@@ -153,72 +160,77 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, proc_id, **kwargs):
 
     win_pvals_func = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
     
-    progress_desc = "Chunk {}".format(proc_id)
+    # Read and process each region
+    for interval in intervals:
 
-    with tqdm(total=len(intervals), desc=progress_desc, position=proc_id+1, ncols=80) as progress_bar:
+        obs, exp, win = predictor.compute(interval)
 
-        for interval in intervals:
+        obs = obs['+'][1:] + obs['-'][:-1]
+        exp = exp['+'][1:] + exp['-'][:-1]
 
-            obs, exp, win = predictor.compute(interval)
+        n = len(obs)
 
-            obs = obs['+'][1:] + obs['-'][:-1]
-            exp = exp['+'][1:] + exp['-'][:-1]
+        if dm:
 
-            n = len(obs)
+            try:
 
-            if dm:
+                pvals = dm.p_values(exp, obs)
+                counts_null, pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
 
-                try:
+                win_pvals = win_pvals_func(pvals)
+                win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
+                
+                efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
 
-                    pvals = dm.p_values(exp, obs)
-                    counts_null, pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
+            except Exception as e:
 
-                    win_pvals = win_pvals_func(pvals)
-                    win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
-                    
-                    efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
+                pvals = win_pvals = efdr = np.ones(n)
 
-                except Exception as e:
+            finally:
 
-                    pvals = win_pvals = efdr = np.ones(n)
+                stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
+        else:
 
-                finally:
+            stats = np.column_stack((exp, obs))
 
-                    stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
-            else:
+        q.put( (interval, stats) )
 
-                stats = np.column_stack((exp, obs))
+        while q.qsize() > 100:
+            pass
 
-            q.put( (interval, stats) )
-
-            progress_bar.update(1)
-
-            while q.qsize() > 100:
-                pass
-
-def write_func(q):
+def write_func(q, total):
     """
     Function to write output from multiple threads to a single file
     """    
 
     f = sys.stdout
 
-    while True:
+    progress_desc="Regions processed"
+    with tqdm(total=total), desc=progress_desc, ncols=80) as progress_bar:
+    
+        while True:
 
-        data = q.get()
-        if data == None:
+            data = q.get()
+            if data == None:
+                q.task_done()
+                break
+
+            interval, stats = data
+
+            for i in range(stats.shape[0]):
+                coords = "{}\t{:d}\t{:d}".format(interval.chrom, interval.start+i, interval.start+i+1)
+                val_string = "\t".join( ["{:0.4f}".format(val) for val in stats[i,:]])
+                print(coords + "\t" + val_string, file=f)
+
             q.task_done()
-            break
 
-        interval, stats = data
-
-        for i in range(stats.shape[0]):
-            coords = "{}\t{:d}\t{:d}".format(interval.chrom, interval.start+i, interval.start+i+1)
-            val_string = "\t".join( ["{:0.4f}".format(val) for val in stats[i,:]])
-            print(coords + "\t" + val_string, file=f)
+            progress_bar.update(1)
 
 def chunkify(l, nchunks):
-    """Splits an iterable list into n chunks"""
+    """
+    Splits an iterable list into n chunks
+    """
+    
     return [l[i::nchunks] for i in range(nchunks)]
 
 def main(argv = sys.argv[1:]):
@@ -243,14 +255,14 @@ def main(argv = sys.argv[1:]):
 
     q = mp.JoinableQueue()
 
-    read_procs= []
+    read_procs = []
     for i, chunk in enumerate(chunkify(intervals, max(1, args.processors-1))):
-           p = mp.Process(target=read_func, args=(args.bam_file, args.fasta_file, args.bias_model, args.dispersion_model, chunk, q, i), kwargs=proc_kwargs)
+           p = mp.Process(target=read_func, args=(args.bam_file, args.fasta_file, args.bias_model, args.dispersion_model, chunk, q), kwargs=proc_kwargs)
            read_procs.append(p)
 
-    write_proc = mp.Process(target=write_func, args=(q,))
+    write_proc = mp.Process(target=write_func, args=(q, len(intervals)))
 
-    logger.info("Using {} threads to computed footprint statistics".format(len(read_procs)))
+    logger.info("Using {} threads to compute footprint statistics".format(len(read_procs)))
 
     [p.start() for p in read_procs]
     write_proc.start()
@@ -267,5 +279,7 @@ def main(argv = sys.argv[1:]):
             p.terminate()
         write_proc.terminate()
 
+    return 0
+    
 if __name__ == "__main__":
     sys.exit(main())

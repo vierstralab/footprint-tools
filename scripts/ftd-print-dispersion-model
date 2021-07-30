@@ -1,7 +1,7 @@
-#!/usr/env python
+#!/usr/bin/env python3
 
-from __future__ import absolute_import
-from __future__ import print_function
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
+
 import sys
 
 import numpy as np

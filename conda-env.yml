@@ -4,7 +4,7 @@ channels:
 - bioconda
 - defaults
 dependencies:
-- python=3.6
+- python>=3.6
 - pip
 - tqdm
 - cython
@@ -14,6 +14,7 @@ dependencies:
 - statsmodels
 - simplejson
 - pysam
+- tqdm
 
 - pip:
   - pwlf

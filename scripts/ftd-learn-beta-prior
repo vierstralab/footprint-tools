@@ -1,6 +1,6 @@
-#!/usr/bin/which python3
+#!/usr/bin/env python3
 
-# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
 
 from __future__ import print_function, division
 
@@ -67,7 +67,6 @@ def compute_beta_prior(filename, fdr_cutoff, exp_cutoff):
 def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
-
 
 	prior = compute_beta_prior(args.tabix_file, fdr_cutoff = args.fdr_cutoff, exp_cutoff = args.exp_cutoff)
 

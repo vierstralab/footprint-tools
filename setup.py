@@ -1,4 +1,4 @@
-# Copyright (C) 2015-2020 Jeff Vierstra (jvierstra@altius.org)
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
 
 import os
 import sys
@@ -16,8 +16,8 @@ from glob import glob
 
 __version__ = "1.3"
 
-if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
-    print("Package requires Python version 3.5+")
+if sys.version_info[0] != 3 or sys.version_info[1] <= 6:
+    print("Package requires Python version 3.6+")
     sys.exit(1)
 
 cephes_include = "cephes"
@@ -38,7 +38,7 @@ modules = [
 
 scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
 
-install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson"]
+install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pandas", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson", "tqdm"]
 
 setup(
 	name = "footprint_tools",
@@ -65,6 +65,6 @@ setup(
 	    'Intended Audience :: Science/Research', 
 	    'Topic :: Scientific/Engineering :: Bio-Informatics',
 	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-	    'Programming Language :: Python :: 3.5',
+	    'Programming Language :: Python :: 3.6',
 ],
 )
