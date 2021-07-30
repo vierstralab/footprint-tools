@@ -3,6 +3,7 @@
 import os
 import sys
 import pathlib
+from glob import glob
 
 from setuptools import find_packages, setup
 from distutils.command.build_clib import build_clib
@@ -12,9 +13,7 @@ from Cython.Distutils import build_ext
 
 import numpy as np
 
-from glob import glob
-
-__version__ = "1.3"
+__version__ = "1.2"
 
 if sys.version_info[0] != 3 or sys.version_info[1] <= 6:
     print("Package requires Python version 3.6+")
@@ -50,7 +49,7 @@ setup(
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
-	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.3.tar.gz",
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/{}.tar.gz".format(__version__),
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),

@@ -19,6 +19,7 @@ import pysam
 
 from genome_tools import bed, genomic_interval
 
+import footprint_tools
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 
@@ -41,7 +42,7 @@ def paired_ints(arg):
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference")
+    parser = ArgumentParser(description = "Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference (version {})".format(footprint_tools.__version__))
 
     parser.add_argument("bam_file", metavar = "bam_file", type = str,
                         help = "Path to BAM-format tag sequence file")

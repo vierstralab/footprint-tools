@@ -2,8 +2,6 @@
 
 # Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
 
-from __future__ import print_function, division
-
 import sys, os, logging
 from argparse import ArgumentParser
 import multiprocessing as mp
@@ -14,13 +12,14 @@ import scipy.stats
 
 import pysam
 
+import footprint_tools 
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Learn the genome-wide beta model prior for nucleotide protection")
+    parser = ArgumentParser(description = "Learn the genome-wide beta model prior for nucleotide protection (version {})".format(footprint_tools.__version__))
 
     parser.add_argument("tabix_file", metavar = "tabix_file", type = str,
                         help = "Path to TABIX-format file (e.g., ouput"
