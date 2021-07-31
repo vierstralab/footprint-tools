@@ -28,9 +28,9 @@ cehpes_lib = ('cephes', { 'sources': cephes_src })
 modules = [
 	dict(name="footprint_tools.modeling.predict", sources=["footprint_tools/modeling/predict.pyx"]),
 	dict(name="footprint_tools.modeling.predict", sources=["footprint_tools/modeling/predict.pyx"]),
-	dict(name="footprint_tools.modeling.dispersion", sources=["footprint_tools/modeling/dispersion.pyx", "footprint_tools/modeling/dispersion.pxd"]),
+	dict(name="footprint_tools.modeling.dispersion", sources=["footprint_tools/modeling/dispersion.pyx"]),
 	dict(name="footprint_tools.stats.windowing", sources = ["footprint_tools/stats/windowing.pyx"]),
-	dict(name="footprint_tools.stats.distributions.nbinom", sources=["footprint_tools/stats/distributions/nbinom.pyx", "footprint_tools/stats/distributions/nbinom.pxd"]),
+	dict(name="footprint_tools.stats.distributions.nbinom", sources=["footprint_tools/stats/distributions/nbinom.pyx"]),
 	dict(name="footprint_tools.stats.segment", sources=["footprint_tools/stats/segment.pyx"]),
 	dict(name="footprint_tools.stats.fdr.bisect", sources=["footprint_tools/stats/fdr/bisect.pyx"]),
 	dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"])
@@ -60,6 +60,7 @@ setup(
 	libraries = [cehpes_lib],
     ext_modules = [Extension(**opts) for opts in modules],
     include_dirs=[np.get_include(), cephes_include],
+	package_data={k:["*.pxd"] for k in find_packages()},
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
     install_requires = install_requires,
     scripts = scripts,
