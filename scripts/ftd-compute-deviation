@@ -43,7 +43,7 @@ class dispersion_model_action(Action):
 
 def paired_ints(arg):
     """
-    Parse a pair of integers delimited by a comma (used by ArgParser)
+    Parse a pair of integers delimited by a comma (used by argparser)
     """
 
     try:
@@ -111,7 +111,7 @@ def parse_options(args):
 
     grp_rf = parser.add_argument_group("Read filtering options")
 
-    grp_rf.add_argument("--min_qual", metavar = "N", type = int,
+    grp_rf.add_argument("--min-qual", metavar = "N", type = int,
                         dest = "min_qual", default = 1,
                         help = "Filter reads with mapping quality lower than this threshold."
                         " (default: %(default)s)")
@@ -270,17 +270,15 @@ def main(argv = sys.argv[1:]):
     write_proc.start()
 
     try:
-        for p in read_procs:
-            p.join()
+        [p.join() for p in read_procs]
         q.join() # block until queue is empty after processing is done
         q.put(None) # send kill signal
         write_proc.join() # wait for writer proc to return
         logger.info("Finished computing and writing footprint statistics!")
     except KeyboardInterrupt:
-        for p in read_procs:
-            p.terminate()
+        [p.terminate() for p in read_procs]
         write_proc.terminate()
-
+        
     return 0
     
 if __name__ == "__main__":

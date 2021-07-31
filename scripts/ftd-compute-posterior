@@ -250,10 +250,8 @@ def main(argv = sys.argv[1:]):
         logger.info("Finished computing and writing footprint posteriors!")
 
     except KeyboardInterrupt:
-        for p in read_procs:
-            p.terminate()
-        for p in process_procs:
-            p.terminate()
+        [p.terminate() for p in read_procs]
+        [p.terminate() for p in process_procs]
         write_proc.terminate()
 
     return 0
