@@ -13,7 +13,7 @@ from Cython.Distutils import build_ext
 
 import numpy as np
 
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 if sys.version_info[0] != 3 or sys.version_info[1] < 6:
     print("Package requires Python version 3.6+")
