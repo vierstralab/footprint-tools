@@ -1,4 +1,5 @@
 *.py[cod]
+.DS_Store
 
 dist/
 sdist/
@@ -6,7 +7,4 @@ build/
 *.egg-info/
 
 docs/build/
-
-env_devel/
-
-.DS_Store
+.ipynb_checkpoints/
