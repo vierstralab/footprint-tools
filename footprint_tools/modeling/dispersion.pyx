@@ -1,9 +1,11 @@
-# Copyright 2015 Jeff Vierstra
+# Copyright 2015-2021 Jeff Vierstra
 
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
 # cython: embedsignature=True
+
+import warnings
 
 from footprint_tools.stats.distributions import nbinom
 import numpy as np
@@ -374,7 +376,6 @@ def base64decode(x):
 
 def read_dispersion_model(filename):
 	
-	import json
 	import urllib.request as request
 
 	if filename.startswith('http'):
@@ -406,8 +407,6 @@ def write_dispersion_model(model):
 	:return: JSON-formatted dump of dispersion model
 	:rtype: str
 	"""
-
-	import json
 
 	out = { "mu_params": base64encode(np.asarray(model.mu_params, order = 'C')), 
 			"r_params": base64encode(np.asarray(model.r_params, order = 'C')),

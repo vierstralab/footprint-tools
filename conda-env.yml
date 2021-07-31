@@ -1,0 +1,22 @@
+name: footprint-tools
+channels:
+- conda-forge
+- bioconda
+- defaults
+dependencies:
+- python>=3.6
+- pip
+- tqdm
+- cython
+- numpy
+- scipy
+- pandas
+- statsmodels
+- simplejson
+- pysam
+- tqdm
+
+- pip:
+  - pwlf
+  - genome_tools
+  - .

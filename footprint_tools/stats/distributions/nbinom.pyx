@@ -17,6 +17,8 @@ cdef extern from "cephes.h":
 	double c_lgamma(double) nogil
 	double c_incbet(double, double, double) nogil
 
+import warnings
+
 
 def mle(par, data, sm):
 
@@ -73,7 +75,10 @@ def fit(data, p = None, r = None):
 		p = (va-av) / (va)
 
 	sm = np.sum(data)/len(data)
-	x = scipy.optimize.fsolve(mle, np.array([p, r]), args = (data, sm))
+	
+	with warnings.catch_warnings():
+		warnings.simplefilter("ignore")
+		x = scipy.optimize.fsolve(mle, np.array([p, r]), args = (data, sm))
 
 	return (x[0], x[1])
 

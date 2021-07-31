@@ -1,26 +1,33 @@
-#!/usr/bin/which python3
+#!/usr/bin/env python3
 
-# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
 
-import sys, logging
-from argparse import ArgumentParser, Action, ArgumentError
-import multiprocessing as mp
-
-import pyfaidx
-import numpy as np
+import sys
+import os
+import logging
 import random
+import math
 
-from genome_tools import bed, genomic_interval, genomic_interval_set
+from argparse import ArgumentParser, Action, ArgumentError
 
+import multiprocessing as mp
+from tqdm import tqdm
+
+import numpy as np
+
+import pysam
+
+from genome_tools import bed, genomic_interval
+
+import footprint_tools
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing
 
-
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class kmer_action(Action):
+class bias_model_action(Action):
     def __call__(self, parser, namespace, values, option_string = None):
         try:
             setattr(namespace, self.dest, bias.kmer_model(values[0]))
@@ -35,6 +42,10 @@ class dispersion_model_action(Action):
              raise ArgumentError(self, str(e))
 
 def paired_ints(arg):
+    """
+    Parse a pair of integers delimited by a comma (used by argparser)
+    """
+
     try:
         fw, rev = list(map(int, arg.split(',')))
         return (fw, rev)
@@ -43,7 +54,8 @@ def paired_ints(arg):
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute the per-nucleotide cleavage deviation statistics")
+    parser = ArgumentParser(description = "Compute the per-nucleotide cleavage deviation statistics (version {})".format(footprint_tools.__version__),
+                epilog="Written by Jeff Vierstra (jvierstra@altius.org). See http://github.com/jvierstra/footprint-tools for extended documentation.")
 
     parser.add_argument("bam_file", metavar = "bam_file", type = str,
                         help = "Path to BAM-format tag sequence file")
@@ -59,7 +71,7 @@ def parse_options(args):
     grp_bm = parser.add_argument_group("Bias modeling options")
 
     grp_bm.add_argument("--bm", metavar = "MODEL_FILE", dest = "bias_model", 
-                        nargs = 1, action = kmer_action, default = bias.uniform_model(),
+                        nargs = 1, action = bias_model_action, default = bias.uniform_model(),
                         help = "Use a k-mer model for local bias (supplied by file). If"
                         " argument is not provided the model defaults to uniform sequence"
                         " bias.")
@@ -87,7 +99,7 @@ def parse_options(args):
                         " JSON format and generated using the 'ftd-learn-dispersion-model'"
                         " script included in the software package.")
 
-    # TODO: implement
+    # Not yet implemented
     # grp_st.add_argument("--fdr_cutoffs", nargs = 1, metavar = "[N, ...]", dest = "fdr_cutoffs",
     #                     action = list_parse_action, default = [],
     #                     help = "FDR cutoff at which to report footprints.")
@@ -97,16 +109,21 @@ def parse_options(args):
                         help = "Number of times to shuffle data for FDR calculation."
                         " (default: %(default)s)")
 
-    grp_ot = parser.add_argument_group("Other options")
+    grp_rf = parser.add_argument_group("Read filtering options")
 
-    grp_ot.add_argument("--min_qual", metavar = "N", type = int,
+    grp_rf.add_argument("--min-qual", metavar = "N", type = int,
                         dest = "min_qual", default = 1,
                         help = "Filter reads with mapping quality lower than this threshold."
                         " (default: %(default)s)")
 
-    grp_ot.add_argument("--remove-dups", action = "store_true",
+    grp_rf.add_argument("--remove-dups", action = "store_true",
                         dest = "remove_dups", help = "Remove duplicate reads from analysis"
+                        " (SAM flag -- 512)")
+    grp_rf.add_argument("--remove-qcfail", action = "store_true",
+                        dest = "remove_qcfail", help = "Remove QC-failed reads from analysis"
                         " (SAM flag -- 1024)")
+
+    grp_ot = parser.add_argument_group("Other options")
 
     grp_ot.add_argument("--bam-offset", metavar = "N", type = paired_ints,
                         dest = "bam_offset", default = (0, -1),
@@ -118,97 +135,150 @@ def parse_options(args):
                         " (default: no seed)")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
-                        dest = "processors", default = mp.cpu_count(),
+                        dest = "processors", default = max(1, mp.cpu_count()-1),
                         help = "Number of processors to use."
                         " (default: all available processors)")
 
     return parser.parse_args(args)
 
-def process_func(pred, dm, fdr_shuffle_n, seed=None):
-    """Main processing function"""
+def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
+    """
+    Reads BAM file, computes expected cleavages and associated statistics and outputs to a multiprocessing pool queue
+    """
 
-    # Reseed here, for multiprocessing reasons
+    bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "offset"] }
+    bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
+    fasta_reader = pysam.FastaFile(fasta_file)
+
+    predict_kwargs = { k:kwargs.pop(k) for k in ["half_window_width", "smoothing_half_window_width", "smoothing_clip"] }
+    predictor = predict.prediction(bam_reader, fasta_reader, bm, **predict_kwargs)
+
+    # args used for FDR sampling procedure
+    seed = kwargs.pop("seed")
     if seed:
         random.seed(seed)
         np.random.seed(seed)
+    fdr_shuffle_n = kwargs.pop("fdr_shuffle_n") 
 
-    (obs_counts, exp_counts, win_counts) = pred.compute()
+    win_pvals_func = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
     
-    obs = obs_counts['+'][1:] + obs_counts['-'][:-1]
-    exp = exp_counts['+'][1:] + exp_counts['-'][:-1]
+    # Read and process each region
+    for interval in intervals:
 
-    if dm:
+        obs, exp, win = predictor.compute(interval)
 
-        try:
+        obs = obs['+'][1:] + obs['-'][:-1]
+        exp = exp['+'][1:] + exp['-'][:-1]
 
-            win_pvals_func = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
+        n = len(obs)
 
-            pvals = dm.p_values(exp, obs)
-            counts_null, pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
+        if dm:
 
-            win_pvals = win_pvals_func(pvals)
-            
-            win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
-            FDR = fdr.emperical_fdr(win_pvals_null, win_pvals)
+            try:
 
-            data = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), FDR))
+                pvals = dm.p_values(exp, obs)
+                counts_null, pvals_null = dm.resample_p_values(exp, fdr_shuffle_n)
 
-        except Exception as e:
-            
-            print(e, file = sys.stderr)
+                win_pvals = win_pvals_func(pvals)
+                win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
+                
+                efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
 
-            data = np.column_stack((exp, obs, np.zeros(len(obs)), np.zeros(len(obs)), np.ones(len(obs))))
+            except Exception as e:
 
-    else:
+                pvals = win_pvals = efdr = np.ones(n)
 
-        data = np.column_stack((exp, obs))
+            finally:
 
-    return (pred.interval, data)
+                stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
+        else:
 
-class process_callback(object):
-    """Writer class used as a callback"""
+            stats = np.column_stack((exp, obs))
 
-    def __init__(self, filehandle = sys.stdout):
-        
-        self.filehandle = filehandle
+        q.put( (interval, stats) )
 
-    def __call__(self, res):
+        while q.qsize() > 100:
+            pass
 
-        (interval, data) = res
+def write_func(q, total):
+    """
+    Function to write output from multiple threads to a single file
+    """    
 
-        chrom = interval.chrom
-        start = interval.start
+    f = sys.stdout
 
-        out = '\n'.join(["%s\t%d\t%d\t%s" % (chrom, start + i, start + i +1, '\t'.join(['{:0.4f}'.format(val) for val in data[i,:]])) for i in range(data.shape[0])])
+    progress_desc="Regions processed"
+    with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
+    
+        while True:
 
-        print(out, file = self.filehandle)
+            data = q.get()
+            if data == None:
+                q.task_done()
+                break
+
+            interval, stats = data
+
+            for i in range(stats.shape[0]):
+                coords = "{}\t{:d}\t{:d}".format(interval.chrom, interval.start+i, interval.start+i+1)
+                val_string = "\t".join( ["{:0.4f}".format(val) for val in stats[i,:]])
+                print(coords + "\t" + val_string, file=f)
+
+            q.task_done()
+
+            progress_bar.update(1)
+
+def chunkify(l, nchunks):
+    """
+    Splits an iterable list into n chunks
+    """
+    
+    return [l[i::nchunks] for i in range(nchunks)]
 
 def main(argv = sys.argv[1:]):
 
     args = parse_options(argv)
-    random.seed(args.seed)
-    np.random.seed(args.seed)
 
-    reads = cutcounts.bamfile(args.bam_file, min_qual = args.min_qual, remove_dups = args.remove_dups, offset = args.bam_offset)
-    fasta = pyfaidx.Fasta(args.fasta_file, one_based_attributes = False, sequence_always_upper = True)
-    intervals = bed.bed3_iterator(open(args.interval_file))
+    intervals = list(bed.bed3_iterator(open(args.interval_file)))
+    
+    logger.info("BED file contains {:,} regions".format(len(intervals)))
 
-    write_func = process_callback()
+    proc_kwargs = {
+        "min_qual": args.min_qual,
+        "remove_dups": args.remove_dups,
+        "remove_qcfail": args.remove_qcfail,
+        "offset": args.bam_offset,
+        "half_window_width": args.half_win_width,
+        "smoothing_half_window_width": args.smooth_half_win_width,
+        "smoothing_clip": args.smooth_clip,
+        "fdr_shuffle_n": args.fdr_shuffle_n,
+        "seed": args.seed
+        }
 
-    pool = mp.Pool(args.processors)
+    q = mp.JoinableQueue()
 
-    for interval in genomic_interval_set(intervals):
+    read_procs = []
+    for i, chunk in enumerate(chunkify(intervals, max(1, args.processors-1))):
+           p = mp.Process(target=read_func, args=(args.bam_file, args.fasta_file, args.bias_model, args.dispersion_model, chunk, q), kwargs=proc_kwargs)
+           read_procs.append(p)
 
-        region = predict.prediction(reads, fasta, interval, args.bias_model, args.half_win_width, args.smooth_half_win_width, args.smooth_clip)
+    write_proc = mp.Process(target=write_func, args=(q, len(intervals)))
 
-        pool.apply_async(process_func, args = (region, args.dispersion_model, args.fdr_shuffle_n, args.seed,), callback = write_func)
+    logger.info("Using {} threads to compute footprint statistics".format(len(read_procs)))
 
-        while pool._taskqueue.qsize() > 1000:
-            pass
+    [p.start() for p in read_procs]
+    write_proc.start()
 
-    pool.close()
-    pool.join()
-
+    try:
+        [p.join() for p in read_procs]
+        q.join() # block until queue is empty after processing is done
+        q.put(None) # send kill signal
+        write_proc.join() # wait for writer proc to return
+        logger.info("Finished computing and writing footprint statistics!")
+    except KeyboardInterrupt:
+        [p.terminate() for p in read_procs]
+        write_proc.terminate()
+        
     return 0
     
 if __name__ == "__main__":

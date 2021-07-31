@@ -1,10 +1,9 @@
-# Copyright (C) 2015-2020 Jeff Vierstra (jvierstra@altius.org)
-
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
 
 import os
 import sys
 import pathlib
-
+from glob import glob
 
 from setuptools import find_packages, setup
 from distutils.command.build_clib import build_clib
@@ -14,17 +13,16 @@ from Cython.Distutils import build_ext
 
 import numpy as np
 
-from glob import glob
-
 __version__ = "1.2"
 
-if sys.version_info[0] != 3 or sys.version_info[1] <= 5:
-    print("Package requires Python version 3.5+")
+if sys.version_info[0] != 3 or sys.version_info[1] < 6:
+    print("Package requires Python version 3.6+")
     sys.exit(1)
 
 cephes_include = "cephes"
 cephes_src = glob("cephes/*.c")
 cehpes_lib = ('cephes', { 'sources': cephes_src })
+
 # see MANIFEST.in -- a slight hack to include all of the header files in the source distrubution
 
 modules = [
@@ -38,9 +36,9 @@ modules = [
 	dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior", "scripts/ftd-diff-test"]
+scripts = ["scripts/ftd-learn-dispersion-model", "scripts/ftd-compute-deviation", "scripts/ftd-compute-posterior", "scripts/ftd-learn-beta-prior"]
 
-install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pysam>=0.15", "pyfaidx>=0.4.2", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson"]
+install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pandas", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson", "tqdm"]
 
 setup(
 	name = "footprint_tools",
@@ -52,7 +50,7 @@ setup(
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
-	download_url = "https://github.com/jvierstra/footprint-tools/archive/1.1.3.tar.gz",
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/{}.tar.gz".format(__version__),
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),
@@ -67,7 +65,6 @@ setup(
 	    'Intended Audience :: Science/Research', 
 	    'Topic :: Scientific/Engineering :: Bio-Informatics',
 	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-	    'Programming Language :: Python :: 2.7',
-	    'Programming Language :: Python :: 3',
+	    'Programming Language :: Python :: 3.6',
 ],
 )

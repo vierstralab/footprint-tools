@@ -1,17 +1,20 @@
-#!/usr/bin/which python3
+#!/usr/bin/env python3
 
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
 
-# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
-import sys, logging, os, os.path, glob, tempfile, shutil
+import sys, logging, os, os.path
 from argparse import ArgumentParser
 import multiprocessing as mp
 
 import numpy as np
+import pandas as pd
+
 import scipy.stats
 import pysam
 
 from genome_tools import bed, genomic_interval, genomic_interval_set
 
+import footprint_tools
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment
 
@@ -20,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute the posterior probability of cleavage data")
+    parser = ArgumentParser(description = "Compute the posterior probability of cleavage data (version {})".format(footprint_tools.__version__),
+                epilog="Written by Jeff Vierstra (jvierstra@altius.org). See http://github.com/jvierstra/footprint-tools for extended documentation.")
 
     parser.add_argument("metadata_file", metavar = "metadata_file", type = str,
                         help = "Path to configuration file containing metadata for samples")
@@ -32,28 +36,30 @@ def parse_options(args):
 
     grp_st.add_argument("--fdr-cutoff", metavar = "N", type = float,
                         dest = "fdr_cutoff", default = 0.05,
-                        help = "Only consider nucleotides with FDR <= this value."
+                        help = "Only consider nucleotides with a minimum FDR <= this value."
                         " (default: %(default)s)")
 
     grp_o = parser.add_argument_group("Output options")
 
     grp_o.add_argument("--post-cutoff", metavar = "N", type = float,
                         dest = "post_cutoff", default = 0.2,
-                        help = "Only output nucleotides with posterior probability <= this value."
+                        help = "Only output nucleotides with posterior probability <= this value in 1 or more samples"
                         " (default: %(default)s)")
 
     grp_ot = parser.add_argument_group("Other options")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
-                        dest = "processors", default = mp.cpu_count()-2,
+                        dest = "processors", default = max(1, mp.cpu_count()-3),
                         help = "Number of processors to use. Note that value excludes the"
-                        " minimum 2 threads that are dedicated to data I/O."
+                        " minimum 3 threads that are dedicated to data I/O"
                         " (default: all available processors)")
 
     return parser.parse_args(args)
 
-
 def read_func(tabix_files, intervals, queue):
+    """
+    Reads TABIX files and outputs to a multiprocessing pool queue
+    """
 
     tabix_handles = [pysam.TabixFile(f) for f in tabix_files]
     n_datasets = len(tabix_handles)
@@ -87,23 +93,23 @@ def read_func(tabix_files, intervals, queue):
 
         queue.put( (interval, exp, obs, fdr, w) )
 
-        # Stop memory from getting out of control
+        # Stop memory from getting out of control in the processing
         while queue.qsize() > 100:
             pass
 
     [handle.close() for handle in tabix_handles]
 
+def process_func(disp_models, beta_priors, read_q, write_q, fdr_cutoff=0):
+    """
+    
+    """
+    
+    while True:
 
-def process_func(disp_models, beta_priors, queue, outfile, fdr_cutoff, post_cutoff):
-
-    handle = open(outfile, 'w')
-
-    while 1:
-
-        data = queue.get()
+        data = read_q.get()
 
         if data == None:
-            queue.task_done()
+            read_q.task_done()
             break
 
         (interval, exp, obs, fdr, w) = data
@@ -118,112 +124,135 @@ def process_func(disp_models, beta_priors, queue, outfile, fdr_cutoff, post_cuto
         post = -bayesian.posterior(prior, ll_on, ll_off)
         post[post <= 0] = 0.0
 
-        # Write ouput
-        ii = np.where(np.nanmax(post, axis = 0) > post_cutoff)[0]
+        read_q.task_done()
 
-        for i in ii:
-            print("{}\t{:d}\t{:d}\t".format(interval.chrom, interval.start+i, interval.start+i+1) + '\t'.join(map(str, post[:,i])), file = handle)
+        write_q.put( (interval, post) )
 
-        queue.task_done()
+def write_func(q, total, log_post_cutoff=0):
+    """
+    
+    """
+    
+    handle = sys.stdout
 
-    handle.close()
+    progress_desc="Regions processed"
+    with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
 
-def read_metadata_file(filename):
+        while True:
 
-    ids = []
-    dm_files = []
-    tabix_files = []
-    bp_files = []
+            data = q.get()
+            if data == None:
+                q.task_done()
+                break
 
-    with open(filename) as f:  
-        for line in f:
+            interval, post = data
             
-            if line[0] == "#":
-                continue
+            # Write ouput; filter out positions by posterior cutoff
+            for i in np.where(np.nanmax(post, axis = 0) > log_post_cutoff)[0]:
+                print("{}\t{:d}\t{:d}\t".format(interval.chrom, interval.start+i, interval.start+i+1) + '\t'.join(map(str, post[:,i])), file = handle)
 
-            #TODO: add try statement
-            (i, d, t, b) = line.strip().split("\t")
+            q.task_done()
 
-            ids.append(i)
-            dm_files.append(d)
-            tabix_files.append(t)
-            bp_files.append(b if b != "!" else None)            
+            progress_bar.update(1)
 
-    return (ids, dm_files, tabix_files, bp_files)
+def chunkify(l, nchunks):
+    """
+    Splits an iterable list into n chunks
+    """
+    
+    return [l[i::nchunks] for i in range(nchunks)]
 
 def main(argv = sys.argv[1:]):
 
     args = parse_options(argv)
 
-    (ids, disp_model_files, tabix_files, beta_prior_files) = read_metadata_file(args.metadata_file)
+    logger.info("Reading metadata file and verifying inputs")
 
-    n_datasets = len(ids)
+    metadata = pd.read_table(args.metadata_file, header=0, comment='#')
 
     disp_models = []
-    beta_priors = np.ones((n_datasets, 2))
+    beta_priors = np.ones((len(metadata), 2))
 
     # Load and parse input files
-    for i in range(n_datasets):
-
-         # Check to make sure that all input files exist
-        if not os.path.exists(tabix_files[i]):
-            print("Fatal error: TABIX-file %s does not exists!" % tabix_files[i], file = sys.stderr)
+    for sample in metadata.itertuples():
+        if not os.path.exists(sample["tabix_file"]):
+            logger.critical("Fatal error: TABIX-file ({}) does not exists!".format(sample["tabix_file"]))
             sys.exit(1)
 
-        # Load dispersion model
-        if not os.path.exists(disp_model_files[i]):
-            print("Fatal error: Dispersion model file %s does not exists!" % disp_model_files[i], file = sys.stderr)
+        if not os.path.exists(sample["dispersion_model"]):
+            logger.critical("Fatal error: Dispersion model ({}) does not exists!".format(sample["dispersion_model"]))
             sys.exit(1)
         else:
-            disp_models.append(dispersion.read_dispersion_model(disp_model_files[i]))
-
-        # Load the priors file
-        if beta_prior_files[i]:
-            if not os.path.exists(beta_prior_files[i]):
-                print("Fatal error: Beta-prior file %s does not exists!" % beta_prior_files[i], file = sys.stderr)
-                sys.exit(1)
-            else:
-                with open(beta_prior_files[i], 'r') as f:
-                    params = f.readline().strip().split('\t')
-                    beta_priors[i,:] = np.array(params, dtype = np.float64)
+            disp_models.append(dispersion.read_dispersion_model(sample["dispersion_model"]))
+       
+        if not os.path.exists(sample["beta_prior_file"]):
+            logger.critical("Fatal error: Beta-prior file ({}) does not exists!".format(sample["beta_prior_file"]))
+            sys.exit(1)
+        else:
+            with open(sample["beta_prior_file"], 'r') as f:
+                params = f.readline().strip().split('\t')
+                beta_priors[i,:] = np.array(params, dtype = np.float64)
 
     # Load intervals file
-    intervals = genomic_interval_set(bed.bed3_iterator(open(args.interval_file)))
-    n_intervals = len(intervals)
-    h = int(n_intervals / 2)
+    intervals = list(bed.bed3_iterator(open(args.interval_file)))
+    
+    logger.info("BED file contains {:,} regions".format(len(intervals)))
+    
+    # Processing queues
+    read_q = mp.JoinableQueue()
+    write_q = mp.JoinableQueue()
 
     #
-    tmpdir = tempfile.mkdtemp()
-    chunk_files = [os.path.join(tmpdir, "chunk%s" % i) for i in range(args.processors)]
+    read_procs = []
+    for i, chunk in enumerate(chunkify(intervals, 2))):
+        p = mp.Process(target=read_func, args=(metadata["tabix_file"].tolist(), chunk, read_q))
+        read_procs.append(p)
+
+    logger.info("Using {} threads to read footprint statistics".format(len(read_procs)))
+    [p.start() for p in read_procs]
 
     #
-    q = mp.JoinableQueue()   
-    readers = [ mp.Process(target = read_func, args = (tabix_files, intervals[:h], q)), mp.Process(target = read_func, args = (tabix_files, intervals[h:], q)) ]
-    processors = [ mp.Process(target = process_func, args = (disp_models, beta_priors, q, f, args.fdr_cutoff, -np.log(args.post_cutoff))) for f in chunk_files ]
+    process_procs = []
+    process_kwargs = {
+        "fdr_cutoff": args.fdr_cutoff,
+    }
 
-    [reader.start() for reader in readers]
-    [processor.start() for processor in processors]
+    for i in range(args.processors):
+        p = mp.Process(target=process_func, args=(disp_models, beta_priors, read_q, write_q), kwargs=process_kwargs)
+        process_procs.append(p)
 
-    logger.info("Working (%d threads; chunked results in %s)" % (len(chunk_files), tmpdir))
+    logger.info("Using {} threads to compute posteriors".format(len(process_procs)))
+    [p.start() for p in process_procs]
 
-    [reader.join() for reader in readers]
+    #
+    write_kwargs = {
+        "log_post_cutoff": -np.log(args.post_cutoff)
+    }
+    write_proc = mp.Process(target=write_func, args=(write_q, len(intervals)), kwargs=write_kwargs)
+    write_proc.start()
 
-    logger.info("Finishing reading data -- waiting for final processing...")
+    try:
+        # Wait for readers to finish
+        [p.join() for p in read_procs]
 
-    q.join() # Wait for queue to unblock
-    [q.put(None) for i in range(len(chunk_files))] # sends a message to kill processing threads	
-    [processor.join() for processor in processors] # wait for threads to return
+        # Block until all remaining regions are processed
+        read_q.join() # wait till read queue is empty
 
-    logger.info("Merging data...")
+        # Send a message to kill processing threads	and block until they exit
+        [read_q.put(None) for i in range(len(process_procs))]
+        [p.join() for p in process_procs]
+        
+        # Block until all remaining regions are written to output and thread exits
+        write_q.join() # wait till write queue is empty
+        write_q.put(None) # sends kill signal
+        write_proc.join() # block until thread exits
 
-    for file in chunk_files: 
-        with open(file, 'r') as handle:
-            for line in handle:
-                sys.stdout.write(line)
+        logger.info("Finished computing and writing footprint posteriors!")
 
-    logger.info("Cleaning up...")
-
-    shutil.rmtree(tmpdir)
+    except KeyboardInterrupt:
+        [p.terminate() for p in read_procs]
+        [p.terminate() for p in process_procs]
+        write_proc.terminate()
 
     return 0
 
