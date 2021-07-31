@@ -135,7 +135,7 @@ def parse_options(args):
                         " (default: no seed)")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
-                        dest = "processors", default = mp.cpu_count(),
+                        dest = "processors", default = max(1, mp.cpu_count()-1),
                         help = "Number of processors to use."
                         " (default: all available processors)")
 
@@ -241,7 +241,7 @@ def main(argv = sys.argv[1:]):
 
     intervals = list(bed.bed3_iterator(open(args.interval_file)))
     
-    logger.info("BED file contains {} regions".format(len(intervals)))
+    logger.info("BED file contains {:,} regions".format(len(intervals)))
 
     proc_kwargs = {
         "min_qual": args.min_qual,

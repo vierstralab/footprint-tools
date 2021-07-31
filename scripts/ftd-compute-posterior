@@ -196,7 +196,7 @@ def main(argv = sys.argv[1:]):
     # Load intervals file
     intervals = list(bed.bed3_iterator(open(args.interval_file)))
     
-    logger.info("BED file contains {} regions".format(len(intervals)))
+    logger.info("BED file contains {:,} regions".format(len(intervals)))
     
     # Processing queues
     read_q = mp.JoinableQueue()
