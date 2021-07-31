@@ -7,7 +7,7 @@ are computed from a series emperically fit negative binomial distribution.
 
 ## Requirements
 
-``footprint-tools`` requires Python 3.8 and depends on the following additional
+``footprint-tools`` requires Python 3.6+ and depends on the following additional
 packages:
 
 * cython
@@ -18,7 +18,7 @@ packages:
 * genome_tools (http://www.github.com/jvierstra/genome_tools)
 * pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
 
-We also recommend these non-python analysis tools:
+We also recommend these non-Python analysis tools:
 
 * [samtools](http://www.htslib.org/)
 * [BEDOPS](http://bedops.readthedocs.io)
