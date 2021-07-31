@@ -7,7 +7,7 @@ are computed from a series emperically fit negative binomial distribution.
 
 ## Requirements
 
-``footprint-tools`` requires Python (>=3.6) and depends on the following additional
+``footprint-tools`` requires Python 3.8 and depends on the following additional
 packages:
 
 * cython
