@@ -13,7 +13,7 @@ from Cython.Distutils import build_ext
 
 import numpy as np
 
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 
 if sys.version_info[0] != 3 or sys.version_info[1] < 6:
     print("Package requires Python version 3.6+")
@@ -39,7 +39,8 @@ modules = [
 scripts = ["scripts/ftd-learn-dispersion-model",
 	"scripts/ftd-compute-deviation",
 	"scripts/ftd-learn-beta-prior",
-	"scripts/ftd-compute-posterior"]
+	"scripts/ftd-compute-posterior",
+	"scripts/ftd-differential"]
 
 install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pandas", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson", "tqdm"]
 
