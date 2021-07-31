@@ -13,7 +13,7 @@ from Cython.Distutils import build_ext
 
 import numpy as np
 
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 if sys.version_info[0] != 3 or sys.version_info[1] < 6:
     print("Package requires Python version 3.6+")
@@ -53,13 +53,14 @@ setup(
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
-	download_url = "https://github.com/jvierstra/footprint-tools/archive/{}.tar.gz".format(__version__),
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/v{}.tar.gz".format(__version__),
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),
 	libraries = [cehpes_lib],
     ext_modules = [Extension(**opts) for opts in modules],
     include_dirs=[np.get_include(), cephes_include],
+	package_data={k:["*.pxd"] for k in find_packages()},
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
     install_requires = install_requires,
     scripts = scripts,
