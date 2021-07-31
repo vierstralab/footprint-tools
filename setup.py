@@ -53,7 +53,7 @@ setup(
 	author = "Jeff Vierstra",
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
-	download_url = "https://github.com/jvierstra/footprint-tools/archive/{}.tar.gz".format(__version__),
+	download_url = "https://github.com/jvierstra/footprint-tools/archive/v{}.tar.gz".format(__version__),
 	keywords = ["genomic footprints", "bioinformatics"],
 	zip_safe = False,
 	packages =  find_packages(),
