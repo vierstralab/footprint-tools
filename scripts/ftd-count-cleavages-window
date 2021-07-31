@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
+
+import sys
+
+import numpy as np
+
+from genome_tools import bed, genomic_interval
+from footprint_tools import cutcounts
+
+reads = cutcounts.bamfile(sys.argv[1], remove_dups=True, remove_qcfail=True, min_qual=1)
+
+for interval in bed.bed3_iterator(sys.stdin):
+
+	counts = reads[genomic_interval(interval.chrom, interval.start-1, interval.end)]
+	n = np.sum(counts['+'][1:]+counts['-'][:-1])
+
+	print(int(n))
+

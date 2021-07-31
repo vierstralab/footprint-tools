@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
+
+import sys
+
+import numpy as np
+import scipy.stats
+
+from footprint_tools.modeling import dispersion
+
+dm = dispersion.read_dispersion_model(sys.argv[1])
+print(sys.argv[1], dm.mu_params)
