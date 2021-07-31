@@ -22,6 +22,7 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 6:
 cephes_include = "cephes"
 cephes_src = glob("cephes/*.c")
 cehpes_lib = ('cephes', { 'sources': cephes_src })
+
 # see MANIFEST.in -- a slight hack to include all of the header files in the source distrubution
 
 modules = [
