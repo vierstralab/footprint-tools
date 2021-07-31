@@ -39,7 +39,8 @@ modules = [
 scripts = ["scripts/ftd-learn-dispersion-model",
 	"scripts/ftd-compute-deviation",
 	"scripts/ftd-learn-beta-prior",
-	"scripts/ftd-compute-posterior"]
+	"scripts/ftd-compute-posterior",
+	"scripts/ftd-differential"]]
 
 install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pandas", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson", "tqdm"]
 
