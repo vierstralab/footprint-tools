@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute the posterior probability of cleavage data (version {})".format(footprint_tools.__version__))
+    parser = ArgumentParser(description = "Compute the posterior probability of cleavage data (version {})".format(footprint_tools.__version__),
+                epilog="Written by Jeff Vierstra (jvierstra@altius.org). See http://github.com/jvierstra/footprint-tools for extended documentation.")
 
     parser.add_argument("metadata_file", metavar = "metadata_file", type = str,
                         help = "Path to configuration file containing metadata for samples")

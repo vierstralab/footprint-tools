@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Learn the genome-wide beta model prior for nucleotide protection (version {})".format(footprint_tools.__version__))
+    parser = ArgumentParser(description = "Learn the genome-wide beta model prior for nucleotide protection (version {})".format(footprint_tools.__version__),
+                epilog="Written by Jeff Vierstra (jvierstra@altius.org). See http://github.com/jvierstra/footprint-tools for extended documentation.")
 
     parser.add_argument("tabix_file", metavar = "tabix_file", type = str,
                         help = "Path to TABIX-format file (e.g., ouput"

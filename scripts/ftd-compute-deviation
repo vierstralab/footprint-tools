@@ -54,7 +54,8 @@ def paired_ints(arg):
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Compute the per-nucleotide cleavage deviation statistics (version {})".format(footprint_tools.__version__))
+    parser = ArgumentParser(description = "Compute the per-nucleotide cleavage deviation statistics (version {})".format(footprint_tools.__version__),
+                epilog="Written by Jeff Vierstra (jvierstra@altius.org). See http://github.com/jvierstra/footprint-tools for extended documentation.")
 
     parser.add_argument("bam_file", metavar = "bam_file", type = str,
                         help = "Path to BAM-format tag sequence file")
