@@ -9,6 +9,8 @@ cimport numpy as np
 
 import numpy as np
 
+from genome_tools import genomic_interval, genomic_interval_set
+
 cdef extern from "predict.h":
 	struct result:
 		double* exp
@@ -66,52 +68,90 @@ class prediction(object):
 	Attributes
 	----------
 	bm : bias.bias_model
-	    Bias model class
-	counts : dict
-	    Dictionary of observed cleavage counts {'+': [...], '-': [...]}
+	    Instance of bias model class
+	fasta_func : pysam.FastaFile
+		Instance of FastaFile
 	half_window_width : int
 	    Window width to apply bias model (final windows size = 2W+1)
-	interval : genome_tools.genomic_interval
-	    Genomic region to computed expected cleavages
 	padding : int
 	    Padding applied to ``interval`` when retrieving per-nucleotide data
-	seq : str
-	    FASTA sequence within 
+	read_func : cutcounts.bamfile
+		Instance of counts reader
 	smoothing_clip : float
 	    Fraction of nucleotides to trim when computing smoothed mean
 	smoothing_half_window_width : int
 	    Desc
 	"""
 	
-	def __init__(self, reads, fasta, interval, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.01):
+	def __init__(self, read_func, fasta_func, bm, half_window_width = 5, smoothing_half_window_width = 0, smoothing_clip = 0.01):
+		"""
 		
+		Parameters
+		----------
+		read_func : TYPE
+		    Description
+		fasta_func : TYPE
+		    Description
+		bm : TYPE
+		    Description
+		half_window_width : int, optional
+		    Description
+		smoothing_half_window_width : int, optional
+		    Description
+		smoothing_clip : float, optional
+		    Description
+		"""
+		self.read_func = read_func
+		self.fasta_func = fasta_func
 		self.bm = bm
+
+		# Smoothing/windowing parameters
 		self.half_window_width = half_window_width
 		self.smoothing_half_window_width = smoothing_half_window_width
 		self.smoothing_clip = smoothing_clip
 
+		# Base padding
 		self.padding = self.half_window_width + smoothing_half_window_width
 
-		self.interval = interval
+		# self.interval = interval
 
-		pad_interval = interval.widen(self.padding)
+		# pad_interval = interval.widen(self.padding)
 		
 		# Note: We clip the first base when recombining the positive 
 		# and negative strand, so add an extra base upfront
-		pad_interval.start -= 1
+		# pad_interval.start -= 1
 
-		self.counts = reads[pad_interval]
-		self.seq = fasta[pad_interval.chrom][pad_interval.start-bm.offset():pad_interval.end+bm.offset()].seq.upper()
+		# self.counts = reads[pad_interval]
+		# self.seq = fasta[pad_interval.chrom][pad_interval.start-bm.offset():pad_interval.end+bm.offset()].seq.upper()
 
-	def compute(self):
-		"""Computes the expected cleavage counts from observed 
-			counts, a FASTA sequence and a sequence bias model
+	def compute(self, x):
+		"""Summary
+		
+		Parameters
+		----------
+		x : genome_toools.genomic_interval,  genome_toools.genomic_interval_set, or list
+		    Genomic region(s) to generate predicted cleavages
 		
 		Returns
 		-------
-		tuple
-		    (observerd, expected, wimdowed per-nucleotide counts)
+		tuple (or list of tuples)
+		    Observed, expected and windowed cleavage counts
 		"""
+
+		# if isinstance(x, (list, genomic_interval_set)):
+		# 	print("LIST")
+		# 	for i in x:
+		# 		yield self.compute(i)
+	
+		# Note: We clip the first base when recombining the positive 
+		# and negative strand, so add an extra base upfront
+		pad_interval = x.widen(self.padding)
+		pad_interval.start -= 1
+
+		# Get the raw cleavage counts and FASTA sequence
+		raw_counts = self.read_func[pad_interval]
+		raw_seq = self.fasta_func.fetch(pad_interval.chrom, pad_interval.start-self.bm.offset(), pad_interval.end+self.bm.offset()).upper()
+
 		obs_counts = {'+': None, '-': None}
 		exp_counts = {'+': None, '-': None}
 		win_counts = {'+': None, '-': None}
@@ -120,18 +160,18 @@ class prediction(object):
 
 			# Pre-calculate the sequence bias propensity table from bias model
 			if strand == '+':
-				probs = self.bm.probs(self.seq)
+				probs = self.bm.probs(raw_seq)
 			else:
-				probs = self.bm.probs(reverse_complement(self.seq))[::-1]
+				probs = self.bm.probs(reverse_complement(raw_seq))[::-1]
 
-			exp, win = predict(np.ascontiguousarray(self.counts[strand]), np.ascontiguousarray(probs), self.half_window_width, self.smoothing_half_window_width, self.smoothing_clip)
+			exp, win = predict(np.ascontiguousarray(raw_counts[strand]), np.ascontiguousarray(probs), self.half_window_width, self.smoothing_half_window_width, self.smoothing_clip)
 
-			w = self.counts[strand].shape[0] - self.padding
+			w = raw_counts[strand].shape[0] - self.padding
 
-			obs_counts[strand] = self.counts[strand][self.padding:w]
+			obs_counts[strand] = raw_counts[strand][self.padding:w]
 			exp_counts[strand] = exp[self.padding:w]
 			win_counts[strand] = win[self.padding:w]
 
-		return (obs_counts, exp_counts, win_counts)
+		return obs_counts, exp_counts, win_counts
 
 

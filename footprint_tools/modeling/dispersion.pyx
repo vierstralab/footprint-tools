@@ -1,9 +1,11 @@
-# Copyright 2015 Jeff Vierstra
+# Copyright 2015-2021 Jeff Vierstra
 
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
 # cython: embedsignature=True
+
+import warnings
 
 from footprint_tools.stats.distributions import nbinom
 import numpy as np
@@ -374,7 +376,6 @@ def base64decode(x):
 
 def read_dispersion_model(filename):
 	
-	import json
 	import urllib.request as request
 
 	if filename.startswith('http'):

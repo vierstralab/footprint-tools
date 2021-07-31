@@ -1,29 +1,32 @@
-#!/usr/bin/which python3
+#!/usr/bin/env python3
 
-# Copyright (C) 2015-2019 Jeff Vierstra (jvierstra@altius.org)
+# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
 
-from __future__ import print_function, division
-
-from __future__ import absolute_import
-import sys, logging
-from argparse import ArgumentParser, Action, ArgumentError, ArgumentTypeError
-import multiprocessing as mp
-
-import pyfaidx
-import numpy as np
+import sys
+import os
+import logging
 import random
+import math
 
-from genome_tools import bed, genomic_interval, genomic_interval_set 
+from argparse import ArgumentParser, Action, ArgumentError, ArgumentTypeError
 
+import multiprocessing as mp
+from tqdm import tqdm
+
+import numpy as np
+
+import pysam
+
+from genome_tools import bed, genomic_interval
+
+import footprint_tools
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
-
-
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class kmer_action(Action):
+class bias_model_action(Action):
     def __call__(self, parser, namespace, values, option_string = None):
         try:
             setattr(namespace, self.dest, bias.kmer_model(values[0]))
@@ -39,7 +42,8 @@ def paired_ints(arg):
 
 def parse_options(args):
 
-    parser = ArgumentParser(description = "Learn a negative binomial dispersion model from data corrected for sequence preference")
+    parser = ArgumentParser(description = "Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference (version {})".format(footprint_tools.__version__),
+                epilog="Written by Jeff Vierstra (jvierstra@altius.org). See http://github.com/jvierstra/footprint-tools for extended documentation.")
 
     parser.add_argument("bam_file", metavar = "bam_file", type = str,
                         help = "Path to BAM-format tag sequence file")
@@ -55,7 +59,7 @@ def parse_options(args):
     grp_bm = parser.add_argument_group("Bias modeling options")
 
     grp_bm.add_argument("--bm", metavar = "MODEL_FILE", dest = "bias_model", 
-                        nargs = 1, action = kmer_action, default = bias.uniform_model(),
+                        nargs = 1, action = bias_model_action, default = bias.uniform_model(),
                         help = "Use a k-mer model for local bias (supplied by file). If"
                         " argument is not provided the model defaults to uniform sequence"
                         " bias.")
@@ -64,94 +68,133 @@ def parse_options(args):
                         help = "Half window width to apply bias model."
                         " (default: %(default)s)")
 
-    grp_ot = parser.add_argument_group("Other options")
+    grp_rf = parser.add_argument_group("Read filtering options")
 
-    grp_ot.add_argument("--min_qual", metavar = "N", type = int,
+    grp_rf.add_argument("--min-qual", metavar = "N", type = int,
                         dest = "min_qual", default = 1,
-                        help = "Filter reads with mapping quality lower than this threshold."
+                        help = "Ignore reads with mapping quality lower than this threshold."
                         " (default: %(default)s)")
 
-    grp_ot.add_argument("--remove-dups", action = "store_true",
+    grp_rf.add_argument("--remove-dups", action = "store_true",
                         dest = "remove_dups", help = "Remove duplicate reads from analysis"
+                        " (SAM flag -- 512)")
+
+    grp_rf.add_argument("--remove-qcfail", action = "store_true",
+                        dest = "remove_qcfail", help = "Remove QC-failed reads from analysis"
                         " (SAM flag -- 1024)")
+
+    grp_ot = parser.add_argument_group("Other options")
 
     grp_ot.add_argument("--bam-offset", metavar = "N", type = paired_ints,
                         dest = "bam_offset", default = (0, -1),
-                        help = "BAM file offset (support for legacy BAM/SAM format)"
+                        help = "BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)"
                         " (default: %(default)s)")
-
-    grp_ot.add_argument("--seed", metavar = "N", type = int, dest = "seed",
-                        default = None, help = "Seed for random number generation"
-                        " (default: no seed)")
 
     grp_ot.add_argument("--processors", metavar = "N", type = int,
                         dest = "processors", default = mp.cpu_count(),
                         help = "Number of processors to use."
                         " (default: all available processors)")
 
-
     return parser.parse_args(args)
 
-def process_func(pred, size):
-	
-	(obs_counts, exp_counts, win_counts) = pred.compute()
 
-	obs = obs_counts['+'][1:] + obs_counts['-'][:-1]
-	exp = exp_counts['+'][1:] + exp_counts['-'][:-1]
-
-	res = np.zeros(size, dtype = np.float64)
-
-	for o, e in zip(obs, exp):
-		try:
-			res[int(e), int(o)] += 1.0
-		except IndexError:
-			pass
-
-	return res
 
 class process_callback(object):
+	"""
+	Class that aggregates results from processor functions
+	In this case, it just sums up the 2d histogram matricies
+	"""
 
-	def __init__(self, size):
+	def __init__(self, hist_size):
+		self.x = np.zeros(hist_size)
 
-		self.res = np.zeros(size)
+	def __call__(self, other):
+		self.x += other
 
-	def __call__(self, res):
+def process_func(bam_file, fasta_file, bm, intervals, hist_size, proc_id, **kwargs):
+	"""
+	Function that can be used to parallize reading 
+	the BAM files and computing expected counts
+	"""
 
-		self.res += res
+	bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "offset"] }
+	bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
+	fasta_reader = pysam.FastaFile(fasta_file)
+
+	predictor = predict.prediction(bam_reader, fasta_reader, bm, **kwargs)
+
+	res_hist = np.zeros(hist_size)
+
+	progress_desc = "Chunk {}".format(proc_id)
+
+	with tqdm(total=len(intervals), desc=progress_desc, position=proc_id+1, ncols=80) as progress_bar:
+
+		for interval in intervals:
+
+			obs, exp, win = predictor.compute(interval)
+			
+			obs = obs['+'][1:] + obs['-'][:-1]
+			exp = exp['+'][1:] + exp['-'][:-1]
+		
+			for o, e in zip(obs, exp):
+				try:
+					res_hist[int(e), int(o)] += 1.0
+				except IndexError:
+					pass
+
+			progress_bar.update(1)
+
+	return res_hist
+
+def chunkify(l, nchunks):
+	"""Splits an iterable list into n chunks"""
+	return [l[i::nchunks] for i in range(nchunks)]
 
 def main(argv = sys.argv[1:]):
 
 	args = parse_options(argv)
-	random.seed(args.seed)
-	np.random.seed(args.seed)
 
-	reads = cutcounts.bamfile(args.bam_file, min_qual = args.min_qual, remove_dups = args.remove_dups, offset = args.bam_offset)
-	fasta = pyfaidx.Fasta(args.fasta_file, one_based_attributes = False, sequence_always_upper = True)
-	intervals = bed.bed3_iterator(open(args.interval_file))
+	hist_size = (200, 1000) # hard coded histogram size -- for now...
+	hist_agg = process_callback(hist_size)
 
-	size = (200, 1000)
+	intervals = list(bed.bed3_iterator(open(args.interval_file)))
 
-	hist_func = process_callback(size)
+	logger.info("BED file contains {:,} regions".format(len(intervals)))
+
+	proc_kwargs = {
+		"min_qual": args.min_qual,
+		"remove_dups": args.remove_dups,
+		"remove_qcfail": args.remove_qcfail,
+		"offset": args.bam_offset,
+		"half_window_width": args.half_win_width,
+		}
 
 	pool = mp.Pool(args.processors)
 
-	for interval in genomic_interval_set(intervals):
+	logger.info("Using {} threads to computed expected cleavage counts".format(args.processors))
 
-		region = predict.prediction(reads, fasta, interval, args.bias_model, args.half_win_width, 0, 0)
-
-		pool.apply_async(process_func, args = (region, size,), callback = hist_func)
-
-		while pool._taskqueue.qsize() > 1000:
-			pass
+	for i, chunk in enumerate(chunkify(intervals, args.processors)):
+		pool.apply_async(process_func, args=(args.bam_file, args.fasta_file, args.bias_model, chunk, hist_size, i), kwds=proc_kwargs, callback=hist_agg)
 
 	pool.close()
 	pool.join()
 
+	logger.info("Finished computing expected cleavage counts!")
+
 	# Learn model from histogram
-	model = dispersion.learn_dispersion_model(hist_func.res)
+
+	logger.info("Learning dispersion model")
+
+	model = dispersion.learn_dispersion_model(hist_agg.x)
 
 	# Write model
-	print(dispersion.write_dispersion_model(model), file = sys.stdout)
+
+	model_file = os.path.abspath(os.path.join(os.getcwd(), "dm.json"))
+
+	logger.info("Writing dispersion model to {}".format(model_file))
+
+	with open(model_file, "w") as f:
+		print(dispersion.write_dispersion_model(model), file = f)
 
 	# Success!
 	return 0
