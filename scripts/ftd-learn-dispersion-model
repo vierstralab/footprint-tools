@@ -70,7 +70,7 @@ def parse_options(args):
 
     grp_rf = parser.add_argument_group("Read filtering options")
 
-    grp_rf.add_argument("--min_qual", metavar = "N", type = int,
+    grp_rf.add_argument("--min-qual", metavar = "N", type = int,
                         dest = "min_qual", default = 1,
                         help = "Ignore reads with mapping quality lower than this threshold."
                         " (default: %(default)s)")

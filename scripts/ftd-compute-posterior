@@ -136,7 +136,7 @@ def write_func(q, total, log_post_cutoff=0):
     handle = sys.stdout
 
     progress_desc="Regions processed"
-    with tqdm(total=total), desc=progress_desc, ncols=80) as progress_bar:
+    with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
 
         while True:
 

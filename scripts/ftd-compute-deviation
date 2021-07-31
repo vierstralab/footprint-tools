@@ -208,7 +208,7 @@ def write_func(q, total):
     f = sys.stdout
 
     progress_desc="Regions processed"
-    with tqdm(total=total), desc=progress_desc, ncols=80) as progress_bar:
+    with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
     
         while True:
 
