@@ -4,12 +4,12 @@ channels:
 - bioconda
 - defaults
 dependencies:
-- python>=3.6
+- python>=3.8
 - pip
 - tqdm
 - cython
-- numpy>=1.10
-- scipy>=0.17
+- numpy
+- scipy
 - pandas
 - statsmodels
 - simplejson
