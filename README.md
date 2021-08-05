@@ -17,6 +17,8 @@ packages:
 * pysam
 * genome_tools (http://www.github.com/jvierstra/genome_tools)
 * pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
+* tqdm
+* argh
 
 We also recommend these non-Python analysis tools:
 

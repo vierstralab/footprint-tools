@@ -36,13 +36,26 @@ modules = [
 	dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"])
 ]
 
-scripts = ["scripts/ftd-learn-dispersion-model",
-	"scripts/ftd-compute-deviation",
-	"scripts/ftd-learn-beta-prior",
-	"scripts/ftd-compute-posterior",
-	"scripts/ftd-differential"]
+# scripts = ["scripts/ftd-learn-dispersion-model",
+# 	"scripts/ftd-compute-deviation",
+# 	"scripts/ftd-learn-beta-prior",
+# 	"scripts/ftd-compute-posterior",
+# 	"scripts/ftd-differential",
+# ]
 
-install_requires = ["cython", "numpy>=1.10", "scipy>=0.17", "pandas", "pysam>=0.15", "statsmodels", "genome_tools>=1.0.2", "pwlf", "simplejson", "tqdm"]
+install_requires = [
+	"cython",
+	"numpy>=1.10",
+	"scipy>=0.17",
+	"pandas",
+	"pysam>=0.15",
+	"statsmodels",
+	"genome_tools>=1.0.2",
+	"pwlf",
+	"simplejson",
+	"tqdm",
+	"argh",
+]
 
 setup(
 	name = "footprint_tools",
@@ -55,7 +68,7 @@ setup(
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
 	download_url = "https://github.com/jvierstra/footprint-tools/archive/v{}.tar.gz".format(__version__),
-	keywords = ["genomic footprints", "bioinformatics"],
+	keywords = ["genomic footprints", "bioinformatics", "chromatin", "transcriptio factors"],
 	zip_safe = False,
 	packages =  find_packages(),
 	libraries = [cehpes_lib],
@@ -64,7 +77,8 @@ setup(
 	package_data={k:["*.pxd"] for k in find_packages()},
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
     install_requires = install_requires,
-    scripts = scripts,
+    #scripts = scripts,
+	entry_points = {"console_scripts": ["ftd = footprint_tools.__main__:main"]},
     classifiers=[
 	    'Development Status :: 5 - Production/Stable', 
 	    'Intended Audience :: Science/Research', 
