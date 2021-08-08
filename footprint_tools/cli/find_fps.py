@@ -79,7 +79,7 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
 		while q.qsize() > 100:
 			pass
 
-def write_func(q, ,outfile, total):
+def write_func(q, outfile, total):
 	"""
 	Function to write output from multiple threads to a single file
 	"""    
