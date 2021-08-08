@@ -120,7 +120,7 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 	type=list_ints,
 	default=[15,25,50,75],
 	help='')
-def run(dispersion_model_file, histograms):
+def run(dispersion_model_file, histograms=[15,25,50,75]):
 	"""
 	Diagnostic plotting of a dispersion model
 	"""
