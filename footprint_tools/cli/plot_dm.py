@@ -101,7 +101,7 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 	# Poisson
 	if show_poisson:
 		y_pois=scipy.stats.poisson.pmf(x, mu=n)
-		ax.plot(x, y_pois, color="blue", label="Poisson" % n)
+		ax.plot(x, y_pois, color="blue", label="Poisson")
 
 	ax.set_xlim(x[0], x[-1])
 
