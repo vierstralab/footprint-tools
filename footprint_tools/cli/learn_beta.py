@@ -44,7 +44,7 @@ def process_func(contig, tabix_filehandle, fdr_cutoff, exp_cutoff):
 	type=int,
 	default=10,
 	help='Only consider nucleotides with expected cleavages >= this value')
- @arg('--n_threads',
+@arg('--n_threads',
 	type=int,
 	help='Number of processors to use (min=1)',
 	default=max(1, mp.cpu_count())
