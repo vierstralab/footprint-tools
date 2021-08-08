@@ -48,4 +48,4 @@ def run(tabix_file, fdr_cutoff=0.05, exp_cutoff=10):
 
 	print("f{a}\t{b}", file=sys.stdout)
 
-    return 0
+	return 0
