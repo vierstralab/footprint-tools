@@ -147,6 +147,8 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 		ax = fig.add_subplot(gs[row_index, col_index])
 		plot_histogram(dm, n=n, ax=ax)
 
+	fig.set_size_inches(2*nrows, 2*ncols)
+
 	outfile = os.path.abspath(os.path.join(os.getcwd(), 'dm.pdf'))
 	plt.savefig(outfile, transparent=True)
 
