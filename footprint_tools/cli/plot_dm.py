@@ -133,7 +133,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	nrows = math.ceil(npanels/ncols)
 
 	fig = plt.figure()
-	gs = gridspec.GridSpec(nrows, ncols)
+	gs = gridspec.GridSpec(nrows, ncols,  wspace=0.2, hspace=0.2)
 
 	ax = fig.add_subplot(gs[0,0])
 	plot_model_mu(dm, ax)
