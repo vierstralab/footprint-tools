@@ -48,6 +48,7 @@ install_requires = [
 	"simplejson",
 	"tqdm",
 	"argh",
+	"matplotlib",
 ]
 
 setup(

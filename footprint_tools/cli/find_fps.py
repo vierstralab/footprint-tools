@@ -131,7 +131,7 @@ def write_func(q, outfile, total):
 @arg('--min_qual',
 	type=int,
 	default=1,
-	help='Ignore reads with mapping quality lower than this threshold.')
+	help='Ignore reads with mapping quality lower than this threshold')
 @arg('--remove_dups',
 	help='Remove duplicate reads from analysis',
 	default=False)
@@ -143,7 +143,7 @@ def write_func(q, outfile, total):
 	default=(0, -1),
 	help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
 @arg('--half_win_width',
-	help='Half window width to apply bias model.',
+	help='Half window width to apply bias model',
 	default=5)
 @arg('--smooth_half_win_width',
 	type=int,
@@ -152,18 +152,18 @@ def write_func(q, outfile, total):
 	default=50)
 @arg('--smooth_clip',
 	type=float,
-	help='Fraction of signal to clip when computing trimmed mean.',
+	help='Fraction of signal to clip when computing trimmed mean',
 	default=0.01)
 @arg('--fdr_shuffle_n',
 	type=int,
 	default=50,
-	help='Number of times to shuffle data for FDR calculation.')
+	help='Number of times to shuffle data for FDR calculation')
 @arg('--seed',
 	default=None,
 	help='Seed for random number generation')
 @arg('--n_threads',
-	help='Number of processors to use. (default: all available processors)',
-	default=mp.cpu_count())
+	help='Number of processors to use (min=2)',
+	default=max(2, mp.cpu_count()))
 def run(interval_file,
 		bam_file,
 		fasta_file,
@@ -178,13 +178,13 @@ def run(interval_file,
 		smooth_clip=0.01,
 		fdr_shuffle_n=50,
 		seed=None,
-		n_threads=mp.cpu_count()):
+		n_threads=max(2, mp.cpu_count())):
 	"""
 	Compute per-nucleotide cleavage deviation statistics
 	"""
 	intervals = list(bed.bed3_iterator(open(interval_file)))
 	
-	logger.info("BED file contains {:,} regions".format(len(intervals)))
+	logger.info(f"BED file contains {len(intervals):,} regions")
 
 	proc_kwargs = {
 		"min_qual": min_qual,
@@ -223,7 +223,7 @@ def run(interval_file,
 
 	write_proc = mp.Process(target=write_func, args=(q, sys.stdout, len(intervals)))
 
-	logger.info("Using {} threads to compute footprint statistics".format(len(read_procs)))
+	logger.info(f"Using {len(read_procs)} threads to compute footprint statistics")
 	logger.info("Using 1 thread to write footprint statistics")
 
 	[p.start() for p in read_procs]

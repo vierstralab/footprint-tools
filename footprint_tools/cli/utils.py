@@ -15,4 +15,13 @@ def tuple_ints(arg):
 		fw, rev = list(map(int, arg.split(',')))
 		return (fw, rev)
 	except:
-		raise CommandError("Argument must be a tuple -- i.e., 0,-1")
+		raise CommandError("Argument must be a comma-delimited tuple -- i.e., 0,-1")
+
+def list_ints(arg):
+	"""
+	Function to parser a list of integers from command line
+	"""
+	try:
+		return list(map(int, arg.split(',')))
+	except:
+		raise CommandError("Argument must be a comma-delimited list -- i.e., 0,1,2,3")

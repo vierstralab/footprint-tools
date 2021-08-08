@@ -1,6 +1,8 @@
+import sys
+import os
+
 import argh
 from argh.decorators import named, arg
-
 
 from tqdm import tqdm
 import multiprocessing as mp
@@ -77,7 +79,7 @@ def process_func(bam_file, fasta_file, bm, intervals, hist_size, proc_id, **kwar
 @arg('--bias_model_file',
 	help='Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.')
 @arg('--min_qual',
-	help='Ignore reads with mapping quality lower than this threshold.',
+	help='Ignore reads with mapping quality lower than this threshold',
 	default=1)
 @arg('--remove_dups',
 	help='Remove duplicate reads from analysis',
@@ -90,11 +92,11 @@ def process_func(bam_file, fasta_file, bm, intervals, hist_size, proc_id, **kwar
 	default=(0,-1),
 	type=tuple_ints)
 @arg('--half_win_width',
-	help='Half window width to apply bias model.',
+	help='Half window width to apply bias model',
 	default=5)
 @arg('--n_threads',
-	help='Number of processors to use. (default: all available processors)',
-	default=mp.cpu_count())
+	help='Number of processors to use',
+	default=max(1, mp.cpu_count()))
 def run(interval_file,
 		bam_file,
 		fasta_file,
@@ -104,9 +106,11 @@ def run(interval_file,
 		remove_qcfail=False,
 		bam_offset=(0, -1),
 		half_win_width=5,
-		n_threads=mp.cpu_count()):
+		n_threads=max(1, mp.cpu_count())):
 	"""
 	Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
+	
+	Outputs a serialized model in JSON format to file "dm.json" in current working directory
 	"""
 	hist_size = (200, 1000) # hard coded histogram size -- for now...
 	hist_agg = process_callback(hist_size)
@@ -153,7 +157,7 @@ def run(interval_file,
 
 	model_file = os.path.abspath(os.path.join(os.getcwd(), "dm.json"))
 
-	logger.info("Writing dispersion model to {}".format(model_file))
+	logger.info(f"Writing dispersion model to {model_file}")
 
 	with open(model_file, "w") as f:
 		print(dispersion.write_dispersion_model(model), file = f)

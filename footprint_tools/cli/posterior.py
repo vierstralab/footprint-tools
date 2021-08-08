@@ -1,3 +1,5 @@
+import sys
+
 import argh
 from argh.decorators import named, arg
 
@@ -138,10 +140,12 @@ def write_func(q, total, log_post_cutoff=0):
 	help='')
  @arg('--n_threads',
 	type=int,
-	help='Number of processors to use. (default: all available processors)',
-	default=max(1, mp.cpu_count()-3))
-def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_threads=max(1, mp.cpu_count()-3)):
-	"""Compute the posterior probability of cleavage data"""
+	help='Number of processors to use (min=4)',
+	default=max(4, mp.cpu_count())
+def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_threads=max(4, mp.cpu_count())):
+	"""
+	Compute the posterior probability of cleavage data
+	"""
 
 	logger.info(f"Reading sample data file ({sample_data_file}) and verifying inputs")
 
@@ -157,9 +161,7 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 		for i, sample in enumerate(sample_data.itertuples()):
 
 			# Test whether we can successfully open the TABIX file; throws exception on errors
-			f = pysam.TabixFile(sample["tabix_file"])
-			f.close()
-
+			f = pysam.TabixFile(sample["tabix_file"]).close()
 			tabix_files.append(sample["tabix_file"])
 
 			# Load dispersion model
@@ -169,16 +171,19 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 			# Read beta prior parameters
 			with open(sample["beta_prior_file"], 'r') as f:
 				params = f.readline().strip().split('\t')
+				if len(params)!=2:
+					raise ValueError(f"Beta prior file malformed -- must contain 2 columns ({sample["beta_prior_file"]}")
+				
 				beta_priors[i,:] = np.array(params, dtype = np.float64)
 
-	except IOError as e:
+	except (IOError, ValueError) as e:
 		logger.critical(e)
 		return 1
 
 	# Load intervals file
 	intervals = list(bed.bed3_iterator(open(interval_file)))
 	
-	logger.info("BED file contains {:,} regions".format(len(intervals)))
+	logger.info(f"BED file contains {len(intervals):,} regions")
 	
 	# Processing queues
 	read_q = mp.JoinableQueue()
@@ -190,7 +195,7 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 		p = mp.Process(target=read_func, args=(sample_data["tabix_file"].tolist(), chunk, read_q))
 		read_procs.append(p)
 
-	logger.info("Using {} threads to read footprint statistics".format(len(read_procs)))
+	logger.info(f"Using {len(read_procs)} threads to read footprint statistics")
 	[p.start() for p in read_procs]
 
 	#
@@ -199,11 +204,11 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 		"fdr_cutoff": fdr_cutoff,
 	}
 
-	for i in range(n_threads):
+	for i in range(n_threads-3):
 		p = mp.Process(target=process_func, args=(disp_models, beta_priors, read_q, write_q), kwargs=process_kwargs)
 		process_procs.append(p)
 
-	logger.info("Using {} threads to compute posteriors".format(len(process_procs)))
+	logger.info(f"Using {len(process_procs)} threads to compute posteriors")
 	[p.start() for p in process_procs]
 
 	#

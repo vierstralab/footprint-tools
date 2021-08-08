@@ -19,6 +19,7 @@ packages:
 * pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
 * tqdm
 * argh
+* matplotlib
 
 We also recommend these non-Python analysis tools:
 

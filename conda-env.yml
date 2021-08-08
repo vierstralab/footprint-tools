@@ -16,6 +16,7 @@ dependencies:
 - pysam
 - tqdm
 - argh
+- matplotlib
 
 - pip:
   - pwlf
