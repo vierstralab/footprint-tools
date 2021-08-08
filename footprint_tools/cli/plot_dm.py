@@ -8,6 +8,8 @@ from argh.decorators import named, arg
 import numpy as np
 import scipy.stats
 
+
+from matplotlib.pylab import rcParams
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MaxNLocator
@@ -127,6 +129,13 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	"""
 	
 	dm = dispersion.read_dispersion_model(dispersion_model_file)
+
+	plt_params = {
+		'legend.fontsize': 'smal;',
+		'axes.labelsize': 'small',
+		'xtick.labelsize':'x-small',
+		'ytick.labelsize':'x-small'}
+	rcParams.update(plt_params)
 
 	npanels = len(histograms)+2
 	ncols = 2
