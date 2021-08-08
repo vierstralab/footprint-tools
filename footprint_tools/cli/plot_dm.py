@@ -131,7 +131,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	dm = dispersion.read_dispersion_model(dispersion_model_file)
 
 	plt_params = {
-		'legend.fontsize': 'smal;',
+		'legend.fontsize': 'xx-small',
 		'axes.labelsize': 'small',
 		'xtick.labelsize':'x-small',
 		'ytick.labelsize':'x-small'}
