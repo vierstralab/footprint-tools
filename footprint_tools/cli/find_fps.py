@@ -150,7 +150,7 @@ def write_func(q, outfile, total):
 	help='Half window width to apply smoothing model. When set to '
 		'0, no smoothing is applied.',
 	default=50)
-@arg('--smooth_clip'
+@arg('--smooth_clip',
 	type=float,
 	help='Fraction of signal to clip when computing trimmed mean.',
 	default=0.01)
