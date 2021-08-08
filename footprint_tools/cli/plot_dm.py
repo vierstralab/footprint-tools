@@ -92,9 +92,6 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 	r = dm.fit_r(n)
 
 	# Raw observed counts
-	print(x.shape)
-	print(dm.h[n,x[0]:x[-1]].shape)
-
 	ax.bar(x, dm.h[n,x[0]:(x[-1]+1)]/np.sum(dm.h[n,:]), width=1, color='lightgrey', label="Observed")
 
 	# NB fit
