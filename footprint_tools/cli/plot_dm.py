@@ -129,7 +129,6 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	dm = dispersion.read_dispersion_model(dispersion_model_file)
 
 	npanels = len(histograms)+2
-	
 	ncols = 2
 	nrows = math.ceil(npanels/ncols)
 
@@ -141,6 +140,12 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 
 	ax = fig.add_subplot(gs[0,1])
 	plot_model_r(dm, ax)
+
+	for i, n in enumerate(histograms):
+		row_index = (i // ncols) + 1
+		col_index = i % ncols
+		ax = fig.add_subplot(gs[row_index, col_index])
+		plot_histogram(dm, n=n, ax=ax)
 
 	outfile = os.path.abspath(os.path.join(os.getcwd(), 'dm.pdf'))
 	plt.savefig(outfile, transparent=True)
