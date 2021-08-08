@@ -1,4 +1,4 @@
-# Copyright 2015 Jeff Vierstra
+# Copyright 2015-2021 Jeff Vierstra
 
 import genome_tools
 import pysam
@@ -40,7 +40,7 @@ class bamfile(object):
 	    SAM/BAM file object
 	"""
 	
-	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, offset = (0, -1), return_type="counts"):
+	def __init__(self, filepath, min_qual = 1, remove_dups = False, remove_qcfail = True, bam_offset = (0, -1), return_type="counts"):
 		"""Constructor
 		
 		Parameters
@@ -68,7 +68,7 @@ class bamfile(object):
 		except:
 			raise IOError("Cannot open BAM file: %s" % filepath)
 
-		self.offset = offset #-1 # a hack for the mis-aligned data from 2010
+		self.offset = bam_offset #-1 # a hack for the mis-aligned data from 2010
 		self.min_qual = min_qual
 		self.remove_dups = remove_dups
 		self.remove_qcfail = remove_qcfail

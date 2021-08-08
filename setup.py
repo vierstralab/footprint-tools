@@ -36,13 +36,6 @@ modules = [
 	dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"])
 ]
 
-# scripts = ["scripts/ftd-learn-dispersion-model",
-# 	"scripts/ftd-compute-deviation",
-# 	"scripts/ftd-learn-beta-prior",
-# 	"scripts/ftd-compute-posterior",
-# 	"scripts/ftd-differential",
-# ]
-
 install_requires = [
 	"cython",
 	"numpy>=1.10",
@@ -68,22 +61,25 @@ setup(
 	author_email = "jvierstra@altius.org",
 	url = "https://github.com/jvierstra/footprint-tools",
 	download_url = "https://github.com/jvierstra/footprint-tools/archive/v{}.tar.gz".format(__version__),
-	keywords = ["genomic footprints", "bioinformatics", "chromatin", "transcriptio factors"],
+	keywords = ["genomic footprints", "bioinformatics", "chromatin", "transcription factors", "dnase"],
 	zip_safe = False,
 	packages =  find_packages(),
 	libraries = [cehpes_lib],
-    ext_modules = [Extension(**opts) for opts in modules],
-    include_dirs=[np.get_include(), cephes_include],
+	ext_modules = [Extension(**opts) for opts in modules],
+	include_dirs=[np.get_include(), cephes_include],
 	package_data={k:["*.pxd"] for k in find_packages()},
-    cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
-    install_requires = install_requires,
-    #scripts = scripts,
+	cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
+	install_requires = install_requires,
+	#scripts = scripts,
 	entry_points = {"console_scripts": ["ftd = footprint_tools.__main__:main"]},
-    classifiers=[
-	    'Development Status :: 5 - Production/Stable', 
-	    'Intended Audience :: Science/Research', 
-	    'Topic :: Scientific/Engineering :: Bio-Informatics',
-	    'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-	    'Programming Language :: Python :: 3.6',
-],
+	classifiers=[
+		'Development Status :: 5 - Production/Stable', 
+		'Intended Audience :: Science/Research', 
+		'Topic :: Scientific/Engineering :: Bio-Informatics',
+		'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
+		'Programming Language :: Python :: 3.6',
+		'Programming Language :: Python :: 3.7',
+		'Programming Language :: Python :: 3.8',
+		'Programming Language :: Python :: 3.9',
+	],
 )

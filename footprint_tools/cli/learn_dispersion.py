@@ -1,6 +1,6 @@
 import argh
 from argh.decorators import named, arg
-from argh.exceptions import CommandError
+
 
 from tqdm import tqdm
 import multiprocessing as mp
@@ -11,24 +11,13 @@ import pysam
 
 from genome_tools import bed
 
-import footprint_tools
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, dispersion, predict
-from footprint_tools.cli.utils import chunkify
+from footprint_tools.cli.utils import chunkify, tuple_ints
 
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-
-def tuple_ints(arg):
-	"""
-	Function to parser a tuple of integers from command line
-	"""
-	try:
-		fw, rev = list(map(int, arg.split(',')))
-		return (fw, rev)
-	except:
-		raise CommandError("Argument must be a tuple -- i.e., 0,-1")
 
 class process_callback():
 	"""
@@ -80,17 +69,32 @@ def process_func(bam_file, fasta_file, bm, intervals, hist_size, proc_id, **kwar
 
 @named('learn_dm')
 @arg('interval_file', 
-	help="File path to BED file")
+	help='File path to BED file')
 @arg('bam_file', 
 	help='Path to BAM-format tag alignment file')
-@arg("fasta_file", help = "Path to genome FASTA file (requires associated FASTA index in same folder; see documentation on how to create an index)")
-@arg("--bias_model_file", help="Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.")
-@arg("--min_qual", help="Ignore reads with mapping quality lower than this threshold.", default=1)
-@arg("--remove_dups", help="Remove duplicate reads from analysis", default=False)
-@arg("--remove_qcfail", help="Remove QC-failed reads from analysis", default=False)
-@arg("--offset", help="BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)", default=(0,-1), type=tuple_ints)
-@arg("--half_win_width", help="Half window width to apply bias model.", default=5)
-@arg("--n_threads", help="Number of processors to use. (default: all available processors)", default=mp.cpu_count())
+@arg('fasta_file',
+	help='Path to genome FASTA file (requires associated FASTA index in same folder; see documentation on how to create an index)')
+@arg('--bias_model_file',
+	help='Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.')
+@arg('--min_qual',
+	help='Ignore reads with mapping quality lower than this threshold.',
+	default=1)
+@arg('--remove_dups',
+	help='Remove duplicate reads from analysis',
+	default=False)
+@arg('--remove_qcfail',
+	help='Remove QC-failed reads from analysis',
+	default=False)
+@arg('--bam_offset',
+	help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
+	default=(0,-1),
+	type=tuple_ints)
+@arg('--half_win_width',
+	help='Half window width to apply bias model.',
+	default=5)
+@arg('--n_threads',
+	help='Number of processors to use. (default: all available processors)',
+	default=mp.cpu_count())
 def run(interval_file,
 		bam_file,
 		fasta_file,
@@ -105,11 +109,11 @@ def run(interval_file,
     Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
     """
 	hist_size = (200, 1000) # hard coded histogram size -- for now...
-	hist_agg = callback(hist_size)
+	hist_agg = process_callback(hist_size)
 
 	intervals = list(bed.bed3_iterator(open(interval_file)))
 
-	# Load bias model (if specified)
+	# Load bias model (if specified), otherwise use the uniform model
 	if bias_model_file:
 		logger.info(f"Loading bias model from file {bias_model_file}")
 		bm = bias.kmer_model(bias_model_file)
