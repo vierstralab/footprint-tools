@@ -39,7 +39,7 @@ def plot_model_mu(dm, ax=None, xlim=(0, 100)):
 	ax.plot(xlim, xlim, label='y=x', color='grey', ls='dashed', zorder=-10)
 
 	ax.set_xlabel('Expected cleavage count')
-	ax.set_ylabel('Observed cleavages (mean)')
+	ax.set_ylabel('Observed cleavages')
 
 	[ax.spines[loc].set_color('none') for loc in ['top', 'right']]
 
@@ -108,10 +108,10 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 	ax.set_xlim(x[0], x[-1])
 
 	[ax.spines[loc].set_visible(False) for loc in ["top", "right"]]
-	ax.set_xlabel("Observed DNase I cleavage counts")
+	ax.set_xlabel("Observed cleavage count")
 	ax.set_ylabel("Density")
 
-	ax.set_title("Observed cleavage counts at positions with %d expected cleavages" % n)
+	ax.set_title(f"{n} expected cleavages")
 
 	ax.legend()
 
@@ -133,8 +133,9 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	plt_params = {
 		'legend.fontsize': 'xx-small',
 		'axes.labelsize': 'small',
-		'xtick.labelsize':'x-small',
-		'ytick.labelsize':'x-small'}
+		'axes.titlesize': 'small',
+		'xtick.labelsize': 'x-small',
+		'ytick.labelsize': 'x-small'}
 	rcParams.update(plt_params)
 
 	npanels = len(histograms)+2
@@ -142,7 +143,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	nrows = math.ceil(npanels/ncols)
 
 	fig = plt.figure()
-	gs = gridspec.GridSpec(nrows, ncols,  wspace=0.5, hspace=0.5)
+	gs = gridspec.GridSpec(nrows, ncols,  wspace=1, hspace=1)
 
 	ax = fig.add_subplot(gs[0,0])
 	plot_model_mu(dm, ax)
@@ -156,7 +157,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 		ax = fig.add_subplot(gs[row_index, col_index])
 		plot_histogram(dm, n=n, ax=ax)
 
-	fig.set_size_inches(2*nrows, 2*ncols)
+	fig.set_size_inches(3*nrows, 2*ncols)
 
 	outfile = os.path.abspath(os.path.join(os.getcwd(), 'dm.pdf'))
 	plt.savefig(outfile, transparent=True)
