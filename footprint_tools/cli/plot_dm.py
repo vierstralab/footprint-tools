@@ -92,7 +92,7 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 	r = dm.fit_r(n)
 
 	# Raw observed counts
-	ax.bar(x, dm.h[n,x[0]:x[-1]]/np.sum(dm.h[n,:]), width=1, color='lightgrey', label="Observed")
+	# ax.bar(x, dm.h[n,x[0]:x[-1]]/np.sum(dm.h[n,:]), width=1, color='lightgrey', label="Observed")
 
 	# NB fit
 	y_nbinom=scipy.stats.nbinom.pmf(x, r, r/(r+mu))
