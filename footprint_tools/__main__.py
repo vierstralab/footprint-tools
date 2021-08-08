@@ -16,7 +16,7 @@ Software licensed under GNU General Public License version 3."""
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def main()
+def main():
     parser = argh.ArghParser(epilog=epilog)
     parser.add_commands([
         learn_dm.run,
