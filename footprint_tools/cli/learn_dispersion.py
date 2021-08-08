@@ -105,9 +105,9 @@ def run(interval_file,
 		bam_offset=(0, -1),
 		half_win_width=5,
 		n_threads=mp.cpu_count()):
-    """
-    Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
-    """
+	"""
+	Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
+	"""
 	hist_size = (200, 1000) # hard coded histogram size -- for now...
 	hist_agg = process_callback(hist_size)
 

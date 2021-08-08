@@ -17,13 +17,13 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S
 logger = logging.getLogger(__name__)
 
 def main():
-    parser = argh.ArghParser(epilog=epilog)
-    parser.add_commands([
-        learn_dm.run,
-        find_fps.run,
-        learn_beta.run
-    ])
-    parser.add_argument('--version',
-                    action='version',
-                    version='%(prog)s ' + footprint_tools.__version__)
-    argh.dispatch(parser)
+	parser = argh.ArghParser(epilog=epilog)
+	parser.add_commands([
+		learn_dm.run,
+		find_fps.run,
+		learn_beta.run
+	])
+	parser.add_argument('--version',
+					action='version',
+					version='%(prog)s ' + footprint_tools.__version__)
+	argh.dispatch(parser)

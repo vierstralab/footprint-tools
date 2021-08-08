@@ -14,21 +14,21 @@ logger.addHandler(logging.NullHandler())
 
 @named('learn_beta')
 @arg('tabix_file',
-    help='Path to TABIX-format file (e.g., ouput from "find_fps" command')
+	help='Path to TABIX-format file (e.g., ouput from "find_fps" command')
 @arg('--fdr_cutoff',
-    type=float,
-    default=0.05,
-    help='Only consider nucleotides with FDR <= this value.')
+	type=float,
+	default=0.05,
+	help='Only consider nucleotides with FDR <= this value.')
 @arg('--exp_cutoff',
-    type=int,
-    default=10,
-    help='Only consider nucleotides with expected cleavages >= this value.')
+	type=int,
+	default=10,
+	help='Only consider nucleotides with expected cleavages >= this value.')
 def run(tabix_file, fdr_cutoff=0.05, exp_cutoff=10):
-    """Learn the parameters of a Beta distribution for a single sample.
+	"""Learn the parameters of a Beta distribution for a single sample.
 
-    This step is required to compute posterior footprint probabilities.
-    """
-    handle = pysam.TabixFile(tabix_file)
+	This step is required to compute posterior footprint probabilities.
+	"""
+	handle = pysam.TabixFile(tabix_file)
 
 	ratios = []
 
