@@ -47,7 +47,7 @@ def process_func(contig, tabix_filehandle, fdr_cutoff, exp_cutoff):
 @arg('--n_threads',
 	type=int,
 	help='Number of processors to use (min=1)',
-	default=max(1, mp.cpu_count())
+	default=max(1, mp.cpu_count()))
 def run(tabix_file, fdr_cutoff=0.05, exp_cutoff=10, n_threads=max(1, mp.cpu_count())):
 	"""
 	Learn the parameters of a Beta distribution for a single sample.
