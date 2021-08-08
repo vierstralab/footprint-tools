@@ -5,6 +5,8 @@ import footprint_tools
 import footprint_tools.cli.learn_dispersion as learn_dm
 import footprint_tools.cli.find_fps as find_fps
 import footprint_tools.cli.learn_beta as learn_beta
+import footprint_tools.cli.plot_dm as plot_dm
+
 
 epilog = """Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). 
 
@@ -21,7 +23,8 @@ def main():
 	parser.add_commands([
 		learn_dm.run,
 		find_fps.run,
-		learn_beta.run
+		learn_beta.run,
+		plot_dm.run,
 	])
 	parser.add_argument('--version',
 					action='version',
