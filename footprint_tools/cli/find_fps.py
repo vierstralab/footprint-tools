@@ -124,7 +124,7 @@ def write_func(q, outfile, total):
 		'sequence bias.')
 @arg('--dispersion_model_file',
 	type=str,
-	defaul=None,
+	default=None,
 	help='Dispersion model for negative binomial tests. If argument '
 		'is not provided then no stastical output is provided. File is in '
 		'JSON format and generated using the command learn_dm')
