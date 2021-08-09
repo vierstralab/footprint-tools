@@ -171,7 +171,7 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 			with open(sample["beta_prior_file"], 'r') as f:
 				params = f.readline().strip().split('\t')
 				if len(params)!=2:
-					raise ValueError(f"Beta prior file malformed -- must contain 2 columns ({sample["beta_prior_file"]}")
+					raise ValueError(f"Beta prior file malformed -- must contain 2 columns ({sample['beta_prior_file']}")
 				beta_priors[i,:] = np.array(params, dtype = np.float64)
 
 	except (IOError, ValueError) as e:
