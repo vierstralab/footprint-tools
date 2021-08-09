@@ -1,5 +1,6 @@
 import argh
-import logging
+
+import functools
 
 import footprint_tools
 import footprint_tools.cli.learn_dispersion as learn_dm
@@ -14,7 +15,7 @@ import logging.config
 
 # Load logging config from "logging.conf" file
 logging.config.fileConfig(pkg_resources.resource_filename(__name__, "logging.conf"))
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 epilog = """Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). 
 
