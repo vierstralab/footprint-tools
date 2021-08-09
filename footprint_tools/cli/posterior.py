@@ -189,7 +189,7 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 
 	#
 	read_procs = []
-	for i, chunk in enumerate(chunkify(intervals, 2))):
+	for i, chunk in enumerate(chunkify(intervals, 2)):
 		p = mp.Process(target=read_func, args=(sample_data["tabix_file"].tolist(), chunk, read_q))
 		read_procs.append(p)
 
