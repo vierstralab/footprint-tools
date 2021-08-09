@@ -49,10 +49,11 @@ def process_func(contig, tabix_filehandle, fdr_cutoff, exp_cutoff):
 	help='Number of processors to use (min=1)',
 	default=max(1, mp.cpu_count()))
 def run(tabix_file, fdr_cutoff=0.05, exp_cutoff=10, n_threads=max(1, mp.cpu_count())):
-	"""
-	Learn the parameters of a Beta distribution for a single sample.
+	"""Learn the parameters of a Beta distribution for a single sample.
 
-	This step is required to compute posterior footprint probabilities.
+	Output:
+
+	Note: This step is required to compute posterior footprint probabilities.
 	"""
 
 	tabix_filehandle = pysam.TabixFile(tabix_file)
@@ -75,5 +76,3 @@ def run(tabix_file, fdr_cutoff=0.05, exp_cutoff=10, n_threads=max(1, mp.cpu_coun
 	(a, b) = scipy.stats.beta.fit(ratios[np.isfinite(ratios) & (ratios>0) & (ratios<1)], floc = 0, fscale = 1)[0:2]
 
 	print("f{a}\t{b}", file=sys.stdout)
-
-	return 0

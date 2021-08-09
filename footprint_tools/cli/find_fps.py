@@ -109,7 +109,7 @@ def write_func(q, outfile, total):
 
 @named('find_fps')
 @arg('interval_file', 
-	help='File path to BED file')
+	help='File path to BED file contain regions to analyzed')
 @arg('bam_file', 
 	help='Path to BAM-format tag alignment file')
 @arg('fasta_file',
@@ -133,15 +133,15 @@ def write_func(q, outfile, total):
 	default=1,
 	help='Ignore reads with mapping quality lower than this threshold')
 @arg('--remove_dups',
-	help='Remove duplicate reads from analysis',
+	help='Remove duplicate reads from consideration',
 	default=False)
 @arg('--remove_qcfail',
-	help='Remove QC-failed reads from analysis',
+	help='Remove QC-failed reads from consideration',
 	default=False)
 @arg('--bam_offset',
 	type=tuple_ints,
 	default=(0, -1),
-	help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
+	help='BAM file offset (enables support for other datatypes -- e.g., Tn5/ATAC)')
 @arg('--half_win_width',
 	help='Half window width to apply bias model',
 	default=5)
@@ -152,7 +152,7 @@ def write_func(q, outfile, total):
 	default=50)
 @arg('--smooth_clip',
 	type=float,
-	help='Fraction of signal to clip when computing trimmed mean',
+	help='Fraction of bases to clip when computing trimmed mean in the smoothing window',
 	default=0.01)
 @arg('--fdr_shuffle_n',
 	type=int,
@@ -179,8 +179,11 @@ def run(interval_file,
 		fdr_shuffle_n=50,
 		seed=None,
 		n_threads=max(2, mp.cpu_count())):
-	"""
-	Compute per-nucleotide cleavage deviation statistics
+	"""Compute per-nucleotide cleavage deviation statistics	
+
+	Output:
+		bedGraph file written to `stdout`:
+			contig start start+1 obs exp -log(pval) -log(winpval) fdr
 	"""
 	intervals = list(bed.bed3_iterator(open(interval_file)))
 	
@@ -195,8 +198,8 @@ def run(interval_file,
 		"smoothing_half_window_width": smooth_half_win_width,
 		"smoothing_clip": smooth_clip,
 		"fdr_shuffle_n": fdr_shuffle_n,
-		"seed": seed
-		}
+		"seed": seed,
+	}
 
 	# Load bias model (if specified), otherwise use the uniform model
 	if bias_model_file:
@@ -238,5 +241,3 @@ def run(interval_file,
 	except KeyboardInterrupt:
 		[p.terminate() for p in read_procs]
 		write_proc.terminate()
-		
-	return 0

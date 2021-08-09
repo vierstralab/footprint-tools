@@ -44,7 +44,6 @@ The following code example retrieves reads overlapping a SNV resolved to each al
 
 	import pysam
 
-
 	vcf_file = pysam.VariantFile("variants.vcf.gz")
 	var = vcf_file.fetch(chrom, start, end).next()
 

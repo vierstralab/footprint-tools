@@ -8,7 +8,6 @@ from argh.decorators import named, arg
 import numpy as np
 import scipy.stats
 
-
 from matplotlib.pylab import rcParams
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -17,6 +16,11 @@ from matplotlib.ticker import MaxNLocator
 from footprint_tools.modeling import dispersion
 
 from footprint_tools.cli.utils import list_ints
+
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+
 
 def plot_model_mu(dm, ax=None, xlim=(0, 100)):
 	"""
@@ -124,8 +128,10 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 	default=[15,25,50,75],
 	help='')
 def run(dispersion_model_file, histograms=[15,25,50,75]):
-	"""
-	Diagnostic plotting of a dispersion model
+	"""Diagnostic plotting of a dispersion model
+
+	Output:
+		dm.pdf - a PDF file with plots
 	"""
 	
 	dm = dispersion.read_dispersion_model(dispersion_model_file)
@@ -145,11 +151,15 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	fig = plt.figure()
 	gs = gridspec.GridSpec(nrows, ncols,  wspace=0.75, hspace=0.75)
 
+	logger.info("Plotting model parameters")
+
 	ax = fig.add_subplot(gs[0,0])
 	plot_model_mu(dm, ax)
 
 	ax = fig.add_subplot(gs[0,1])
 	plot_model_r(dm, ax)
+
+	logger.info("Plotting histograms")
 
 	for i, n in enumerate(histograms):
 		row_index = (i // ncols) + 1
@@ -161,5 +171,3 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 
 	outfile = os.path.abspath(os.path.join(os.getcwd(), 'dm.pdf'))
 	plt.savefig(outfile, transparent=True)
-
-	return 0

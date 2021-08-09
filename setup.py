@@ -68,9 +68,10 @@ setup(
 	libraries = [cehpes_lib],
 	ext_modules = [Extension(**opts) for opts in modules],
 	include_dirs=[np.get_include(), cephes_include],
-	package_data={k:["*.pxd"] for k in find_packages()},
+	package_data={'footprint_tools':['*.pxd', 'logging.conf']},
 	cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
 	install_requires = install_requires,
+	include_package_data = True,
 	#scripts = scripts,
 	entry_points = {"console_scripts": ["ftd = footprint_tools.__main__:main"]},
 	classifiers=[

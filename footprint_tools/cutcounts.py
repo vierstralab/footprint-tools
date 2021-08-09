@@ -152,7 +152,6 @@ class bamfile(object):
 		------
 		tuple
 		    A tuple of :class:`pysam.AlignedSegments`. Elements may be `NoneType` if single-end sequencing or one of pairs falls outisde of query range.
-		
 		"""
 
 		read_dict = defaultdict(lambda: [None, None])

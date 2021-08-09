@@ -50,7 +50,8 @@ conda env create -f conda-env.yml
 conda activate footprint-tools
 
 # Run commands
-ftd-learn-dispersion... 
+ftd --version
+ftd {commands}
 ```
 
 ## Documentation & usage

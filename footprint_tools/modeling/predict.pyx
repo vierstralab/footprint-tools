@@ -1,4 +1,4 @@
-# Copyright 2015 Jeff Vierstra
+# Copyright 2015-2021 Jeff Vierstra
 
 # cython: boundscheck=False
 # cython: wraparound=False
@@ -9,7 +9,7 @@ cimport numpy as np
 
 import numpy as np
 
-from genome_tools import genomic_interval, genomic_interval_set
+from genome_tools import genomic_interval
 
 cdef extern from "predict.h":
 	struct result:
@@ -113,17 +113,6 @@ class prediction(object):
 		# Base padding
 		self.padding = self.half_window_width + smoothing_half_window_width
 
-		# self.interval = interval
-
-		# pad_interval = interval.widen(self.padding)
-		
-		# Note: We clip the first base when recombining the positive 
-		# and negative strand, so add an extra base upfront
-		# pad_interval.start -= 1
-
-		# self.counts = reads[pad_interval]
-		# self.seq = fasta[pad_interval.chrom][pad_interval.start-bm.offset():pad_interval.end+bm.offset()].seq.upper()
-
 	def compute(self, x):
 		"""Summary
 		
@@ -137,11 +126,6 @@ class prediction(object):
 		tuple (or list of tuples)
 		    Observed, expected and windowed cleavage counts
 		"""
-
-		# if isinstance(x, (list, genomic_interval_set)):
-		# 	print("LIST")
-		# 	for i in x:
-		# 		yield self.compute(i)
 	
 		# Note: We clip the first base when recombining the positive 
 		# and negative strand, so add an extra base upfront
@@ -173,5 +157,3 @@ class prediction(object):
 			win_counts[strand] = win[self.padding:w]
 
 		return obs_counts, exp_counts, win_counts
-
-

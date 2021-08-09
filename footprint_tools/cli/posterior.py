@@ -143,8 +143,7 @@ def write_func(q, total, log_post_cutoff=0):
 	help='Number of processors to use (min=4)',
 	default=max(4, mp.cpu_count())
 def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_threads=max(4, mp.cpu_count())):
-	"""
-	Compute the posterior probability of cleavage data
+	"""Compute the posterior probability of cleavage data
 	"""
 
 	logger.info(f"Reading sample data file ({sample_data_file}) and verifying inputs")
@@ -173,7 +172,6 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 				params = f.readline().strip().split('\t')
 				if len(params)!=2:
 					raise ValueError(f"Beta prior file malformed -- must contain 2 columns ({sample["beta_prior_file"]}")
-				
 				beta_priors[i,:] = np.array(params, dtype = np.float64)
 
 	except (IOError, ValueError) as e:
@@ -238,5 +236,3 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 		[p.terminate() for p in read_procs]
 		[p.terminate() for p in process_procs]
 		write_proc.terminate()
-
-	return 0

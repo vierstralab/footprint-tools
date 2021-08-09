@@ -320,7 +320,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 	mus = p*r/(1-p)
 
 	# hack
-	r[r>200]=200.
+	r[r>200] = 200.
 
 	# Extrapolate using polynomial fit
 	x = np.arange(size)
@@ -330,22 +330,20 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 	last_x = np.max(x[sele])*0.75
 
 	# fit mu with a 3 segments
-	fit_mu=pwlf.PiecewiseLinFit(x[sele], mus[sele])
-	res=fit_mu.fit_with_breaks_force_points(np.linspace(first_x, last_x, 4), [0], [mus[0]])
+	fit_mu = pwlf.PiecewiseLinFit(x[sele], mus[sele])
+	res = fit_mu.fit_with_breaks_force_points(np.linspace(first_x, last_x, 4), [0], [mus[0]])
 
 	# fit r with 5 s segments
-	fit_r=pwlf.PiecewiseLinFit(x[sele], 1.0/r[sele])
+	fit_r = pwlf.PiecewiseLinFit(x[sele], 1.0/r[sele])
 	res = optimize.minimize(fit_r.fit_with_breaks_opt, [3.0, 7.0, 15.0, 25.0])
 	
-	x0=np.zeros(6)
-	x0[0]=first_x
-	x0[-1]=last_x
-	x0[1:-1]=res.x
+	x0 = np.zeros(6)
+	x0[0] = first_x
+	x0[-1] = last_x
+	x0[1:-1] = res.x
 
-	#res=fit_r.fit_with_breaks_force_points([first_x, 2, 7, 15, 25, last_x], [1], [1.0/r[1]])
 	res=fit_r.fit_with_breaks_force_points(x0, [1], [1.0/r[1]])
-
-
+	
 	# Create a dispersion model class
 	res = dispersion_model()
 	res.h = h

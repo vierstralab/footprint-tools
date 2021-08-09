@@ -84,9 +84,9 @@ class kmer_model(bias_model):
 		"""
 		k = self.k
 		mid = self.mid
-		ofst = self.offset()
+		offset = self.offset()
 
-		return np.array([ self.__getitem__( seq[(i-mid):(i+(k-mid))] ) for i in range(ofst, len(seq)-ofst) ], dtype = np.float64)
+		return np.array([ self.__getitem__( seq[(i-mid):(i+(k-mid))] ) for i in range(offset, len(seq)-offset) ], dtype = np.float64)
 
 class uniform_model(bias_model):
 

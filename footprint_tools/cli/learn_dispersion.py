@@ -107,10 +107,10 @@ def run(interval_file,
 		bam_offset=(0, -1),
 		half_win_width=5,
 		n_threads=max(1, mp.cpu_count())):
-	"""
-	Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
+	"""Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
 	
-	Outputs a serialized model in JSON format to file "dm.json" in current working directory
+	Output:
+		dm.json - a serialized model in JSON format to file in current working directory
 	"""
 	hist_size = (200, 1000) # hard coded histogram size -- for now...
 	hist_agg = process_callback(hist_size)
@@ -161,6 +161,3 @@ def run(interval_file,
 
 	with open(model_file, "w") as f:
 		print(dispersion.write_dispersion_model(model), file = f)
-
-	# Success!
-	return 0
