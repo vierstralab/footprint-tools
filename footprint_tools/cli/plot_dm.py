@@ -66,7 +66,7 @@ def plot_model_r(dm, ax=None, xlim=(1, 100)):
 	fit_r = np.array([dm.fit_r(i) for i in x])
 
 	ax.plot(x, 1/r, label='MLE neg. binomial fit')
-	ax.plot(x, 1/fit_r, label='Smooth fit', ls='dashed')
+	ax.plot(x, 1/fit_r, label='Smoothed fit', ls='dashed')
 
 	ax.set_xlabel("Expected cleavage count")
 	ax.set_ylabel("1/r")
@@ -143,7 +143,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	nrows = math.ceil(npanels/ncols)
 
 	fig = plt.figure()
-	gs = gridspec.GridSpec(nrows, ncols,  wspace=1, hspace=1)
+	gs = gridspec.GridSpec(nrows, ncols,  wspace=0.75, hspace=0.75)
 
 	ax = fig.add_subplot(gs[0,0])
 	plot_model_mu(dm, ax)
@@ -157,7 +157,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 		ax = fig.add_subplot(gs[row_index, col_index])
 		plot_histogram(dm, n=n, ax=ax)
 
-	fig.set_size_inches(2*nrows, 3*ncols)
+	fig.set_size_inches(2*nrows, 2*ncols)
 
 	outfile = os.path.abspath(os.path.join(os.getcwd(), 'dm.pdf'))
 	plt.savefig(outfile, transparent=True)
