@@ -158,7 +158,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	ax = fig.add_subplot(gs[0,1])
 	plot_model_r(dm, ax)
 
-	logger.info("Plotting histograms - {histograms}")
+	logger.info(f"Plotting histograms - {histograms}")
 
 	for i, n in enumerate(histograms):
 		row_index = (i // ncols) + 1
