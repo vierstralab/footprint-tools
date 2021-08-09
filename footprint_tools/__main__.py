@@ -16,7 +16,6 @@ import logging.config
 # Load logging config from "logging.conf" file
 logging.config.fileConfig(pkg_resources.resource_filename(__name__, "logging.conf"))
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 epilog = """Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). 
 
@@ -25,6 +24,8 @@ See http://github.com/jvierstra/footprint-tools for extended documentation.
 Software licensed under GNU General Public License version 3."""
 
 def main():
+	logger.setLevel(logging.DEBUG)
+
 	parser = argh.ArghParser(epilog=epilog)
 	parser.add_commands([
 		learn_dm.run,
