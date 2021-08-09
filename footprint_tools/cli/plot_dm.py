@@ -18,7 +18,7 @@ from footprint_tools.modeling import dispersion
 from footprint_tools.cli.utils import list_ints
 
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 logger.addHandler(logging.NullHandler())
 
 def plot_model_mu(dm, ax=None, xlim=(0, 100)):
