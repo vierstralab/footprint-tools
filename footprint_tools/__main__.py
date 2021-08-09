@@ -26,7 +26,7 @@ Software licensed under GNU General Public License version 3."""
 def main():
 	loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
 	for l in loggers:
-		print(l)
+		print(l.handlers)
 
 	parser = argh.ArghParser(epilog=epilog)
 	parser.add_commands([
