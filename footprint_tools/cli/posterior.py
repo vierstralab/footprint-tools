@@ -132,7 +132,7 @@ def write_func(q, total, log_post_cutoff=0):
 	help='')
 @arg('--fdr_cutoff',
 	type=float,
-	default=0.05
+	default=0.05,
 	help='')
 @arg('--post_cutoff',
 	type=float,
