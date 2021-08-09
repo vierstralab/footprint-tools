@@ -21,7 +21,6 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
-
 def plot_model_mu(dm, ax=None, xlim=(0, 100)):
 	"""
 	Plot model mu parameters
