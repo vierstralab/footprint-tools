@@ -141,7 +141,7 @@ def write_func(q, total, log_post_cutoff=0):
 @arg('--n_threads',
 	type=int,
 	help='Number of processors to use (min=4)',
-	default=max(4, mp.cpu_count())
+	default=max(4, mp.cpu_count()))
 def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_threads=max(4, mp.cpu_count())):
 	"""Compute the posterior probability of cleavage data
 	"""
