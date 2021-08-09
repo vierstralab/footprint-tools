@@ -24,7 +24,9 @@ See http://github.com/jvierstra/footprint-tools for extended documentation.
 Software licensed under GNU General Public License version 3."""
 
 def main():
-	logger.setLevel(logging.DEBUG)
+	loggers = [logging.getLogger(name) for name in logging.root.manager.loggerDict]
+	for l in loggers:
+		print(l)
 
 	parser = argh.ArghParser(epilog=epilog)
 	parser.add_commands([
