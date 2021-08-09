@@ -138,7 +138,7 @@ def write_func(q, total, log_post_cutoff=0):
 	type=float,
 	default=0.2,
 	help='')
- @arg('--n_threads',
+@arg('--n_threads',
 	type=int,
 	help='Number of processors to use (min=4)',
 	default=max(4, mp.cpu_count())
