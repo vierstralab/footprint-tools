@@ -18,11 +18,10 @@ from footprint_tools.cli.utils import chunkify, tuple_ints
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
-	"""
-	Reads BAM file, computes expected cleavages and associated statistics and outputs to a multiprocessing pool queue
+	"""Reads BAM file, computes expected cleavages and associated
+		statistics and outputs to a multiprocessing pool queue
 	"""
 
 	bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "bam_offset"] }
@@ -80,8 +79,7 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
 			pass
 
 def write_func(q, outfile, total):
-	"""
-	Function to write output from multiple threads to a single file
+	"""Function to write output from multiple threads to a single file
 	"""    
 
 	f = outfile
@@ -89,7 +87,7 @@ def write_func(q, outfile, total):
 	progress_desc="Regions processed"
 	with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
 	
-		while True:
+		while 1:
 
 			data = q.get()
 			if data == None:
@@ -184,6 +182,8 @@ def run(interval_file,
 	Output:
 		bedGraph file written to `stdout`:
 			contig start start+1 obs exp -log(pval) -log(winpval) fdr
+
+		Note that output data is not sorted -- pipe to `sort -k1,1 -k2,2n` for sorted output
 	"""
 	intervals = list(bed.bed3_iterator(open(interval_file)))
 	
@@ -210,9 +210,10 @@ def run(interval_file,
 		bm = bias.uniform_model()
 
 	# Load dispersion model (if specified)
-	if dispersion_mode_file:
-		logger.info(f"Loading dispersion model from file {dispersion_mode_file}")
-		dm = dispersion.read_dispersion_model(dispersion_mode_file)
+	if dispersion_model_file:
+		dm = dispersion.read_dispersion_model(dispersion_model_file)
+		logger.info(f"Loaded dispersion model from file {dispersion_model_file}")
+
 	else:
 		logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
 		dm = None
@@ -235,7 +236,7 @@ def run(interval_file,
 	try:
 		[p.join() for p in read_procs]
 		q.join() # block until queue is empty after processing is done
-		q.put(None) # send kill signal
+		q.put(None) # sends sentinal signal
 		write_proc.join() # wait for writer proc to return
 		logger.info("Finished computing and writing footprint statistics!")
 	except KeyboardInterrupt:

@@ -1,4 +1,3 @@
-from os import cpu_count
 import sys
 
 import argh
@@ -15,7 +14,6 @@ import scipy.stats
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 def process_func(contig, tabix_filehandle, fdr_cutoff, exp_cutoff):
 	"""

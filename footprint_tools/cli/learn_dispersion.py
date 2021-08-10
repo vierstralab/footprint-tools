@@ -19,7 +19,6 @@ from footprint_tools.cli.utils import chunkify, tuple_ints
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 class process_callback():
 	"""
@@ -32,7 +31,7 @@ class process_callback():
 	def __call__(self, other):
 		self.x += other
 
-def process_func(bam_file, fasta_file, bm, intervals, hist_size, proc_id, **kwargs):
+def process_func(bam_file, fasta_file, bm, intervals, hist_size, q, **kwargs):
 	"""
 	Function that can be used to parallize reading 
 	the BAM files and computing expected counts
@@ -48,26 +47,37 @@ def process_func(bam_file, fasta_file, bm, intervals, hist_size, proc_id, **kwar
 
 	res_hist = np.zeros(hist_size)
 
-	progress_desc = "Chunk {}".format(proc_id)
+	for interval in intervals:
 
-	with tqdm(total=len(intervals), desc=progress_desc, position=proc_id+1, ncols=80) as progress_bar:
-
-		for interval in intervals:
-
-			obs, exp, win = predictor.compute(interval)
-			
-			obs = obs['+'][1:] + obs['-'][:-1]
-			exp = exp['+'][1:] + exp['-'][:-1]
+		obs, exp, win = predictor.compute(interval)
 		
-			for o, e in zip(obs, exp):
-				try:
-					res_hist[int(e), int(o)] += 1.0
-				except IndexError:
-					pass
+		obs = obs['+'][1:] + obs['-'][:-1]
+		exp = exp['+'][1:] + exp['-'][:-1]
+	
+		for o, e in zip(obs, exp):
+			try:
+				res_hist[int(e), int(o)] += 1.0
+			except IndexError:
+				pass
 
-			progress_bar.update(1)
+		if q:
+			q.put(1)
 
 	return res_hist
+
+def listener(q, total):
+	"""Listens to a queue and updates a progess bar
+	"""
+	progress_desc="Regions processed"
+	with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
+		while 1:
+			try:
+				progress_bar.n += q.get()
+				progress_bar.update(0)
+				if progress_bar.n >= total:
+					break
+			except:
+				continue
 
 @named('learn_dm')
 @arg('interval_file', 
@@ -136,14 +146,19 @@ def run(interval_file,
 	}
 
 	pool = mp.Pool(n_threads)
+	q = mp.Queue()
 
 	logger.info(f"Using {n_threads} threads to computed expected cleavage counts")
 
-	for i, chunk in enumerate(chunkify(intervals, n_threads)):
-		pool.apply_async(process_func, args=(bam_file, fasta_file, bm, chunk, hist_size, i), kwds=proc_kwargs, callback=hist_agg)
+	progress = mp.Process(target=listener, args=(q, len(intervals)))
+	progress.start()
 
+	for i, chunk in enumerate(chunkify(intervals, n_threads)):
+		pool.apply_async(process_func, args=(bam_file, fasta_file, bm, chunk, hist_size, q), kwds=proc_kwargs, callback=hist_agg)
 	pool.close()
 	pool.join()
+
+	progress.join()
 
 	logger.info("Finished computing expected cleavage counts!")
 
@@ -161,3 +176,5 @@ def run(interval_file,
 
 	with open(model_file, "w") as f:
 		print(dispersion.write_dispersion_model(model), file = f)
+
+	return 0

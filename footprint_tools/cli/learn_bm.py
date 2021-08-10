@@ -7,7 +7,6 @@ from footprint_tools.cli.utils import tuple_ints
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 @named('learn_bm')
 @arg('bam_file',

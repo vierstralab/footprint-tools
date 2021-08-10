@@ -1,5 +1,10 @@
+import sys
+
 import argh
 
+# Set up console logging from package file
+# This configure root logger which is inherited 
+# by all modules/submodules
 import pkg_resources
 import logging, logging.config
 logging.config.fileConfig(pkg_resources.resource_filename(__name__, "logging.conf"))
@@ -31,4 +36,6 @@ def main():
 	parser.add_argument('--version',
 			action='version',
 			version='%(prog)s ' + footprint_tools.__version__)
-	argh.dispatch(parser)
+	
+	exitcode = argh.dispatch(parser)
+	sys.exit(exitcode)

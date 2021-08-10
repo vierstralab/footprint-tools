@@ -20,11 +20,9 @@ from footprint_tools.cli.utils import chunkify, tuple_ints
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 def read_func(tabix_files, intervals, queue):
-	"""
-	Reads TABIX files and outputs to a multiprocessing pool queue
+	"""Reads TABIX files and outputs to a multiprocessing pool queue
 	"""
 
 	tabix_handles = [pysam.TabixFile(f) for f in tabix_files]
@@ -40,13 +38,10 @@ def read_func(tabix_files, intervals, queue):
 		fdr = np.ones((n_datasets, l), dtype = np.float64)
 		w = np.zeros((n_datasets, l), dtype = np.float64)
 
-		i = 0
-		j = 0
-	
-		for tabix in tabix_handles:
+		for i, tabix in enumerate(tabix_handles):
 
 			try:
-				for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser = pysam.asTuple()):
+				for row in tabix.fetch(interval.chrom, interval.start, interval.end, parser=pysam.asTuple()):
 					j = int(row[1])-interval.start
 					exp[i, j] = np.float64(row[3])
 					obs[i, j] = np.float64(row[4])
@@ -54,8 +49,6 @@ def read_func(tabix_files, intervals, queue):
 					w[i, j] = 1
 			except:
 				pass
-
-			i += 1
 
 		queue.put( (interval, exp, obs, fdr, w) )
 
@@ -66,27 +59,25 @@ def read_func(tabix_files, intervals, queue):
 	[handle.close() for handle in tabix_handles]
 
 def process_func(disp_models, beta_priors, read_q, write_q, fdr_cutoff=0):
-	"""
-	Listens to read queue and computes posteriors
+	"""Listens to read queue and computes posteriors
 	"""
 	disp_models=[]
 	beta_priors
 
-	while True:
+	while 1:
 
 		data = read_q.get()
-
 		if data == None:
 			read_q.task_done()
 			break
 
 		(interval, exp, obs, fdr, w) = data
 
-		prior = bayesian.compute_prior_weighted(fdr, w, cutoff = fdr_cutoff)   
-		scale = bayesian.compute_delta_prior(obs, exp, fdr, beta_priors, cutoff = fdr_cutoff)
+		prior = bayesian.compute_prior_weighted(fdr, w, cutoff=fdr_cutoff)   
+		scale = bayesian.compute_delta_prior(obs, exp, fdr, beta_priors, cutoff=fdr_cutoff)
 
-		ll_on = bayesian.log_likelihood(obs, exp, disp_models, delta = scale, w = 3) 
-		ll_off = bayesian.log_likelihood(obs, exp, disp_models, w = 3)
+		ll_on = bayesian.log_likelihood(obs, exp, disp_models, delta = scale, w=3) 
+		ll_off = bayesian.log_likelihood(obs, exp, disp_models, w=3)
 
 		# Compute posterior
 		post = -bayesian.posterior(prior, ll_on, ll_off)
@@ -98,7 +89,6 @@ def process_func(disp_models, beta_priors, read_q, write_q, fdr_cutoff=0):
 
 def write_func(q, total, log_post_cutoff=0):
 	"""
-	
 	"""
 	
 	handle = sys.stdout
@@ -106,7 +96,7 @@ def write_func(q, total, log_post_cutoff=0):
 	progress_desc="Regions processed"
 	with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
 
-		while True:
+		while 1:
 
 			data = q.get()
 			if data == None:
@@ -116,8 +106,8 @@ def write_func(q, total, log_post_cutoff=0):
 			interval, post = data
 			
 			# Write ouput; filter out positions by posterior cutoff
-			for i in np.where(np.nanmax(post, axis = 0) > log_post_cutoff)[0]:
-				print("{}\t{:d}\t{:d}\t".format(interval.chrom, interval.start+i, interval.start+i+1) + '\t'.join(map(str, post[:,i])), file = handle)
+			for i in np.where(np.nanmax(post, axis=0) > log_post_cutoff)[0]:
+				print("{}\t{:d}\t{:d}\t".format(interval.chrom, interval.start+i, interval.start+i+1) + '\t'.join(map(str, post[:,i])), file=handle)
 
 			q.task_done()
 
@@ -144,6 +134,12 @@ def write_func(q, total, log_post_cutoff=0):
 	default=max(4, mp.cpu_count()))
 def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_threads=max(4, mp.cpu_count())):
 	"""Compute the posterior probability of cleavage data
+
+	Output:
+		A bedGraph-like file written to `stdout`
+			contig start start+1 -log(posterior) ... N_samples
+	
+		Note that output data is not sorted -- pipe to `sort -k1,1 -k2,2n` for sorted output
 	"""
 
 	logger.info(f"Reading sample data file ({sample_data_file}) and verifying inputs")
@@ -222,12 +218,12 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 
 		# Block until all remaining regions are processed
 		read_q.join() # wait till read queue is empty
-		[read_q.put(None) for i in range(len(process_procs))] # sends kill signal
+		[read_q.put(None) for i in range(len(process_procs))] # sends sentinal signal
 		[p.join() for p in process_procs] # block until thread exits
 		
 		# Block until all remaining regions are written to output and thread exits
 		write_q.join() # wait till write queue is empty
-		write_q.put(None) # sends kill signal
+		write_q.put(None) # sends sentinal signal
 		write_proc.join() # block until thread exits
 
 		logger.info("Finished computing and writing footprint posteriors!")
@@ -236,3 +232,5 @@ def run(sample_data_file, interval_file, fdr_cutoff=0.05, post_cutoff=0.2, n_thr
 		[p.terminate() for p in read_procs]
 		[p.terminate() for p in process_procs]
 		write_proc.terminate()
+
+	return 0

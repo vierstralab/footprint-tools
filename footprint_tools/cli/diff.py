@@ -3,7 +3,6 @@ from argh.decorators import named, arg
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 
 @named('diff_test')
 def run():
