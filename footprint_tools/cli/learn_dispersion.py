@@ -148,11 +148,12 @@ def run(interval_file,
 
 	logger.info(f"Using {n_threads} threads to computed expected cleavage counts")
 
+	for i, chunk in enumerate(chunkify(intervals, n_threads)):
+		pool.apply_async(process_func, args=(bam_file, fasta_file, bm, chunk, hist_size, q), kwds=proc_kwargs, callback=hist_agg)
+	
 	progress = mp.Process(target=listener, args=(q, len(intervals)))
 	progress.start()
 
-	for i, chunk in enumerate(chunkify(intervals, n_threads)):
-		pool.apply_async(process_func, args=(bam_file, fasta_file, bm, chunk, hist_size, q), kwds=proc_kwargs, callback=hist_agg)
 	pool.close()
 	pool.join()
 

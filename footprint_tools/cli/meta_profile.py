@@ -54,9 +54,8 @@ def read_bigwig_func(bigwig_file, intervals, q=None, dtype=np.float):
 	for i, interval in enumerate(intervals):
 		res[i,:] = bigwig_file.values(interval.chrom, interval.start, interval.end, numpy=True).astype(dtype)
 		
-		# Update progress queue
-		if q:
-			q.put(1)
+		# Update progress queue	
+		q.put(1)
 
 	bigwig_handle.close()
 
