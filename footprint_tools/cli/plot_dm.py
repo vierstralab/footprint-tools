@@ -19,7 +19,7 @@ from footprint_tools.cli.utils import list_ints
 
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+#logger.addHandler(logging.NullHandler())
 
 def plot_model_mu(dm, ax=None, xlim=(0, 100)):
 	"""
@@ -169,4 +169,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
 	fig.set_size_inches(2.5*ncols, 2*nrows)
 
 	outfile = os.path.abspath(os.path.join(os.getcwd(), 'dm.pdf'))
+	
+	logger.info(f"Saving plots to {outfile}")	
+
 	plt.savefig(outfile, transparent=True)
