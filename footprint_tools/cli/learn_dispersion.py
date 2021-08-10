@@ -5,6 +5,7 @@ import argh
 from argh.decorators import named, arg
 
 from tqdm import tqdm
+
 import multiprocessing as mp
 
 import numpy as np
@@ -19,6 +20,11 @@ from footprint_tools.cli.utils import chunkify, tuple_ints
 
 import logging
 logger = logging.getLogger(__name__)
+
+import signal
+
+def init_proc():
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
 class process_callback():
 	"""
@@ -42,7 +48,6 @@ def process_func(bam_file, fasta_file, bm, intervals, hist_size, q, **kwargs):
 	bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "offset"] }
 	bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
 	fasta_reader = pysam.FastaFile(fasta_file)
-
 	predictor = predict.prediction(bam_reader, fasta_reader, bm, **kwargs)
 
 	res_hist = np.zeros(hist_size)
@@ -59,7 +64,7 @@ def process_func(bam_file, fasta_file, bm, intervals, hist_size, q, **kwargs):
 				res_hist[int(e), int(o)] += 1.0
 			except IndexError:
 				pass
-
+		
 		q.put(1)
 
 	return res_hist
@@ -71,7 +76,7 @@ def listener(q, total):
 	with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
 		while 1:
 			try:
-				progress_bar.update(q.get())
+				progress_bar.update(q.get(timeout=1))
 				if progress_bar.n >= total:
 					break
 			except:
@@ -143,23 +148,43 @@ def run(interval_file,
 		"half_window_width": half_win_width,
 	}
 
-	pool = mp.Pool(n_threads)
-	q = mp.Queue()
+	pool = mp.Pool(n_threads, init_proc)
+	m = mp.Manager()
+	q = m.Queue()
 
-	logger.info(f"Using {n_threads} threads to computed expected cleavage counts")
+	logger.info(f"Using {n_threads} threads to compute expected cleavage counts")
 
+	results = []
 	for i, chunk in enumerate(chunkify(intervals, n_threads)):
-		pool.apply_async(process_func, args=(bam_file, fasta_file, bm, chunk, hist_size, q), kwds=proc_kwargs, callback=hist_agg)
-	
+		results.append(pool.apply_async(process_func, args=(bam_file, fasta_file, bm, chunk, hist_size, q), kwds=proc_kwargs, callback=hist_agg))
+
 	progress = mp.Process(target=listener, args=(q, len(intervals)))
 	progress.start()
 
 	pool.close()
-	pool.join()
 
-	progress.join()
+	try:
+		[result.get() for result in results]
+		
+	except (KeyboardInterrupt, Exception) as e:
+		pool.terminate()
+		pool.join()
+		progress.terminate()
+		progress.join()
 
-	logger.info("Finished computing expected cleavage counts!")
+		if isinstance(e, KeyboardInterrupt):
+			msg = "User interrupt detected (^C entered in console) -- terminating!"
+		else:
+			msg = e
+		
+		logger.critical(msg)
+		return 1
+
+	else:
+		logger.info("Finished computing expected cleavage counts!")
+		pool.close()
+		pool.join()
+		progress.join()
 
 	# Learn model from histogram
 

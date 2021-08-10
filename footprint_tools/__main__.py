@@ -37,5 +37,5 @@ def main():
 			action='version',
 			version='%(prog)s ' + footprint_tools.__version__)
 	
-	exitcode = argh.dispatch(parser)
-	sys.exit(exitcode)
+	exitcode = argh.dispatch(parser, output_file=None)
+	sys.exit(int(exitcode.strip()))
