@@ -72,8 +72,7 @@ def listener(q, total):
 	with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
 		while 1:
 			try:
-				progress_bar.n += q.get()
-				progress_bar.update(0)
+				progress_bar.update(q.get())
 				if progress_bar.n >= total:
 					break
 			except:
