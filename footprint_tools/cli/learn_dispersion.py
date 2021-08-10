@@ -60,8 +60,7 @@ def process_func(bam_file, fasta_file, bm, intervals, hist_size, q, **kwargs):
 			except IndexError:
 				pass
 
-		if q:
-			q.put(1)
+		q.put(1)
 
 	return res_hist
 
