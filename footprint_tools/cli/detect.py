@@ -249,16 +249,17 @@ def run(interval_file,
         dm = None
 
     output_bedgraph_file = output_prefix + '.bedgraph'
-    output_bed_file_template = output_prefix + '.fdr{t}.bed'
+    output_bed_file_template = output_prefix + '.fdr{0}.bed'
     
     logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
     output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
-        
-    logger.info(f"Writing footprints to {output_bed_file_template} for t \u22f2 {write_footprints}")
+    
+
+    logger.info(f"Writing footprints to {output_bed_file_template.format('t')} for t \u22f2 {write_footprints}")
     #output_bed_filehandles = {t: open(fstr(output_bed_file_template), 'w') for t in write_footprints}
 
     for t in write_footprints:
-        print(t)
+        print(output_bed_file_template.format(t))
         #print(fstr(output_bed_file_template))
     
     dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
