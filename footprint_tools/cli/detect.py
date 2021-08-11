@@ -109,7 +109,7 @@ class deviation_stats(process):
 
                 efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
             except Exception as e:
-                logger.warning(f"Error computing stats for {interval} ({e})")
+                raise e
                 pvals = win_pvals = efdr = np.ones(n)
             finally:
                 stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
