@@ -7,17 +7,16 @@ This module contains classess and functions that implement a dispersion model.
 # cython: nonecheck=False
 # cython: embedsignature=True
 
-# pure python imports
-import warnings
-from footprint_tools.stats.distributions import nbinom
-import numpy as np
-from scipy import optimize
-import pwlf
-
-# C imports
 cimport cython
 cimport numpy as np
+import numpy as np
+
 from footprint_tools.stats.distributions cimport nbinom
+from footprint_tools.stats.distributions import nbinom
+
+import warnings
+from scipy import optimize
+import pwlf
 
 cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,
                                      data_type_t y0, data_type_t y1, data_type_t y2,
