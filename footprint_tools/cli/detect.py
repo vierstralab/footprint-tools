@@ -121,7 +121,8 @@ class deviation_stats(process):
                     "data": stats
                 }
 
-def write_batch
+def write_batch(batch, file=sys.stdout):
+    pass
 
 @named('detect')
 @arg('interval_file', 
