@@ -13,13 +13,13 @@ dependencies:
 - pandas
 - statsmodels
 - simplejson
-- pysam
 - tqdm
 - argh
 - matplotlib
 - colorlog
 
 - pip:
+  - git+https://github.com/jvierstra/pysam.git
   - pwlf
   - genome_tools
   - .

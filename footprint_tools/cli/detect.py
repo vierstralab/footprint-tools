@@ -14,7 +14,7 @@ from genome_tools import bed
 
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
-from footprint_tools.stats import fdr, windowing
+from footprint_tools.stats import fdr, windowing, utils
 
 from footprint_tools.cli.utils import chunkify, tuple_ints
 
