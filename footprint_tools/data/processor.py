@@ -146,7 +146,7 @@ class data_processor(object):
         self.sampler = sampler
         self.batch_sampler = batch_sampler
 
-        logger.info(f"Using batch_size = {self.batch_size}")
+        logger.info(f"Processing data with batch_size = {self.batch_size} resulting in {len(self)} batches" )
         logger.info(f"Using '{self.collate_fn.__doc__}' to collate batch chunks")
 
     def __iter__(self):
