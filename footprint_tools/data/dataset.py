@@ -35,7 +35,6 @@ class dataset(base_dataset):
         
         dl = data_loader(self, 
                         batch_size=batch_size,
-                        collate_fn=numpy_collate,
                         num_workers=num_workers,
                         **kwargs)
 

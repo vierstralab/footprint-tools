@@ -3,6 +3,20 @@ import collections
 
 string_classes = (str, bytes)
 
+def _list_collate():
+    def list_collate_fn(batch):
+        if isinstance(batch[0], collections.Mapping):
+            return {key: list_collate_fn([d[key] for d in batch]) for key in batch[0]}
+        elif isinstance(batch[0], collections.Sequence):
+            transposed = zip(*batch)
+            return [list_collate_fn(samples) for samples in transposed]
+        else:
+            return list(batch)
+
+    return list_collate_fn
+
+list_collate = _list_collate()
+
 def _numpy_collate(stack_fn=np.stack):
     def numpy_collate_fn(batch):
         "Puts each data field into a tensor with outer dimension batch size"

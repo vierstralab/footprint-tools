@@ -8,6 +8,7 @@ from genome_tools import genomic_interval
 
 from footprint_tools import cutcounts
 from footprint_tools.data.dataset import dataset
+from footprint_tools.data.utils import list_collate
 
 from tqdm import tqdm
 
@@ -42,7 +43,12 @@ class profile_loader(dataset):
         counts = self.bam_reader[interval]
         counts.pop('fragments')
 
-        return counts
+        out = {
+            'counts': counts['+'][1:] + counts['-'][:-1],
+            'interval': interval
+        }
+
+        return out
 
 @named('meta_profile')
 @arg('interval_file',
@@ -51,16 +57,16 @@ class profile_loader(dataset):
 @arg('bam_file',
     type=str,
     help='')
-@arg('n_threads',
+@arg('--n_threads',
     type=int,
     default=8,
     help='')
-def run(interval_file, bam_file, n_threads):
+def run(interval_file, bam_file, n_threads=8):
     """Generate metaprofile data
     """
 
     ds = profile_loader(interval_file, bam_file)
     #print(ds[0])
     
-    pos = [x["+"] for x in tqdm(ds.batch_iter(batch_size=1, num_workers=n_threads))]
-    
+    for x in tqdm(ds.batch_iter(batch_size=1, collate_fn=list_collate, num_workers=n_threads)):
+        print(x)

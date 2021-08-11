@@ -42,6 +42,8 @@ class data_loader_iter(object):
 
         self.sample_iter = iter(self.batch_sampler)
 
+        logger.info(f"Using '{self.collate_fn.__name__}' to collate chunks")
+
         if self.num_workers > 0:
 
             logger.info(f"Using {self.num_workers} threads to process data")
