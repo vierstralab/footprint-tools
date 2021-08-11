@@ -29,7 +29,7 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
     bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
     fasta_reader = pysam.FastaFile(fasta_file)
 
-    predict_kwargs = { k:kwargs.pop(k) for k in ["half_window_width", "smoothing_half_window_width", "smoothing_clip"] }
+    predict_kwargs = { k:kwargs.pop(k) for k in ["half_win_width", "smoothing_half_win_width", "smoothing_clip"] }
     predictor = predict.prediction(bam_reader, fasta_reader, bm, **predict_kwargs)
 
     # Args used for FDR sampling procedure
@@ -190,8 +190,8 @@ def run(interval_file,
         "remove_dups": remove_dups,
         "remove_qcfail": remove_qcfail,
         "offset": bam_offset,
-        "half_window_width": half_win_width,
-        "smoothing_half_window_width": smooth_half_win_width,
+        "half_win_width": half_win_width,
+        "smoothing_half_win_width": smooth_half_win_width,
         "smoothing_clip": smooth_clip,
         "fdr_shuffle_n": fdr_shuffle_n,
         "seed": seed,
