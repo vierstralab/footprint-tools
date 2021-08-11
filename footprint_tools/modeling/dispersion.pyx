@@ -461,13 +461,13 @@ def base64decode(x):
     return arr
 
 def load_dispersion_model(filename):
-    """"Load a dispersion model encoded in JSON format
+    """Load a dispersion model encoded in JSON format
 
     Parameters
     ----------
     filename : str
         Path to JSON-format dispersion model
-    """"
+    """
     import simplejson as json
     import urllib.request as request
 

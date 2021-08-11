@@ -152,7 +152,7 @@ cpdef data_type_t mean(data_type_t p, data_type_t r) nogil:
     return p*r/(1-p)
 
 cpdef data_type_t var(data_type_t p, data_type_t r) nogil:
-   """Variance of negative binomial distribution
+    """Variance of negative binomial distribution
 
     Parameters
     ----------
