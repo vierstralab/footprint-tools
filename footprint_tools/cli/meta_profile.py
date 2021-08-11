@@ -7,7 +7,7 @@ import pandas as pd
 from genome_tools import genomic_interval
 
 from footprint_tools import cutcounts
-from footprint_tools.data import dataset
+from footprint_tools.data.dataset import dataset
 
 from tqdm import tqdm
 
