@@ -121,8 +121,9 @@ class deviation_stats(process):
                     "data": stats
                 }
 
-def write_batch(batch, file=sys.stdout):
-    pass
+def write_batch_to_output(batch, file=sys.stdout):
+    for interval, stats in zip(batch["interval"], batch["data"]):
+        file.write(str(interval) + '\n')
 
 @named('detect')
 @arg('interval_file', 
@@ -184,6 +185,10 @@ def write_batch(batch, file=sys.stdout):
 @arg('--batch_size',
     help='Batch size of intervals to process',
     default=100)
+@arg('--outfile',
+    dest='out_filepath',
+    default='out.bedgraph',
+    help='Output file path')
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -199,14 +204,13 @@ def run(interval_file,
         fdr_shuffle_n=50,
         seed=None,
         n_threads=8,
-        batch_size=100):
+        batch_size=100,
+        output_filepath='out.bedgraph'):
     """Compute per-nucleotide cleavage deviation statistics	
 
     Output:
-        bedGraph file written to `stdout`:
+        bedGraph file written to `outfile` (see arguments):
             contig start start+1 obs exp -log(pval) -log(winpval) fdr
-
-        Note that output data is not sorted -- pipe to `sort -k1,1 -k2,2n` for sorted output
     """
     proc_kwargs = {
         "min_qual": min_qual,
@@ -217,7 +221,7 @@ def run(interval_file,
         "smoothing_half_win_width": smooth_half_win_width,
         "smoothing_clip": smooth_clip,
         "fdr_shuffle_n": fdr_shuffle_n,
-        "seed": seed,
+        "seed": seed, # not used...yet
     }
 
     # Load bias model (if specified), otherwise use the uniform model
@@ -232,16 +236,19 @@ def run(interval_file,
     if dispersion_model_file:
         dm = dispersion.load_dispersion_model(dispersion_model_file)
         logger.info(f"Loaded dispersion model from file {dispersion_model_file}")
-
     else:
         logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
         dm = None
 
-    dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
-    dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
+    logger.info(f"Writing output to {output_filepath}")
 
-    with logging_redirect_tqdm():
-        for _ in tqdm(dp_iter, colour='#cc951d'):
-            pass
+    with open(output_filepath, 'w') as output_filehandle:
 
+        dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
+        dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
+
+        with logging_redirect_tqdm():
+            for batch in tqdm(dp_iter, colour='#cc951d'):
+                write_batch_to_output(batch, output_filehandle)
+        
     return 0

@@ -1,12 +1,4 @@
 from footprint_tools.data.processor import data_processor
-from footprint_tools.data.utils import numpy_collate, numpy_collate_concat
-
-from genome_tools import genomic_interval
-from footprint_tools import cutcounts   
-
-from tqdm import tqdm
-
-import pandas as pd
 
 import logging
 logger = logging.getLogger(__name__)
@@ -48,6 +40,7 @@ class process(base_process):
         
         return iter(dp)
 
+    # Example of overloaded `load_all` function
     # def load_all(self, batch_size=1, **kwargs):
     #     """Load all data"""
     #     return numpy_collate_concat([x for x in tqdm(self.batch_iter(batch_size, **kwargs))])

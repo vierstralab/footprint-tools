@@ -2,8 +2,9 @@ import sys
 import multiprocessing
 import threading
 import traceback
-from .sampler import sequential_sampler, minibatch_sampler
-from .utils import list_collate
+
+from footprint_tools.data.sampler import sequential_sampler, minibatch_sampler
+from footprint_tools.data.utils import list_collate
 
 import logging
 logger = logging.getLogger(__name__)
