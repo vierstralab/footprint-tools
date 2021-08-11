@@ -86,7 +86,7 @@ class expected_counts(process):
         obs = obs['+'][1:] + obs['-'][:-1]
         exp = exp['+'][1:] + exp['-'][:-1]
 
-        return np.column_stack((obs, exp))
+        return np.column_stack(exp, obs))
 
 @named('learn_dm')
 @arg('interval_file', 
@@ -160,7 +160,18 @@ def run(interval_file,
     dp = expected_counts(interval_file, bam_file, fasta_file, bm, **proc_kwargs)
     dp_iter = dp.batch_iter(batch_size=batch_size, collate_fn=numpy_collate_concat, num_workers=n_threads)
 
+    hist_size = (200, 1000)
+    hist = np.zeros(hist_size, dtype=int)
+
     with logging_redirect_tqdm():
-        for batch in tqdm(dp_iter, colour='#cc951d'):
-            logger.info(f'Batch shape = {batch.shape}')
+        for cnts in tqdm(dp_iter, colour='#cc951d'):
+            for i in range(cnts.shape[0]):
+                try:
+                    # expected, observed
+                    hist[int(cnts[i,0]),int(cnts[i, 1])] += 1
+                # ignore counts bigger than histogram bounds
+                except IndexError:
+                    pass
+
+    print(hist)
 
