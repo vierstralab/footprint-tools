@@ -102,7 +102,7 @@ class data_loader_iter(object):
     def __iter__(self):
         return self
 
-    def _put_indices(self):
+    def _put_indicies(self):
         assert self.batches_outstanding < 2 * self.num_workers
         indices = next(self.sampler_iter, None)
         if indices == None:
