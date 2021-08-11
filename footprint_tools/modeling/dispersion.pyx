@@ -324,10 +324,10 @@ cdef class dispersion_model:
         cdef int i, j, n = x.shape[0]
         cdef data_type_t r, mu, k
 
-        cdef int [:,:] sampled_vals = np.zeros((n, times), dtype = np.int_, order = 'c')
+        cdef long [:,:] sampled_vals = np.zeros((n, times), dtype = np.int_, order = 'c')
         cdef data_type_t [:,:] sampled_pvals = np.ones((n, times), dtype = np.float64, order = 'c')
 
-        cdef int [:] vals
+        cdef long [:] vals
 
         for i in range(n):
             r = self.fit_r(x[i])
