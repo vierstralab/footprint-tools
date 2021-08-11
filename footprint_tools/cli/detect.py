@@ -21,6 +21,9 @@ from footprint_tools.cli.utils import chunkify, tuple_ints
 import logging
 logger = logging.getLogger(__name__)
 
+# kill numpy warnings
+np.seterr(all="ignore")
+
 def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
     """Reads BAM file, computes expected cleavages and associated
         statistics and outputs to a multiprocessing pool queue

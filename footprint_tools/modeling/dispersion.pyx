@@ -276,7 +276,7 @@ cdef class dispersion_model:
         return res
 
     cpdef data_type_t [:] p_values(self, data_type_t [:] exp, data_type_t [:] obs):
-        """Compute culmulative distribution (lower-tail p-value)
+        """Compute cumulative distribution (lower-tail p-value)
         from negative binomial
 
         Parameters
