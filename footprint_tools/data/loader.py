@@ -41,9 +41,7 @@ class data_loader_iter(object):
         self.done_event = threading.Event()
 
         self.sample_iter = iter(self.batch_sampler)
-
-        logger.info(f"Using '{self.collate_fn.__doc__}' to collate chunks")
-
+                
         if self.num_workers > 0:
 
             logger.info(f"Using {self.num_workers} threads to process data")
@@ -147,6 +145,9 @@ class data_loader(object):
 
         self.sampler = sampler
         self.batch_sampler = batch_sampler
+
+        logger.info(f"Using batch_size = {self.batch_size}")
+        logger.info(f"Using '{self.collate_fn.__doc__}' to collate chunks")
 
     def __iter__(self):
         return data_loader_iter(self)
