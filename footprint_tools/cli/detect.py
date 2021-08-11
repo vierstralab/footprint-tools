@@ -105,7 +105,7 @@ class deviation_stats(process):
                 win_pvals = self.win_pval_fn(pvals)
 
                 _, pvals_null = self.dm.sample(exp, self.fdr_shuffle_n)
-                win_pvals_null = np.apply_along_axis(self.win_pvals_fn, 0, pvals_null)
+                win_pvals_null = np.apply_along_axis(self.win_pval_fn, 0, pvals_null)
 
                 efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
             except Exception as e:
