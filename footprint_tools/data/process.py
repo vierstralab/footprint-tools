@@ -38,7 +38,7 @@ class process(base_process):
                         num_workers=num_workers,
                         **kwargs)
 
-        return dl
+        return dp
 
     def batch_iter(self, batch_size=1, num_workers=0, **kwargs):
         
