@@ -104,7 +104,7 @@ class data_loader_iter(object):
 
     def _put_indicies(self):
         assert self.batches_outstanding < 2 * self.num_workers
-        indices = next(self.sampler_iter, None)
+        indices = next(self.sample_iter, None)
         if indices == None:
             return
         self.index_queue.put((self.send_idx, indices))
