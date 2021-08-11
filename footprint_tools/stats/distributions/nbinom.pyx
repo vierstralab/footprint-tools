@@ -20,7 +20,6 @@ cdef extern from "cephes.h":
 import warnings
 
 def mle(par, data, sm):
-
     """Objective function for MLE estimate according to
     https://en.wikipedia.org/wiki/Negative_binomial_distribution#Maximum_likelihood_estimation
     

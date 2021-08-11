@@ -26,8 +26,8 @@ cdef extern from "cephes.h":
     double PI
 
 cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_logpmf_values(dm, np.ndarray[data_type_t, ndim = 2, mode = 'c'] obs, np.ndarray[data_type_t, ndim = 2, mode = 'c'] exp,  data_type_t lo, data_type_t hi, int nslices):
-    """"Compute log pmf
-    """"
+    """Compute log pmf
+    """
     cdef int i 		
     cdef int n = obs.shape[0]
     cdef int m = obs.shape[1]
