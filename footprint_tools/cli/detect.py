@@ -25,7 +25,7 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
     """Reads BAM file, computes expected cleavages and associated
         statistics and outputs to a multiprocessing pool queue
     """
-    bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "bam_offset"] }
+    bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "offset"] }
     bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
     fasta_reader = pysam.FastaFile(fasta_file)
 
