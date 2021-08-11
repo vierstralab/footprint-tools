@@ -12,7 +12,7 @@ from matplotlib.ticker import MaxNLocator
 
 from footprint_tools.modeling import dispersion
 
-from footprint_tools.cli.utils import list_ints
+from footprint_tools.cli.utils import list_args
 
 import logging
 logger = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
     type=str,
     help='Dispersion model file')
 @arg('--histograms',
-    type=list_ints,
+    type=list_args(int),
     help='Plot histograms of observed counts at site with expected counts (comma-seperated list)')
 @arg('--outfile',
     dest='output_file',
