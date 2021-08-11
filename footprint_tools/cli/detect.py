@@ -258,7 +258,6 @@ def run(interval_file,
     #output_bed_filehandles = {t: open(fstr(output_bed_file_template), 'w') for t in write_footprints}
 
     for t in write_footprints:
-        print(t)
         print(fstr(output_bed_file_template))
     
     dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
