@@ -132,7 +132,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
         dm.pdf - a PDF file with plots
     """
     
-    dm = dispersion.read_dispersion_model(dispersion_model_file)
+    dm = dispersion.load_dispersion_model(dispersion_model_file)
 
     plt_params = {
         'legend.fontsize': 'xx-small',
