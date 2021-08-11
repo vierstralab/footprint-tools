@@ -95,10 +95,10 @@ def listener(q, total):
     help='Ignore reads with mapping quality lower than this threshold',
     default=1)
 @arg('--remove_dups',
-    help='Remove duplicate reads from analysis',
+    help='Remove duplicate reads',
     default=False)
-@arg('--remove_qcfail',
-    help='Remove QC-failed reads from analysis',
+@arg('--keep_qcfail',
+    help='Keep QC-failed reads',
     default=False)
 @arg('--bam_offset',
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
@@ -116,7 +116,7 @@ def run(interval_file,
         bias_model_file=None,
         min_qual=1,
         remove_dups=False,
-        remove_qcfail=False,
+        keep_qcfail=False,
         bam_offset=(0, -1),
         half_win_width=5,
         n_threads=max(1, mp.cpu_count())):
@@ -143,7 +143,7 @@ def run(interval_file,
     proc_kwargs = {
         "min_qual": min_qual,
         "remove_dups": remove_dups,
-        "remove_qcfail": remove_qcfail,
+        "remove_qcfail": ~keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,
     }
