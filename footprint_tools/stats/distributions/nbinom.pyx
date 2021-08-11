@@ -135,7 +135,7 @@ cpdef data_type_t cdf(int k, data_type_t p, data_type_t r) nogil:
     return c_incbet(r, k+1, p)
 
 cpdef data_type_t mean(data_type_t p, data_type_t r) nogil:
-   """Mean of negative binomial distribution
+    """Mean of negative binomial distribution
 
     Parameters
     ----------
