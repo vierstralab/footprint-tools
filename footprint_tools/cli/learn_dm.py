@@ -15,7 +15,7 @@ from genome_tools import bed, genomic_interval
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 
-from footprint_tools.cli.utils import tuple_ints, get_kwargs
+from footprint_tools.cli.utils import tuple_args, get_kwargs
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -108,7 +108,7 @@ class expected_counts(process):
 @arg('--bam_offset',
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
     default=(0,-1),
-    type=tuple_ints)
+    type=tuple_args(int))
 @arg('--half_win_width',
     help='Half window width to apply bias model',
     default=5)

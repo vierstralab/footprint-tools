@@ -3,7 +3,7 @@ from argh.decorators import named, arg
 
 import pysam
 
-from footprint_tools.cli.utils import tuple_ints
+from footprint_tools.cli.utils import tuple_args
 
 import logging
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
     default=3
     help='')
 @arg('bam_offset',
-    type=tuple_ints,
+    type=tuple_args(int),
     default=(0,-1),
     help='')
 def run(bam_file, fasta_file, mappability_file, k=6, mid=3, offset=(0, -1)):

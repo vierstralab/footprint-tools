@@ -1,23 +1,30 @@
 from argh.exceptions import CommandError
 
-def tuple_ints(arg):
+def tuple_args(arg_type=int):
     """
     Function to parser a tuple of integers from command line
     """
-    try:
-        fw, rev = list(map(int, arg.split(',')))
-        return (fw, rev)
-    except Exception as e:
-        raise CommandError("Argument must be a comma-delimited tuple -- i.e., 0,-1")
+    def parse_tuple(s):
+        try:
+            fw, rev = list(map(arg_type, s.split(',')))
+            return (fw, rev)
+        except Exception as e:
+            raise CommandError("Argument must be a comma-delimited tuple -- i.e., 0,-1")
+    return parse_tuple
 
-def list_ints(arg):
+def list_args(arg_type=int):
     """
     Function to parser a list of integers from command line
     """
-    try:
-        return list(map(int, arg.split(',')))
-    except Exception as e:
-        raise CommandError("Argument must be a comma-delimited list -- i.e., 0,1,2,3")
+    def parse_list(s):
+        try:
+            return list(map(arg_type, s.split(',')))
+        except Exception as e:
+            raise CommandError("Argument must be a comma-delimited list -- i.e., 0,1,2,3")
+    return parse_list
+
+def fstr(template):
+    return eval(f"f'{template}'")
 
 def get_kwargs(keys, kwargs):
     return {k:kwargs[k] for k in keys if k in kwargs}

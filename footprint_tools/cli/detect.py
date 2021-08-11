@@ -15,7 +15,7 @@ from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing, utils
 
-from footprint_tools.cli.utils import tuple_ints, get_kwargs
+from footprint_tools.cli.utils import list_args, tuple_args, get_kwargs, fstr
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -116,17 +116,19 @@ class deviation_stats(process):
 
         return {
                     "interval": interval,
-                    "data": stats
+                    "stats": stats
                 }
 
-def write_batch_to_output(batch, file=sys.stdout):
-    for interval, stats in zip(batch["interval"], batch["data"]):
-        chrom = interval.chrom
-        start = interval.start
-        for i in range(stats.shape[0]):
-            out = f'{chrom}\t{start+i}\t{start+i+1}\t'
-            out += '\t'.join(['{:0.4f}'.format(val) for val in stats[i,:]])
-            file.write(out+'\n')
+def write_stats_to_output(interval, stats, file=sys.stdout):
+    chrom = interval.chrom
+    start = interval.start
+    for i in range(stats.shape[0]):
+        out = f'{chrom}\t{start+i}\t{start+i+1}\t'
+        out += '\t'.join(['{:0.4f}'.format(val) for val in stats[i,:]])
+        file.write(out+'\n')
+
+def write_segments_to_output(interval, segments, file=sys.stdout):
+    pass
 
 @named('detect')
 @arg('interval_file', 
@@ -160,7 +162,7 @@ def write_batch_to_output(batch, file=sys.stdout):
     help='Retain QC-failed reads',
     default=False)
 @arg('--bam_offset',
-    type=tuple_ints,
+    type=tuple_args(int),
     default=(0, -1),
     help='BAM file offset (enables support for other datatypes -- e.g., Tn5/ATAC)')
 @arg('--half_win_width',
@@ -188,10 +190,12 @@ def write_batch_to_output(batch, file=sys.stdout):
 @arg('--batch_size',
     help='Batch size of intervals to process',
     default=100)
-@arg('--outfile',
-    dest='output_file',
-    default='out.bedgraph',
-    help='Output file path')
+@arg('--prefix',
+    dest='output_prefix',
+    help='Output file(s) prefix')
+@arg('--write_footprints',
+    type=list_args(float),
+    help='Output footprints at specified FDRs')
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -208,11 +212,12 @@ def run(interval_file,
         seed=None,
         n_threads=8,
         batch_size=100,
-        output_file='out.bedgraph'):
+        write_footprints=[0.001, 0.01, 0.05],
+        output_prefix='out'):
     """Compute per-nucleotide cleavage deviation statistics	
 
     Output:
-        bedGraph file written to `outfile` (see arguments):
+        bedGraph file written to `prefix`.bedgraph (see arguments):
             contig start start+1 obs exp -log(pval) -log(winpval) fdr
     """
     proc_kwargs = {
@@ -243,14 +248,26 @@ def run(interval_file,
         logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
         dm = None
 
-    logger.info(f"Writing output to {output_file}")
 
-    with open(output_file, 'w') as output_filehandle:
 
-        dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
-        dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
+    output_bedgraph_file = output_prefix + '.bedgraph'
+    output_bed_file_template = output_prefix + '.fdr{thresh}.bed'
+    
+    logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
+    output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
+        
+    logger.info(f"Writing footprints to {output_bed_file_template}")
+    # output_bed_filehandles = { t: open(output_prefix + '.fdr{t}.bed')} 
+    # for thresh in write_footprints:
 
-        with logging_redirect_tqdm():
-            for batch in tqdm(dp_iter, colour='#cc951d'):
-                write_batch_to_output(batch, output_filehandle)
- 
+    dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
+    dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
+
+    with logging_redirect_tqdm():
+        
+        for batch in tqdm(dp_iter, colour='#cc951d'):
+            
+            for interval, stats in zip(batch["interval"], batch["stats"]):
+                
+                write_stats_to_output(interval, stats, output_bedgraph_filehandle)
+
