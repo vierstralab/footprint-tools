@@ -68,6 +68,6 @@ def run(interval_file, bam_file, n_threads=8):
     ds = profile_loader(interval_file, bam_file)
     #print(ds[0])
     
-    for x in tqdm(ds.batch_iter(batch_size=100, collate_fn=list_collate, num_workers=n_threads), colour='#00ff00')s:
+    for x in tqdm(ds.batch_iter(batch_size=100, collate_fn=list_collate, num_workers=n_threads), colour='#00ff00'):
         #print([len(a) for a in x['counts']])
         pass
