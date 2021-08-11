@@ -84,7 +84,7 @@ class deviation_stats(process):
 
         interval = genomic_interval(chrom, start, end)
 
-        obs, exp, _ = self.count_predictor(interval)
+        obs, exp, _ = self.count_predictor.compute(interval)
 
         return obs
 
