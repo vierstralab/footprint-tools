@@ -11,6 +11,7 @@ from footprint_tools.data.dataset import dataset
 from footprint_tools.data.utils import list_collate
 
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 import logging
 logger = logging.getLogger(__name__)
@@ -67,8 +68,8 @@ def run(interval_file, bam_file, n_threads=8):
     """
 
     ds = profile_loader(interval_file, bam_file)
-    #print(ds[0])
-    
-    for x in tqdm(ds.batch_iter(batch_size=100, collate_fn=list_collate, num_workers=n_threads), colour='#C70039'):
-        #print([len(a) for a in x['counts']])
-        pass
+    ds_iter = ds.batch_iter(batch_size=100, collate_fn=list_collate, num_workers=n_threads)
+
+    with logging_redirect_tqdm():
+        for x in tqdm(ds_iter, colour='#C70039'):
+            logger.info("Batch recieved")

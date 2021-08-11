@@ -1,10 +1,3 @@
-def chunkify(l, n):
-    """Splits an iterable list into n chunks"""
-    return [l[i::n] for i in range(n)]
-
-def add_log_filehandler(logger, outfile, name='stdout'):
-    pass
-
 from argh.exceptions import CommandError
 
 def tuple_ints(arg):
@@ -25,3 +18,7 @@ def list_ints(arg):
         return list(map(int, arg.split(',')))
     except Exception as e:
         raise CommandError("Argument must be a comma-delimited list -- i.e., 0,1,2,3")
+
+def chunkify(l, n):
+    """Splits an iterable list into n chunks"""
+    return [l[i::n] for i in range(n)]
