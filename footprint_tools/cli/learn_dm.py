@@ -173,5 +173,11 @@ def run(interval_file,
                 except IndexError:
                     pass
 
-    print(hist)
+    logger.info("Learning dispersion model")
+    
+    model = dispersion.learn_dispersion_model(hist)
 
+    logger.info("Writing dispersion model to {}".format(output_file))
+
+    with open(output_file, "w") as output_filehandle:
+        print(dispersion.write_dispersion_model(model), file=output_filehandle)

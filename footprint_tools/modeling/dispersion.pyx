@@ -18,6 +18,9 @@ import warnings
 from scipy import optimize
 import pwlf
 
+import logging
+logger = logging.getLogger(__name__)
+
 cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,
                                      data_type_t y0, data_type_t y1, data_type_t y2,
                                      data_type_t k0, data_type_t k1, data_type_t k2):
@@ -370,9 +373,12 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     p = np.zeros(size)
     r = np.zeros(size)
 
+    logger.info("Analyzing {:,} cleavages".format(np.sum(h)))
+
     # Make an initial negative binomial fit
     for i in range(0, size):
     
+        # Unpack histogram
         pos = 0
         x = np.zeros(int(np.sum(h[i,:])))
         for j in range(len(h[i,:])):
