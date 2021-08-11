@@ -59,6 +59,6 @@ def run(interval_file, bam_file, n_threads):
     """
 
     ds = profile_loader(interval_file, bam_file)
-
-    for x in tqdm(ds.batch_iter(batch_size=1, num_workers=n_threads)):
-        print(x)
+    print(ds[0])
+    # for x in tqdm(ds.batch_iter(batch_size=1, num_workers=n_threads)):
+    #     print(x)
