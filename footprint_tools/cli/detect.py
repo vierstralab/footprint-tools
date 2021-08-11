@@ -255,7 +255,10 @@ def run(interval_file,
     output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
         
     logger.info(f"Writing footprints to {output_bed_file_template} for t \u22f2 {write_footprints}")
-    output_bed_filehandles = {t: open(fstr(output_bed_file_template), 'w') for t in write_footprints}
+    #output_bed_filehandles = {t: open(fstr(output_bed_file_template), 'w') for t in write_footprints}
+
+    for t in write_footprints:
+        print(fstr(output_bed_file_template))
     
     dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
     dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
@@ -269,4 +272,4 @@ def run(interval_file,
                 write_stats_to_output(interval, stats, output_bedgraph_filehandle)
 
     output_bedgraph_filehandle.close()
-    [f.close() for f in output_bed_filehandles.values()]
+    #[f.close() for f in output_bed_filehandles.values()]
