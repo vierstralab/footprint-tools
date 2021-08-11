@@ -3,12 +3,13 @@ import sys
 import argh
 from argh.decorators import named, arg
 
-from tqdm import tqdm
-import multiprocessing as mp
-
 import numpy as np
 import scipy as sp
+import pandas as pd
 import pysam
+
+from footprint_tools.data.process import process
+from footprint_tools.data.utils import list_collate
 
 from genome_tools import bed
 
@@ -16,7 +17,10 @@ from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing, utils
 
-from footprint_tools.cli.utils import chunkify, tuple_ints
+from footprint_tools.cli.utils import tuple_ints, get_kwargs
+
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 import logging
 logger = logging.getLogger(__name__)
@@ -24,86 +28,65 @@ logger = logging.getLogger(__name__)
 # kill numpy warnings
 np.seterr(all="ignore")
 
-def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
-    """Reads BAM file, computes expected cleavages and associated
-        statistics and outputs to a multiprocessing pool queue
+class deviation_stats(process):
+    """Class that computes per-nucleotide cleavage
+    deviation statistics
     """
-    bam_kwargs = { k:kwargs.pop(k) for k in ["min_qual", "remove_dups", "remove_qcfail", "offset"] }
-    bam_reader = cutcounts.bamfile(bam_file, **bam_kwargs)
-    fasta_reader = pysam.FastaFile(fasta_file)
+    def __init__(self, interval_file, bam_file, fasta_file, bm, dm, **kwargs):
 
-    predict_kwargs = { k:kwargs.pop(k) for k in ["half_win_width", "smoothing_half_win_width", "smoothing_clip"] }
-    predictor = predict.prediction(bam_reader, fasta_reader, bm, **predict_kwargs)
+        self.intervals = pd.read_table(interval_file, header=None)
+        self.bam_file = bam_file
+        self.fasta_file = fasta_file
+        self.bm = bm
+        self.dm = dm
 
-    # Args used for FDR sampling procedure
-    seed = kwargs.pop("seed")
-    if seed:
-        random.seed(seed)
-        np.random.seed(seed)
-    fdr_shuffle_n = kwargs.pop("fdr_shuffle_n") 
+        # kwargs for cutcounts.bamfile
+        self.counts_reader_kwargs = get_kwargs(
+            [
+                'min_qual',
+                'remove_dups',
+                'remove_qcfail',
+                'offset'
+            ], 
+            kwargs)
 
-    win_pvals_func = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
-    
-    # Read and process each region
-    for interval in intervals:
+        self.fasta_reader_kwargs = {}
 
-        obs, exp, _ = predictor.compute(interval)
+        self.counts_predictor_kwargs = get_kwargs(
+            [
+                'half_win_width',
+                'smoothing_half_win_width',
+                'smoothing_clip'
+            ],
+            kwargs)
 
-        obs = obs['+'][1:] + obs['-'][:-1]
-        exp = exp['+'][1:] + exp['-'][:-1]
+        self.fdr_shuffle_n = kwargs['fdr_shuffle_n']
+        self.seed = kwargs['seed']
 
-        n = len(obs)
+        self.counts_reader = None
+        self.fasta_reader = None
+        self.count_predictor = None
 
-        if dm:
-            try:
-                pvals = dm.p_values(exp, obs)
-                _, pvals_null = dm.sample(exp, fdr_shuffle_n)
+    def __len__(self):
+        return len(self.intervals)
 
-                win_pvals = win_pvals_func(pvals)
-                win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
-                
-                efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
+    def __getitem__(self, index):
+        
+        # Open file handlers on first call. This avoids problems when
+        # parallel processing data with non-thread safe code (i.e., pysam)
+        if not self.counts_reader:
+            self.counts_reader = cutcounts.bamfile(self.bam_file, **self.counts_reader_kwargs)
+            self.fasta_reader = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
+            self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, 
+                                                        self.bm, **self.counts_predictor_kwargs)
 
-            except Exception as e:
+        chrom, start, end = self.intervals.iat[index, 0], self.intervals.iat[index, 1], self.intervals.iat[index, 2]
 
-                pvals = win_pvals = efdr = np.ones(n)
+        interval = genomic_interval(chrom, start, end)
 
-            finally:
-                stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
-        else:
-            stats = np.column_stack((exp, obs))
+        obs, exp, _ = self.count_predictor(interval)
 
-        q.put( (interval, stats) )
-
-        while q.qsize() > 100:
-            pass
-
-def write_func(q, outfile, total):
-    """Function to write output from multiple threads to a single file
-    """    
-    f = outfile
-
-    progress_desc="Regions processed"
-    with tqdm(total=total, desc=progress_desc, ncols=80) as progress_bar:
-
-        while 1:
-            data = q.get()
-
-            # If sentinel value is detected, return thread
-            if data == None:
-                q.task_done()
-                break
-
-            interval, stats = data
-
-            for i in range(stats.shape[0]):
-                coords = "{}\t{:d}\t{:d}".format(interval.chrom, interval.start+i, interval.start+i+1)
-                val_string = "\t".join( ["{:0.4f}".format(val) for val in stats[i,:]])
-                print(coords + "\t" + val_string, file=f)
-
-            q.task_done()
-
-            progress_bar.update(1)
+        return obs
 
 @named('detect')
 @arg('interval_file', 
@@ -160,8 +143,8 @@ def write_func(q, outfile, total):
     default=None,
     help='Seed for random number generation')
 @arg('--n_threads',
-    help='Number of processors to use (min=2)',
-    default=max(2, mp.cpu_count()))
+    help='Number of processors to use',
+    default=8)
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -176,7 +159,7 @@ def run(interval_file,
         smooth_clip=0.01,
         fdr_shuffle_n=50,
         seed=None,
-        n_threads=max(2, mp.cpu_count())):
+        n_threads=8):
     """Compute per-nucleotide cleavage deviation statistics	
 
     Output:
@@ -218,29 +201,11 @@ def run(interval_file,
         logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
         dm = None
 
-    q = mp.JoinableQueue()
+    dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
+    dp_iter = dp.batch_iter(batch_size=100, collate_fn=list_collate, num_workers=n_threads)
 
-    read_procs = []
-    for i, chunk in enumerate(chunkify(intervals, max(1, n_threads-1))):
-           p = mp.Process(target=read_func, args=(bam_file, fasta_file, bm, dm, chunk, q), kwargs=proc_kwargs)
-           read_procs.append(p)
+    with logging_redirect_tqdm():
+        for _ in tqdm(dp_iter, colour='#C70039'):
+            pass
 
-    write_proc = mp.Process(target=write_func, args=(q, sys.stdout, len(intervals)))
-
-    logger.info(f"Using {len(read_procs)} threads to compute footprint statistics")
-    logger.info("Using 1 thread to write footprint statistics")
-
-    [p.start() for p in read_procs]
-    write_proc.start()
-
-    try:
-        [p.join() for p in read_procs]
-        q.join() # block until queue is empty after processing is done
-        q.put(None) # sends sentinal signal
-        write_proc.join() # wait for writer proc to return
-        logger.info("Finished computing and writing footprint statistics!")
-    except KeyboardInterrupt:
-        [p.terminate() for p in read_procs]
-        write_proc.terminate()
-    
     return 0

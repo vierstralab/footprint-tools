@@ -1,4 +1,4 @@
-from footprint_tools.data.loader import data_loader
+from footprint_tools.data.processor import data_processor
 from footprint_tools.data.utils import numpy_collate, numpy_collate_concat
 
 from genome_tools import genomic_interval
@@ -11,7 +11,7 @@ import pandas as pd
 import logging
 logger = logging.getLogger(__name__)
 
-class base_dataset(object):
+class base_process(object):
     def batch_iter(self, **kwargs):
         raise  NotImplementedError
 
@@ -19,7 +19,7 @@ class base_dataset(object):
         """Load an entire dataset"""
         return [x for x in self.batch_iter(**kwargs)]
 
-class dataset(base_dataset):
+class process(base_process):
     """All datasets should subclass this class. All subclases should
     override `__len__` and `__getitem__` to support integer indexing"""
 
@@ -33,7 +33,7 @@ class dataset(base_dataset):
 
     def _batch_iterable(self, batch_size=1, num_workers=0, **kwargs):
         
-        dl = data_loader(self, 
+        dp = data_processor(self, 
                         batch_size=batch_size,
                         num_workers=num_workers,
                         **kwargs)
@@ -42,12 +42,12 @@ class dataset(base_dataset):
 
     def batch_iter(self, batch_size=1, num_workers=0, **kwargs):
         
-        dl =  self._batch_iterable(batch_size=batch_size,
+        dp =  self._batch_iterable(batch_size=batch_size,
                                     num_workers=num_workers,
                                     **kwargs)
         
-        return iter(dl)
+        return iter(dp)
 
-    def load_all(self, batch_size=1, **kwargs):
-        """Load all data"""
-        return numpy_collate_concat([x for x in tqdm(self.batch_iter(batch_size, **kwargs))])
+    # def load_all(self, batch_size=1, **kwargs):
+    #     """Load all data"""
+    #     return numpy_collate_concat([x for x in tqdm(self.batch_iter(batch_size, **kwargs))])

@@ -19,6 +19,9 @@ def list_ints(arg):
     except Exception as e:
         raise CommandError("Argument must be a comma-delimited list -- i.e., 0,1,2,3")
 
+def get_kwargs(keys, kwargs):
+    return {k:kwargs[k] for k in keys if k in kwargs}
+
 def chunkify(l, n):
     """Splits an iterable list into n chunks"""
     return [l[i::n] for i in range(n)]

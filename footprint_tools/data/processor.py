@@ -17,7 +17,7 @@ class exception_wrapper(object):
         self.exc_type = exc_info[0]
         self.exc_msg = "".join(traceback.format_exception(*exc_info))
 
-def _worker_loop(dataset, index_queue, data_queue, collate_fn):
+def _worker_loop(process, index_queue, data_queue, collate_fn):
     """Worker loop to load data"""
     while True:
         r = index_queue.get()
@@ -26,18 +26,18 @@ def _worker_loop(dataset, index_queue, data_queue, collate_fn):
         idx, batch_indices = r
 
         try:
-            batch = collate_fn([dataset[i] for i in batch_indices])
+            batch = collate_fn([process[i] for i in batch_indices])
         except Exception:
             data_queue.put((idx, exception_wrapper(sys.exc_info())))
         else:
             data_queue.put((idx, batch))
 
-class data_loader_iter(object):
-    def __init__(self, loader):
-        self.dataset = loader.dataset
-        self.collate_fn = loader.collate_fn
-        self.batch_sampler = loader.batch_sampler
-        self.num_workers = loader.num_workers
+class processor_iter(object):
+    def __init__(self, processor):
+        self.process = processor.process
+        self.collate_fn = processor.collate_fn
+        self.batch_sampler = processor.batch_sampler
+        self.num_workers = processor.num_workers
         self.done_event = threading.Event()
 
         self.sample_iter = iter(self.batch_sampler)
@@ -57,7 +57,7 @@ class data_loader_iter(object):
             self.workers = [
                 multiprocessing.Process(
                     target=_worker_loop,
-                    args=(self.dataset, self.index_queue, self.data_queue, self.collate_fn))
+                    args=(self.process, self.index_queue, self.data_queue, self.collate_fn))
                 for _ in range(self.num_workers)
             ]
 
@@ -78,7 +78,7 @@ class data_loader_iter(object):
     def __next__(self):
         if self.num_workers == 0:
             indices = next(self.sample_iter)
-            batch = self.collate_fn([self.dataset[i] for i in indices])
+            batch = self.collate_fn([self.process[i] for i in indices])
             return batch
         
         if self.rcvf_idx in self.reorder_dict:
@@ -133,14 +133,14 @@ class data_loader_iter(object):
         if self.num_workers > 0:
             self._shutdown_workers()
 
-class data_loader(object):
-    def __init__(self, dataset, batch_size=1, num_workers=0, collate_fn=default_collate):
-        self.dataset = dataset
+class data_processor(object):
+    def __init__(self, process, batch_size=1, num_workers=0, collate_fn=default_collate):
+        self.process = process
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.collate_fn = collate_fn
 
-        sampler = sequential_sampler(dataset)
+        sampler = sequential_sampler(process)
         batch_sampler = minibatch_sampler(sampler, batch_size)
 
         self.sampler = sampler
@@ -150,7 +150,7 @@ class data_loader(object):
         logger.info(f"Using '{self.collate_fn.__doc__}' to collate chunks")
 
     def __iter__(self):
-        return data_loader_iter(self)
+        return data_processor_iter(self)
 
     def __len__(self):
         return len(self.batch_sampler)
