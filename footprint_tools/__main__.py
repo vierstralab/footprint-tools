@@ -17,6 +17,7 @@ import footprint_tools.cli.detect as detect
 import footprint_tools.cli.learn_beta as learn_beta
 import footprint_tools.cli.plot_dm as plot_dm
 import footprint_tools.cli.posterior as posterior
+import footprint_tools.cli.meta_profile as meta_profile
 
 epilog = """Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). 
 
@@ -32,6 +33,7 @@ def main():
         learn_beta.run,
         plot_dm.run,
         posterior.run,
+        meta_profile.run,
     ])
     parser.add_argument('--version',
             action='version',
