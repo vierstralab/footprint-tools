@@ -123,7 +123,12 @@ class deviation_stats(process):
 
 def write_batch_to_output(batch, file=sys.stdout):
     for interval, stats in zip(batch["interval"], batch["data"]):
-        file.write(str(interval) + '\n')
+        chrom = interval.chrom
+        start = interval.start
+        for i in range(stats.shape[0]):
+            out = f'{chrom}\t{start+i}\t{start+i+1}\t'
+            out += '\t'.join(['{:0.4f}'.format(val) for val in stats[i,:]])
+            file.write(out+'\n')
 
 @named('detect')
 @arg('interval_file', 
@@ -137,7 +142,7 @@ def write_batch_to_output(batch, file=sys.stdout):
 @arg('--bias_model_file',
     type=str,
     default=None,
-    help='Use a k-mer model for local bias (supplied by file). '
+    help='Use a k-mer model for sequence bias (supplied by file). '
         'If argument is not provided the model defaults to uniform '
         'sequence bias.')
 @arg('--dispersion_model_file',
@@ -186,7 +191,7 @@ def write_batch_to_output(batch, file=sys.stdout):
     help='Batch size of intervals to process',
     default=100)
 @arg('--outfile',
-    dest='output_filepath',
+    dest='output_file',
     default='out.bedgraph',
     help='Output file path')
 def run(interval_file,
@@ -205,7 +210,7 @@ def run(interval_file,
         seed=None,
         n_threads=8,
         batch_size=100,
-        output_filepath='out.bedgraph'):
+        output_file='out.bedgraph'):
     """Compute per-nucleotide cleavage deviation statistics	
 
     Output:
@@ -240,9 +245,9 @@ def run(interval_file,
         logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
         dm = None
 
-    logger.info(f"Writing output to {output_filepath}")
+    logger.info(f"Writing output to {output_file}")
 
-    with open(output_filepath, 'w') as output_filehandle:
+    with open(output_file, 'w') as output_filehandle:
 
         dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
         dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
