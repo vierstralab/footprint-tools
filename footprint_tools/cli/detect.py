@@ -52,20 +52,20 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
         n = len(obs)
 
         if dm:
-            try:
-                pvals = dm.p_values(exp, obs)
-                _, pvals_null = dm.sample(exp, fdr_shuffle_n)
+            #try:
+            pvals = dm.p_values(exp, obs)
+            _, pvals_null = dm.sample(exp, fdr_shuffle_n)
 
-                win_pvals = win_pvals_func(pvals)
-                win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
-                
-                efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
+            win_pvals = win_pvals_func(pvals)
+            win_pvals_null = np.apply_along_axis(win_pvals_func, 0, pvals_null)
+            
+            efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
 
-            except ValueError as e:
-                pvals = win_pvals = efdr = np.ones(n)
+            #except ValueError as e:
+            #    pvals = win_pvals = efdr = np.ones(n)
 
-            finally:
-                stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
+            #finally:
+            stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
         else:
             stats = np.column_stack((exp, obs))
 
