@@ -15,7 +15,8 @@ import scipy.optimize
 ctypedef np.float64_t data_type_t
 
 from ..modeling cimport dispersion
-from .
+from .distributions cimport invchi2, t
+
 ctypedef dispersion.dispersion_model dm_t
 
 cdef extern from "cephes.h":
@@ -88,7 +89,7 @@ cpdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] compute_log_prior_t(np.ndarr
 
             for j in range(0, nslices):
                 #res_view[i, j] = scipy.stats.t.logpdf(bins[j], df = nu_1, loc = mu, scale = np.sqrt(sig2_1))
-                res_view[i, j] = t_logpmf(lo+(j*h), nu_1, mu, sig2_1)
+                res_view[i, j] = t.logpmf(lo+(j*h), nu_1, mu, sig2_1)
 
         res[i, :] += np.log(h)
 
