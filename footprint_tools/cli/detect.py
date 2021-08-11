@@ -241,7 +241,7 @@ def run(interval_file,
     dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     with logging_redirect_tqdm():
-        for _ in tqdm(dp_iter, colour='#C70039'):
+        for _ in tqdm(dp_iter, colour='#cc951d'):
             pass
 
     return 0

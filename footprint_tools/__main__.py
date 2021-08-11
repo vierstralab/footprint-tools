@@ -39,4 +39,4 @@ def main():
             action='version',
             version='%(prog)s ' + footprint_tools.__version__)
     
-    argh.dispatch(parser, output_file=None)
+    return argh.dispatch(parser, output_file=None)
