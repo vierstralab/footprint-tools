@@ -109,9 +109,8 @@ class deviation_stats(process):
 
                 efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
             except Exception as e:
-                logger.warning(f"Error computing stats for '{interval}'")
+                logger.warning(f"Error computing stats for '{interval.chrom}:{interval.start}-{interval.end}'")
                 pvals = win_pvals = efdr = np.ones(n) # should change to return 'nan'
-                raise e
             finally:
                 stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
         else:
