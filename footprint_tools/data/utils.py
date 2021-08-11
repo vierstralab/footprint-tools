@@ -20,7 +20,7 @@ list_collate = _list_collate(list)
 list_collate.__doc__ = __name__ + '.list_collate'
 
 list_collate_concat = _list_collate(lambda x: list(itertools.chain(*x)))
-list_collate_concat.__doc__ = name + '.list_collate_concat'
+list_collate_concat.__doc__ = __name__ + '.list_collate_concat'
 
 def _numpy_collate(stack_fn=np.stack):
     def numpy_collate_fn(batch):
