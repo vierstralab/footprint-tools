@@ -248,15 +248,13 @@ def run(interval_file,
         logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
         dm = None
 
-
-
     output_bedgraph_file = output_prefix + '.bedgraph'
-    output_bed_file_template = output_prefix + '.fdr{thresh}.bed'
+    output_bed_file_template = output_prefix + '.fdr{t}.bed'
     
     logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
     output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
         
-    logger.info(f"Writing footprints to {output_bed_file_template}")
+    logger.info(f"Writing footprints to {output_bed_file_template} for t \u22f5 {write_footprints}")
     # output_bed_filehandles = { t: open(output_prefix + '.fdr{t}.bed')} 
     # for thresh in write_footprints:
 
