@@ -53,4 +53,7 @@ def _numpy_collate(stack_fn=np.stack):
     return numpy_collate_fn
 
 numpy_collate = _numpy_collate(np.stack)
+numpy_collate.__doc__ = __name__ + '.numpy_collate'
+
 numpy_collate_concat = _numpy_collate(np.concatenate)
+numpy_collate_concat.__doc__ = __name__ + '.numpy_collate_concat'

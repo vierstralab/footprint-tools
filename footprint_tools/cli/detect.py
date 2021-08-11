@@ -9,7 +9,6 @@ import pandas as pd
 import pysam
 
 from footprint_tools.data.process import process
-from footprint_tools.data.utils import list_collate
 
 from genome_tools import bed, genomic_interval
 
@@ -240,7 +239,7 @@ def run(interval_file,
     # Load dispersion model (if specified)
     if dispersion_model_file:
         dm = dispersion.load_dispersion_model(dispersion_model_file)
-        logger.info(f"Loaded dispersion model from file {dispersion_model_file}")
+        logger.info(f"Loading dispersion model from file {dispersion_model_file}")
     else:
         logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
         dm = None
@@ -255,5 +254,4 @@ def run(interval_file,
         with logging_redirect_tqdm():
             for batch in tqdm(dp_iter, colour='#cc951d'):
                 write_batch_to_output(batch, output_filehandle)
-        
-    return 0
+ 
