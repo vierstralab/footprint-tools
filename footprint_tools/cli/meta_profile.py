@@ -51,9 +51,6 @@ class profile_loader(dataset):
 
         return out
 
-def print_chunk(chunk, f):
-
-
 @named('meta_profile')
 @arg('interval_file',
     type=str,
