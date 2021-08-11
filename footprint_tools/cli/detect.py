@@ -1,6 +1,5 @@
 import sys
 
-import argh
 from argh.decorators import named, arg
 
 import numpy as np

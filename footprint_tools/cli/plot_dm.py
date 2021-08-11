@@ -1,8 +1,5 @@
-import sys
-import os
 import math
 
-import argh
 from argh.decorators import named, arg
 
 import numpy as np
@@ -33,7 +30,6 @@ def plot_model_mu(dm, ax=None, xlim=(0, 100)):
 
     # Smoothed parameters
     fit_mu = np.array([dm.fit_mu(i) for i in x])
-    fit_r = np.array([dm.fit_r(i) for i in x])
 
     # Plot functions & appearance
     ax.plot(x, mu, label='MLE neg. binomial fit')
@@ -120,12 +116,14 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 @named('plot_dm')
 @arg('dispersion_model_file',
     type=str,
-    help='Dispersion model file (can be a remote URL -- http protocol)')
+    help='Dispersion model file')
 @arg('--histograms',
     type=list_ints,
-    default=[15,25,50,75],
-    help='')
-def run(dispersion_model_file, histograms=[15,25,50,75]):
+    help='Plot histograms of observed counts at site with expected counts (comma-seperated list)')
+@arg('--outfile',
+    dest='output_file',
+    help='Output file path for plot (suffix determines image format)')
+def run(dispersion_model_file, histograms=[15,25,50,75], output_file='dm.pdf'):
     """Diagnostic plotting of a dispersion model
 
     Output:
@@ -166,11 +164,9 @@ def run(dispersion_model_file, histograms=[15,25,50,75]):
         plot_histogram(dm, n=n, ax=ax)
 
     fig.set_size_inches(2.5*ncols, 2*nrows)
-
-    outfile = os.path.abspath(os.path.join(os.getcwd(), 'dm.pdf'))
     
-    logger.info(f"Saving plots to {outfile}")	
+    logger.info(f"Saving plots to {output_file}")	
 
-    plt.savefig(outfile, transparent=True)
+    plt.savefig(output_file, transparent=True)
 
     return 0

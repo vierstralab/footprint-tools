@@ -1,6 +1,5 @@
 import sys
 
-import argh
 from argh.decorators import named, arg
 
 import numpy as np
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 np.seterr(all="ignore")
 
 class expected_counts(process):
-    """
+    """Computes observed and expected cleavage counts
     """
     def __init__(self, interval_file, bam_file, fasta_file, bm, **kwargs):
        
