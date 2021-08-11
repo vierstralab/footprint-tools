@@ -8,6 +8,7 @@ This sub-module contains utility functions for stats module
 # cython: embedsignature=True
 
 cimport numpy as np
+import numpy as np
 
 ctypedef np.float64_t data_type_t
 
