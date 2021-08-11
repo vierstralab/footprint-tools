@@ -121,7 +121,7 @@ class expected_counts(process):
     default=100)
 @arg('--outfile',
     dest='output_file',
-    default='out.bedgraph',
+    default='dm.json',
     help='Output file path')
 def run(interval_file,
         bam_file,
