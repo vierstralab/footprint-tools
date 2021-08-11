@@ -9,6 +9,7 @@ cimport numpy as np
 cdef extern from "cephes.h":
     double c_lgamma(double) nogil
     double c_log(double) nogil
+    double c_sqrt(double) nogil
     double PI
 
 ctypedef np.float64_t data_type_t
