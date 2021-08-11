@@ -40,6 +40,7 @@ class profile_loader(dataset):
         interval = genomic_interval(chrom, start, end)
 
         counts = self.bam_reader[interval]
+        counts.pop('fragments')
 
         return counts
 
@@ -59,6 +60,7 @@ def run(interval_file, bam_file, n_threads):
     """
 
     ds = profile_loader(interval_file, bam_file)
-    print(ds[0])
-    # for x in tqdm(ds.batch_iter(batch_size=1, num_workers=n_threads)):
-    #     print(x)
+    #print(ds[0])
+    
+    pos = [x["+"] for x in tqdm(ds.batch_iter(batch_size=1, num_workers=n_threads))]
+    
