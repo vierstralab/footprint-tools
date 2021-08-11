@@ -9,8 +9,6 @@ cdef extern from "cephes.h":
     double c_log(double) nogil
     double c_lgamma(double) nogil
      
-ctypedef np.float64_t data_type_t
-
 cpdef data_type_t logpmf(data_type_t x, data_type_t nu, data_type_t tau2) nogil:
     """Log probability mass function for inverse Chi-squared distribution
 
@@ -44,7 +42,6 @@ cpdef data_type_t log_likelihood(data_type_t [:] x, data_type_t nu, data_type_t 
     Returns
     -------
     log_likelihood : float
-
     """
     cdef int n = x.shape[0]
     cdef data_type_t res = 0
