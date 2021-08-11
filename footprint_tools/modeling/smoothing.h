@@ -1,4 +1,4 @@
-// Copyright 2015 Jeff Vierstra
+// Windowed smoothing functions implemented in native C
 
 #ifndef __SMOOTHING_H_
 #define __SMOOTHING_H_
@@ -104,20 +104,20 @@ double trimmed_mean(double x[], int n, int k)
 }
 
 
-double* windowed_trimmed_mean(double* win, int l, int half_window_width, double clip)
+double* windowed_trimmed_mean(double* win, int l, int half_win_width, double clip)
 {
     int i, j, k;
-    int w = (half_window_width * 2) + 1;
+    int w = (half_win_width * 2) + 1;
 
     k = (int)( (double)w * clip );
 
     double *tmp = malloc(w * sizeof(double));
     double *res = calloc(l, sizeof(double));
     
-    for (i = half_window_width; i < l-half_window_width; i++)
+    for (i = half_win_width; i < l-half_win_width; i++)
     {
         // index to start
-        j = i - half_window_width;
+        j = i - half_win_width;
 
         // copy data into new memory location
         memcpy(&tmp[0], &win[j], w * sizeof(double));

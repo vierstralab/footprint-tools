@@ -1,1 +1,5 @@
-__all__ = ["distributions", "windowing", "bayesian", "segment"]
+"""
+This module contains classes and functions for statistical analysis
+"""
+
+__all__ = ["distributions", "windowing", "posterior", "utils"]

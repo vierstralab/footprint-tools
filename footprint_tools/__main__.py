@@ -25,17 +25,17 @@ See http://github.com/jvierstra/footprint-tools for extended documentation.
 Software licensed under GNU General Public License version 3."""
 
 def main():
-	parser = argh.ArghParser(epilog=epilog)
-	parser.add_commands([
-		learn_dm.run,
-		find_fps.run,
-		learn_beta.run,
-		plot_dm.run,
-		posterior.run,
-	])
-	parser.add_argument('--version',
-			action='version',
-			version='%(prog)s ' + footprint_tools.__version__)
-	
-	exitcode = argh.dispatch(parser, output_file=None)
-	sys.exit(int(exitcode.strip()))
+    parser = argh.ArghParser(epilog=epilog)
+    parser.add_commands([
+        learn_dm.run,
+        find_fps.run,
+        learn_beta.run,
+        plot_dm.run,
+        posterior.run,
+    ])
+    parser.add_argument('--version',
+            action='version',
+            version='%(prog)s ' + footprint_tools.__version__)
+    
+    exitcode = argh.dispatch(parser, output_file=None)
+    sys.exit(int(exitcode.strip()))
