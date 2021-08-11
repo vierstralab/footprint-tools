@@ -186,7 +186,7 @@ def write_batch_to_output(batch, file=sys.stdout):
     help='Batch size of intervals to process',
     default=100)
 @arg('--outfile',
-    dest='out_filepath',
+    dest='output_filepath',
     default='out.bedgraph',
     help='Output file path')
 def run(interval_file,
