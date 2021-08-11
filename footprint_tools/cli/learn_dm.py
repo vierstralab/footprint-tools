@@ -86,7 +86,7 @@ class expected_counts(process):
         obs = obs['+'][1:] + obs['-'][:-1]
         exp = exp['+'][1:] + exp['-'][:-1]
 
-        return np.column_stack(exp, obs))
+        return np.column_stack((exp, obs))
 
 @named('learn_dm')
 @arg('interval_file', 
