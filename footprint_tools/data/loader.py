@@ -66,7 +66,7 @@ class data_loader_iter(object):
                 w.start()
 
             for _ in range(2 * self.num_workers):
-                self._put_indicies()
+                self._put_indices()
         else:
 
             logger.info(f"Using a single threads to process data")
@@ -102,7 +102,7 @@ class data_loader_iter(object):
     def __iter__(self):
         return self
 
-    def _put_indicies(self):
+    def _put_indices(self):
         assert self.batches_outstanding < 2 * self.num_workers
         indices = next(self.sample_iter, None)
         if indices == None:
