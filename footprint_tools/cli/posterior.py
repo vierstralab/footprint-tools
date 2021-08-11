@@ -16,7 +16,7 @@ from genome_tools import bed
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import bayesian, segment
 
-from footprint_tools.cli.utils import chunkify, tuple_ints
+from footprint_tools.cli.utils import chunkify
 
 import logging
 logger = logging.getLogger(__name__)
