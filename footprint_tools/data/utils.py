@@ -17,7 +17,10 @@ def _list_collate(stack_fn=list):
     return list_collate_fn
 
 list_collate = _list_collate(list)
+list_collate.__doc__ = 'list_collate'
+
 list_collate_concat = _list_collate(lambda x: list(itertools.chain(*x)))
+list_collate_concat.__doc__ = 'list_collate'
 
 def _numpy_collate(stack_fn=np.stack):
     def numpy_collate_fn(batch):

@@ -42,7 +42,7 @@ class data_loader_iter(object):
 
         self.sample_iter = iter(self.batch_sampler)
 
-        logger.info(f"Using '{self.collate_fn.__name__}' to collate chunks")
+        logger.info(f"Using '{self.collate_fn.__doc__}' to collate chunks")
 
         if self.num_workers > 0:
 
