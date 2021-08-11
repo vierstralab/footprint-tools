@@ -145,7 +145,7 @@ def run(interval_file,
         "remove_dups": remove_dups,
         "remove_qcfail": remove_qcfail,
         "offset": bam_offset,
-        "half_window_width": half_win_width,
+        "half_win_width": half_win_width,
     }
 
     pool = mp.Pool(n_threads, init_proc)
