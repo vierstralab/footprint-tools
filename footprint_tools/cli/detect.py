@@ -47,7 +47,7 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
     # Read and process each region
     for interval in intervals:
 
-        obs, exp, win = predictor.compute(interval)
+        obs, exp, _ = predictor.compute(interval)
 
         obs = obs['+'][1:] + obs['-'][:-1]
         exp = exp['+'][1:] + exp['-'][:-1]
