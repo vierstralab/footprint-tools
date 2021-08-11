@@ -169,7 +169,7 @@ cpdef data_type_t var(data_type_t p, data_type_t r) nogil:
     return (p*r)/((1-p)*(1-p))
 
 cpdef data_type_t rvs(data_type_t p, data_type_t r) nogil:
-    """"Sample a random variate from negative binomial distribution
+    """Sample a random variate from negative binomial distribution
     
     Parameters
     ----------

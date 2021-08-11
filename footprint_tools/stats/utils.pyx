@@ -1,6 +1,6 @@
-""""
+"""
 This sub-module contains utility functions for stats module 
-""""
+"""
 
 # cython: boundscheck=False
 # cython: wraparound=False
@@ -12,12 +12,12 @@ cimport numpy as np
 ctypedef np.float64_t data_type_t
 
 cpdef segment(data_type_t [:] x, data_type_t threshold, int w = 1, bint decreasing = 0):
-    """Segment an array into continuous elements passing a threshhold
+    """Segment an array into continuous elements passing a threshold
 
     Parameters
     ---------
     x : array_like
-        Values to segment
+        Array of values to segment
     threshold : float
         Threshold for grouping elements
     w : int
