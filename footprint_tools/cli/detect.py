@@ -62,6 +62,7 @@ def read_func(bam_file, fasta_file, bm, dm, intervals, q, **kwargs):
                 efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
 
             except Exception as e:
+                logger.warning(e)
                 pvals = win_pvals = efdr = np.ones(n)
 
             finally:
