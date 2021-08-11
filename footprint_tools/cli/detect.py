@@ -11,7 +11,7 @@ import pysam
 from footprint_tools.data.process import process
 from footprint_tools.data.utils import list_collate
 
-from genome_tools import bed
+from genome_tools import bed, genomic_interval
 
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
