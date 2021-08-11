@@ -32,7 +32,7 @@ def _worker_loop(process, index_queue, data_queue, collate_fn):
         else:
             data_queue.put((idx, batch))
 
-class processor_iter(object):
+class data_processor_iter(object):
     def __init__(self, processor):
         self.process = processor.process
         self.collate_fn = processor.collate_fn
