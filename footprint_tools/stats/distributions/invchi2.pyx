@@ -47,5 +47,5 @@ cpdef data_type_t log_likelihood(data_type_t [:] x, data_type_t nu, data_type_t 
     cdef data_type_t res = 0
 
     for i in range(n):
-        ll += logpmf(x[i], nu, tau2)
-    return ll
+        res += logpmf(x[i], nu, tau2)
+    return res
