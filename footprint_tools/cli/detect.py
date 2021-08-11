@@ -1,3 +1,5 @@
+import sys
+
 import argh
 from argh.decorators import named, arg
 
@@ -99,7 +101,7 @@ def write_func(q, outfile, total):
 
             progress_bar.update(1)
 
-@named('find_fps')
+@named('detect')
 @arg('interval_file', 
     help='File path to BED file contain regions to analyzed')
 @arg('bam_file', 

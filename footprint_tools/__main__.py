@@ -12,8 +12,8 @@ logging.config.fileConfig(pkg_resources.resource_filename(__name__, "logging.con
 logger = logging.getLogger(__name__)
 
 import footprint_tools
-import footprint_tools.cli.learn_dispersion as learn_dm
-import footprint_tools.cli.find_fps as find_fps
+import footprint_tools.cli.learn_dm as learn_dm
+import footprint_tools.cli.detect as detect
 import footprint_tools.cli.learn_beta as learn_beta
 import footprint_tools.cli.plot_dm as plot_dm
 import footprint_tools.cli.posterior as posterior
@@ -28,7 +28,7 @@ def main():
     parser = argh.ArghParser(epilog=epilog)
     parser.add_commands([
         learn_dm.run,
-        find_fps.run,
+        detect.run,
         learn_beta.run,
         plot_dm.run,
         posterior.run,
