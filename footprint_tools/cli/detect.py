@@ -35,6 +35,9 @@ class deviation_stats(process):
     def __init__(self, interval_file, bam_file, fasta_file, bm, dm, **kwargs):
 
         self.intervals = pd.read_table(interval_file, header=None)
+
+        logger.info(f"BED file contains {len(self.intervals):,} regions")
+
         self.bam_file = bam_file
         self.fasta_file = fasta_file
         self.bm = bm
@@ -67,10 +70,13 @@ class deviation_stats(process):
         self.fasta_reader = None
         self.count_predictor = None
 
+        self.win_pval_fn = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
+
     def __len__(self):
         return len(self.intervals)
 
     def __getitem__(self, index):
+        """Process data for a single interval"""
         
         # Open file handlers on first call. This avoids problems when
         # parallel processing data with non-thread safe code (i.e., pysam)
@@ -80,13 +86,42 @@ class deviation_stats(process):
             self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, 
                                                         self.bm, **self.counts_predictor_kwargs)
 
-        chrom, start, end = self.intervals.iat[index, 0], self.intervals.iat[index, 1], self.intervals.iat[index, 2]
+        chrom, start, end = (self.intervals.iat[index, 0], 
+                             self.intervals.iat[index, 1], 
+                             self.intervals.iat[index, 2])
 
         interval = genomic_interval(chrom, start, end)
 
         obs, exp, _ = self.count_predictor.compute(interval)
+        obs = obs['+'][1:] + obs['-'][:-1]
+        exp = exp['+'][1:] + exp['-'][:-1]
 
-        return obs
+        assert len(obs) == len(exp)
+        n = len(obs)
+
+        if self.dm:
+            try:
+                pvals = self.dm.p_values(exp, obs)
+                win_pvals = self.win_pval_fn(pvals)
+
+                _, pvals_null = self.dm.sample(exp, self.fdr_shuffle_n)
+                win_pvals_null = self.win_pval_fn(pvals_null)
+
+                efdr = fdr.emperical_fdr(win_pvals_null, win_pvals)
+            except:
+                pvals = win_pvals = efdr = np.ones(n)
+            finally:
+                stats = np.column_stack((exp, obs, -np.log(pvals), -np.log(win_pvals), efdr))
+        else:
+            stats = np.column_stack((exp, obs))
+
+
+        return {
+                    "interval": interval,
+                    "data": stats
+                }
+
+def write_batch
 
 @named('detect')
 @arg('interval_file', 
@@ -137,7 +172,7 @@ class deviation_stats(process):
     default=0.01)
 @arg('--fdr_shuffle_n',
     type=int,
-    default=50,
+    default=100,
     help='Number of times to shuffle data for FDR calculation')
 @arg('--seed',
     default=None,
@@ -145,6 +180,9 @@ class deviation_stats(process):
 @arg('--n_threads',
     help='Number of processors to use',
     default=8)
+@arg('--batch_size',
+    help='Batch size of intervals to process',
+    default=100)
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -159,7 +197,8 @@ def run(interval_file,
         smooth_clip=0.01,
         fdr_shuffle_n=50,
         seed=None,
-        n_threads=8):
+        n_threads=8,
+        batch_size=100):
     """Compute per-nucleotide cleavage deviation statistics	
 
     Output:
@@ -168,10 +207,6 @@ def run(interval_file,
 
         Note that output data is not sorted -- pipe to `sort -k1,1 -k2,2n` for sorted output
     """
-    intervals = list(bed.bed3_iterator(open(interval_file)))
-    
-    logger.info(f"BED file contains {len(intervals):,} regions")
-
     proc_kwargs = {
         "min_qual": min_qual,
         "remove_dups": remove_dups,
@@ -202,7 +237,7 @@ def run(interval_file,
         dm = None
 
     dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
-    dp_iter = dp.batch_iter(batch_size=100, collate_fn=list_collate, num_workers=n_threads)
+    dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     with logging_redirect_tqdm():
         for _ in tqdm(dp_iter, colour='#C70039'):

@@ -3,12 +3,12 @@ import multiprocessing
 import threading
 import traceback
 from .sampler import sequential_sampler, minibatch_sampler
-from .utils import numpy_collate
+from .utils import list_collate
 
 import logging
 logger = logging.getLogger(__name__)
 
-default_collate = numpy_collate
+default_collate = list_collate
 
 class exception_wrapper(object):
     """Wraps an exception plus traceback to communicate across threads"""
@@ -147,7 +147,7 @@ class data_processor(object):
         self.batch_sampler = batch_sampler
 
         logger.info(f"Using batch_size = {self.batch_size}")
-        logger.info(f"Using '{self.collate_fn.__doc__}' to collate chunks")
+        logger.info(f"Using '{self.collate_fn.__doc__}' to collate batch chunks")
 
     def __iter__(self):
         return data_processor_iter(self)
