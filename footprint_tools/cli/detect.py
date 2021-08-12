@@ -69,7 +69,9 @@ class deviation_stats(process):
         self.win_pval_fn = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
 
     def cleanup(self):
-        
+        """Needs to be implemented"""
+        pass
+
     def __len__(self):
         return len(self.intervals)
 
