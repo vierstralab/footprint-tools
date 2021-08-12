@@ -131,6 +131,7 @@ def run(sample_data_file,
     sample_data_file    Path to file that contains sample data. File is tab-delimited with the
                         following columns:
 
+    \b
                         id          Sample identifier (unique)
                         tabix_file  Path to TABIX-format cleavage statistics file
                         dm_file     Path to dataset JSON-encoded dispersion model file
