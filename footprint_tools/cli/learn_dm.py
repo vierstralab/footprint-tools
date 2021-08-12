@@ -1,20 +1,19 @@
 import sys
 import click
 
+from multiprocessing import cpu_count
+
 import numpy as np
 import scipy as sp
 import pandas as pd
 import pysam
 
-from footprint_tools.data.process import process
-from footprint_tools.data.utils import numpy_collate_concat
-
-from genome_tools import bed, genomic_interval
-
+from genome_tools import genomic_interval
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
-
 from footprint_tools.cli.utils import tuple_args, get_kwargs
+from footprint_tools.data.process import process
+from footprint_tools.data.utils import numpy_collate_concat
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -90,35 +89,34 @@ class expected_counts(process):
 @click.argument('interval_file')
 @click.argument('bam_file')
 @click.argument('fasta_file')
-@click.option('--bias_model_file',
-    type=click.STRING,
+@click.option('--bias_model_file', type=click.STRING,
     help='Use a k-mer model for sequence bias (supplied by file). '
         'If argument is not provided the model defaults to uniform '
         'sequence bias.')
-@click.option('--min_qual',
-    help='Ignore reads with mapping quality lower than this threshold', 
-    default=1, show_default=True)
-@click.option('--keep_dups',
-    help='Keep duplicate reads',
-    default=False, show_default=True)
-@click.option('--keep_qcfail',
-    help='Keep QC-failed reads',
-    default=False, show_default=True)
-@click.option('--bam_offset',
-    help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
-    type=click.STRING, default="0,-1", show_default=True, callback=tuple_args())
-@click.option('--half_win_width',
-    help='Half window width to apply bias model',
-    default=5, show_default=True)
-@click.option('--n_threads',
-    help='Number of processors to use',
-    default=16, show_default=True)
-@click.option('--batch_size',
-    help='Batch size of intervals to process',
-    default=100, show_default=True)
-@click.option('--outfile',
-    help='Output file path',
-    default='dm.json', show_default=True)
+@click.option('--min_qual', type=click.INT, 
+    default=1, show_default=True,
+    help='Ignore reads with mapping quality lower than this threshold')
+@click.option('--keep_dups', type=click.BOOL,
+    default=False, show_default=True,
+    help='Keep duplicate reads')
+@click.option('--keep_qcfail', type=click.BOOL,
+    default=False, show_default=True,
+    help='Keep QC-failed reads')
+@click.option('--bam_offset', type=click.STRING,
+    default="0,-1", show_default=True, callback=tuple_args(int),
+    help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
+@click.option('--half_win_width', type=click.INT,
+    default=5, show_default=True,
+    help='Half window width to apply bias model')
+@click.option('--n_threads', type=click.IntRange(1, cpu_count()),
+    default=cpu_count(), show_default=True,
+    help='Number of processors to use')
+@click.option('--batch_size', type=click.INT,
+    default=100, show_default=True,
+    help='Batch size of intervals to process')
+@click.option('--outfile', type=click.STRING,
+    default='dm.json', show_default=True,
+    help='Output file path')
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -128,10 +126,14 @@ def run(interval_file,
         keep_qcfail=False,
         bam_offset=(0, -1),
         half_win_width=5,
-        n_threads=8,
+        n_threads=cpu_count(),
         batch_size=100,
         outfile='dm.json'):
-    """Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
+    """Learn a negative binomial dispersion model 
+    
+    This creates expected cleavage counts from data corrected for intrinsic 
+    sequence preferences and then builds a dispersion model used for footprint
+    detection and analysis.
 
     \b
     Inputs:

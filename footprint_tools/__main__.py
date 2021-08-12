@@ -1,4 +1,3 @@
-import sys
 import click
 
 # Set up console logging from package file
@@ -11,11 +10,12 @@ logging.config.fileConfig(pkg_resources.resource_filename(__name__, "logging.con
 logger = logging.getLogger(__name__)
 
 import footprint_tools
+import footprint_tools.cli.learn_bm as learn_bm
 import footprint_tools.cli.learn_dm as learn_dm
 import footprint_tools.cli.detect as detect
 import footprint_tools.cli.learn_beta as learn_beta
 import footprint_tools.cli.plot_dm as plot_dm
-# import footprint_tools.cli.posterior as posterior
+import footprint_tools.cli.posterior as posterior
 
 epilog = """See http://github.com/jvierstra/footprint-tools for extended documentation.
 
@@ -26,7 +26,9 @@ Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). Software licensed u
 def main():
     pass
 
+main.add_command(learn_bm.run)
 main.add_command(learn_dm.run)
 main.add_command(detect.run)
 main.add_command(learn_beta.run)
 main.add_command(plot_dm.run)
+main.add_command(posterior.run)

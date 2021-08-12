@@ -10,7 +10,7 @@ class base_process(object):
     def load_all(self, **kwargs):
         """Load an entire dataset"""
         return [x for x in self.batch_iter(**kwargs)]
-
+        
 class process(base_process):
     """All datasets should subclass this class. All subclases should
     override `__len__` and `__getitem__` to support integer indexing"""

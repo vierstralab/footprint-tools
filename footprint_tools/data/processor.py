@@ -33,6 +33,10 @@ def _worker_loop(process, index_queue, data_queue, collate_fn):
         else:
             data_queue.put((idx, batch))
 
+    # clean up function that closes filehandlers, etc.
+    if hasattr(process, 'cleanup'):
+        process.cleanup()
+
 class data_processor_iter(object):
     def __init__(self, processor):
         self.process = processor.process

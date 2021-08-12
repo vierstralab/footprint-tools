@@ -1,15 +1,14 @@
 import sys
-
 import click
+
+from yaspin import yaspin
+from yaspin.spinners import Spinners
 
 import numpy as np
 import scipy.stats
 
 import logging
 logger = logging.getLogger(__name__)
-
-from yaspin import yaspin
-from yaspin.spinners import Spinners
 
 @click.command(name='learn_beta')
 @click.argument('bedgraph_file')
@@ -26,7 +25,7 @@ def run(bedgraph_file,
         fdr_cutoff=0.05, 
         exp_cutoff=10,
         outfile='beta.txt'):
-    """Learn the parameters of a Beta distribution for a single sample.
+    """Learn the parameters of a Beta distribution
 
     \b
     Input:

@@ -1,23 +1,19 @@
 import sys
-from functools import partial
-from collections import namedtuple
-
 import click
+
+from multiprocessing import cpu_count
 
 import numpy as np
 import scipy as sp
 import pandas as pd
 import pysam
 
-from footprint_tools.data.process import process
-
-from genome_tools import bed, genomic_interval
-
+from genome_tools import genomic_interval
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing, utils
-
 from footprint_tools.cli.utils import list_args, tuple_args, get_kwargs
+from footprint_tools.data.process import process
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -72,6 +68,8 @@ class deviation_stats(process):
 
         self.win_pval_fn = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
 
+    def cleanup(self):
+        
     def __len__(self):
         return len(self.intervals)
 
@@ -117,11 +115,12 @@ class deviation_stats(process):
             stats = np.column_stack((exp, obs))
 
         return {
-                    "interval": interval,
-                    "stats": stats
-                }
+            'interval': interval,
+            'stats': stats
+        }
 
 def write_stats_to_output(interval, stats, file=sys.stdout):
+    """Write per-nucleotide statistics to file"""
     chrom = interval.chrom
     start = interval.start
     for i in range(stats.shape[0]):
@@ -130,6 +129,7 @@ def write_stats_to_output(interval, stats, file=sys.stdout):
         file.write(out+'\n')
 
 def write_segments_to_output(interval, stats, threshold, file=sys.stdout):
+    """Write footprints to file"""
      chrom = interval.chrom
      start = interval.start
      for sstart, send in utils.segment(1.0-stats[:,-1], 1.0-threshold, 3):
@@ -139,56 +139,53 @@ def write_segments_to_output(interval, stats, threshold, file=sys.stdout):
 @click.argument('interval_file')
 @click.argument('bam_file')
 @click.argument('fasta_file')
-@click.option('--bias_model_file',
-    type=click.STRING,
+@click.option('--bias_model_file', type=click.STRING,
     help='Use a k-mer model for sequence bias (supplied by file). '
         'If argument is not provided the model defaults to uniform '
         'sequence bias.')
-@click.option('--dispersion_model_file',
-    type=click.STRING,
+@click.option('--dispersion_model_file', type=click.STRING,
     help='Dispersion model for negative binomial tests. If argument '
         'is not provided then no stastical output is provided. File is in '
         'JSON format and generated using the command learn_dm')
-@click.option('--min_qual',
-    help='Ignore reads with mapping quality lower than this threshold', 
-    default=1, show_default=True, type=click.INT)
-@click.option('--keep_dups',
-    help='Keep duplicate reads',
-    default=False, show_default=True)
-@click.option('--keep_qcfail',
-    help='Keep QC-failed reads',
-    default=False, show_default=True)
-@click.option('--bam_offset',
-    help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
-    type=click.STRING, default="0,-1", show_default=True, callback=tuple_args())
-@click.option('--half_win_width',
-    help='Half window width to apply bias model',
-    default=5, show_default=True, type=click.INT)
-@click.option('--smooth_half_win_width',
-    type=click.INT, default=50, show_default=True,
+@click.option('--min_qual', type=click.INT, 
+    default=1, show_default=True,
+    help='Ignore reads with mapping quality lower than this threshold')
+@click.option('--keep_dups', type=click.BOOL,
+    default=False, show_default=True,
+    help='Keep duplicate reads')
+@click.option('--keep_qcfail', type=click.BOOL,
+    default=False, show_default=True,
+    help='Keep QC-failed reads')
+@click.option('--bam_offset', type=click.STRING,
+    default="0,-1", show_default=True, callback=tuple_args(int),
+    help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
+@click.option('--half_win_width', type=click.INT,
+    default=5, show_default=True,
+    help='Half window width to apply bias model')
+@click.option('--smooth_half_win_width', type=click.INT,
+    default=50, show_default=True,
     help='Half window width to apply smoothing model. When set to '
         '0, no smoothing is applied.')
-@click.option('--smooth_clip',
-    type=click.FLOAT, default=0.01, show_default=True,
+@click.option('--smooth_clip', type=click.FLOAT,
+    default=0.01, show_default=True,
     help='Fraction of bases to clip when computing trimmed mean in the smoothing window')
-@click.option('--fdr_shuffle_n',
-    type=click.INT, default=100, show_default=True,
+@click.option('--fdr_shuffle_n', type=click.INT,
+    default=100, show_default=True,
     help='Number of times to shuffle data for FDR calculation')
 @click.option('--seed', type=click.INT,
     help='Seed for random number generation (not currently used)')
-@click.option('--n_threads', type=click.INT,
-    help='Number of processors to use',
-    default=16, show_default=True)
-@click.option('--batch_size',
-    help='Batch size of intervals to process',
-    default=100, show_default=True, type=click.INT)
-@click.option('--outprefix',
-    default='out', type=click.STRING,
+@click.option('--n_threads', type=click.IntRange(1, cpu_count()),
+    default=cpu_count(), show_default=True,
+    help='Number of processors to use')
+@click.option('--batch_size', type=click.INT,
+    default=100, show_default=True,
+    help='Batch size of intervals to process')
+@click.option('--outprefix', type=click.STRING,
+    default='out', show_default=True,
     help='Output prefix')
-@click.option('--write_footprints',
-    type=click.STRING, default="0.001,0.01,0.05",
-    help='Output footprints at specified FDRs', 
-    callback=list_args(float))
+@click.option('--write_footprints', type=click.STRING, 
+    default="0.001,0.01,0.05", show_default=True, callback=list_args(float),
+    help='Output footprints at specified FDRs')
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -203,7 +200,7 @@ def run(interval_file,
         smooth_clip=0.01,
         fdr_shuffle_n=50,
         seed=None,
-        n_threads=16,
+        n_threads=cpu_count(),
         batch_size=100,
         write_footprints=[0.001, 0.01, 0.05],
         outprefix='out'):
