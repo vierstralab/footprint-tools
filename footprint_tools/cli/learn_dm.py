@@ -94,7 +94,7 @@ class expected_counts(process):
 @click.option('--bias_model_file',
     help='Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.')
 @click.option('--min_qual',
-    help='Ignore reads with mapping quality lower than this threshold')
+    help='Ignore reads with mapping quality lower than this threshold', show_default=True)
 @click.option('--remove_dups',
     help='Remove duplicate reads')
 @click.option('--keep_qcfail',
@@ -125,9 +125,13 @@ def run(interval_file,
     """Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
 
     Inputs:
+
     interval_file  Path to BED-formatted file contained genomic regions to be analyzed
+
     bam_file       Path to BAM-format tag alignment file
+
     fasta_file     Path to genome FASTA file (requires associated FASTA index in same folder
+
                    (see documentation on how to create an index)
 
     Outputs a JSON-formated dispersion model
@@ -172,5 +176,5 @@ def run(interval_file,
 
     logger.info("Writing dispersion model to {}".format(outfile))
 
-    with open(output_file, "w") as output_filehandle:
+    with open(outfile, "w") as output_filehandle:
         print(dispersion.write_dispersion_model(model), file=output_filehandle)
