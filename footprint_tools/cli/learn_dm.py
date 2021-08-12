@@ -100,7 +100,7 @@ class expected_counts(process):
     default=1, show_default=True)
 @click.option('--keeps_dups',
     help='Keep duplicate reads',
-    default=True, show_default=True)
+    default=False, show_default=True)
 @click.option('--keep_qcfail',
     help='Keep QC-failed reads',
     default=False, show_default=True)
