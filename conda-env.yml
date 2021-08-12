@@ -14,9 +14,8 @@ dependencies:
 - statsmodels
 - simplejson
 - tqdm
-- argh
+- click
 - matplotlib
-- colorlog
 
 - pip:
   - git+https://github.com/jvierstra/pysam.git

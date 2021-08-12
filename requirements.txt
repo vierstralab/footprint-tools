@@ -8,6 +8,6 @@ simplejson
 cython
 genome_tools>=1.0.2
 tqdm
-argh
+click
 matplotlib
 yaspin

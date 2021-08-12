@@ -19,9 +19,8 @@ import footprint_tools.cli.learn_beta as learn_beta
 # import footprint_tools.cli.posterior as posterior
 
 epilog = """See http://github.com/jvierstra/footprint-tools for extended documentation.
-\b
-Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). 
-Software licensed under GNU General Public License version 3."""
+
+Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). Software licensed under GNU General Public License version 3."""
 
 @click.group(epilog=epilog)
 @click.version_option(version=footprint_tools.__version__)

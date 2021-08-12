@@ -47,7 +47,7 @@ install_requires = [
     "pwlf",
     "simplejson",
     "tqdm",
-    "argh",
+    "click",
     "matplotlib",
     "yaspin"
 ]
