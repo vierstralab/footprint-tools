@@ -131,14 +131,11 @@ def run(interval_file,
         outfile='dm.json'):
     """Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
 
+    \b
     Inputs:
-
     interval_file  Path to BED-formatted file contained genomic regions to be analyzed
-
     bam_file       Path to BAM-format tag alignment file
-
     fasta_file     Path to genome FASTA file (requires associated FASTA index in same folder
-
                    (see documentation on how to create an index)
 
     Outputs a JSON-formated dispersion model
