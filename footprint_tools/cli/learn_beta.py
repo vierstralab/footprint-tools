@@ -41,11 +41,11 @@ def run(bedgraph_file,
         for line in filehandle:
             total_lines +=1
             if total_lines % 1000000 == 0:
-                sp.text = "Reading nucleotides {:,}".format(total_lines)
+                sp.text = "Reading nucleotides -- {:,}".format(total_lines)
 
             fields = line.strip().split('\t')
-            exp = int(fields[3])
-            obs = int(fields[4])
+            exp = float(fields[3])
+            obs = float(fields[4])
             fdr = float(fields[7])
 
             if fdr <= fdr_cutoff and exp >= exp_cutoff:
