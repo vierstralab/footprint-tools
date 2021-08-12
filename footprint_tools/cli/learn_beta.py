@@ -33,7 +33,7 @@ def run(bedgraph_file,
     total_lines = total_passed = 0
     obs_over_exp = []
 
-    logger.info(f"Filtering nucleotides with expected count <= {exp_cutoff} and within a FDR {fdr_cutoff} footprint")
+    logger.info(f"Filtering nucleotides with expected count >= {exp_cutoff} and within a FDR {fdr_cutoff} footprint")
 
     with yaspin(Spinners.bouncingBar, text='Reading nucleotides') as sp:
         
@@ -63,8 +63,8 @@ def run(bedgraph_file,
         
         prior = scipy.stats.beta.fit(obs_over_exp[i], floc = 0, fscale = 1)[0:2]
 
-    logger.info(f"{total_passed,:} positions used for fitting distribution")
-    logger.info(f"Beta distribution parameters - \u03b1 = {prior[0]}, \u03b2 = {prior[1]} ")
+    logger.info(f"{total_passed:,} positions used for fitting distribution")
+    logger.info(f"Beta distribution parameters: \u03b1 = {prior[0]}, \u03b2 = {prior[1]} ")
 
     print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = sys.stdout)
 
