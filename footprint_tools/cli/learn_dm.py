@@ -141,7 +141,7 @@ def run(interval_file,
     fasta_file     Path to genome FASTA file (requires associated FASTA index in same folder
                     (see documentation on how to create an index)
 
-    Outputs a JSON-formated dispersion model
+    Outputs a JSON-formated dispersion model to 'outfile'
     """
 
     proc_kwargs = {
