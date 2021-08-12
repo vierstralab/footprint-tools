@@ -51,11 +51,11 @@ def run(bedgraph_file,
     filehandle = open(bedgraph_file, 'r')
 
     total_lines = 0
-    with yaspin(Spinners.hamburger) as sp:
+    with yaspin(Spinners.hamburger, text="0") as sp:
         for line in filehandle:
             total_lines +=1
 
             if total_lines % 1000000 == 0:
-                sp.text = total_lines
+                sp.text = "{:,}".format(total_lines)
 
     return 0
