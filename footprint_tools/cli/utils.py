@@ -7,10 +7,10 @@ def tuple_args(ctx, param, value):
     """
     items = value.split(',')
     if len(items) > 2:
-        raise click.BadOptionUsage('needs to be a comma-delimiter tuple'))
+        raise click.BadOptionUsage('needs to be a comma-delimited tuple')
 
     return items
-    
+
 def list_args(arg_type=int):
     """
     Function to parser a list of integers from command line
