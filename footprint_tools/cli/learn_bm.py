@@ -28,6 +28,7 @@ def run(bam_file, fasta_file, mappability_file, k=6, mid=3, offset=(0, -1)):
     #raise click.UsageError("Command not yet implemented")
 
     # Validate and load inputs
+    logger.info("Validating input files")
     try:
         verify_bam_file(bam_file)
         verify_fasta_file(fasta_file)

@@ -44,23 +44,28 @@ def run(bedgraph_file,
 
     with yaspin(Spinners.bouncingBar, text='Reading nucleotides') as sp:
         
-        filehandle = open(bedgraph_file, 'r')
+        try:
+            filehandle = open(bedgraph_file, 'r')
 
-        for line in filehandle:
-            total_lines +=1
-            if total_lines % 500000 == 0:
-                sp.text = "Reading nucleotides -- {:,} / {:,} passed filters".format(total_passed, total_lines)
+            for line in filehandle:
+                total_lines +=1
+                if total_lines % 500000 == 0:
+                    sp.text = "Reading nucleotides -- {:,} / {:,} passed filters".format(total_passed, total_lines)
 
-            fields = line.strip().split('\t')
-            exp = float(fields[3])
-            obs = float(fields[4])
-            fdr = float(fields[7])
+                fields = line.strip().split('\t')
+                exp = float(fields[3])
+                obs = float(fields[4])
+                fdr = float(fields[7])
 
-            if fdr <= fdr_cutoff and exp >= exp_cutoff:
-                obs_over_exp.append( (obs+1)/(exp+1) )
-                total_passed += 1
+                if fdr <= fdr_cutoff and exp >= exp_cutoff:
+                    obs_over_exp.append( (obs+1)/(exp+1) )
+                    total_passed += 1
         
-        filehandle.close()
+            filehandle.close()
+            
+        except IOError as e:
+            logger.critical(e)
+            click.Abort()
         
         sp.text = "Fitting Beta distribution"
 
@@ -75,7 +80,10 @@ def run(bedgraph_file,
 
     logger.info(f"Writing parameters to file {outfile}")
 
-    with open(outfile, 'w') as f:
-        print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = f)
+    try:
+        with open(outfile, 'w') as f:
+            print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = f)
+    except IOError as e:
+        logger.critical(e)
+        click.Abort()
 
-    return 0

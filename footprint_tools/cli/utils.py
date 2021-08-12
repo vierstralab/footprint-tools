@@ -41,7 +41,7 @@ def verify_tabix_file(fn):
     try:
         pysam.TabixFile(fn).close()
     except IOError:
-        raise IOError(f"Not such file: {fn}")
+        raise IOError(f"No such file: {fn}")
     except ValueError:
         raise IOError(f"TABIX-index not found for {fn}")
 
@@ -50,6 +50,6 @@ def verify_fasta_file(fn):
     try:
         pysam.FastaFile(fn).close()
     except IOError:
-        raise IOError(f"Not such file: {fn}")
+        raise IOError(f"No such file: {fn}")
     except ValueError:
         raise IOError(f"FASTA-index not found for {fn}")

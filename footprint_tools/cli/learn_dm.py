@@ -154,6 +154,7 @@ def run(interval_file,
     }
 
     # Validate and load input files
+    logger.info("Validating input files")
     try:
         verify_bam_file(bam_file)
         verify_fasta_file(fasta_file)
@@ -194,5 +195,10 @@ def run(interval_file,
 
     logger.info("Writing dispersion model to {}".format(outfile))
 
-    with open(outfile, "w") as output_filehandle:
-        print(dispersion.write_dispersion_model(model), file=output_filehandle)
+    try:
+        with open(outfile, "w") as output_filehandle:
+            print(dispersion.write_dispersion_model(model), file=output_filehandle)
+
+    except IOError as e:
+        logger.critical(e)
+        raise click.Abort()

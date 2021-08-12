@@ -1,9 +1,7 @@
-from footprint_tools.data import processor
+import sys
 import click
 
 from multiprocessing import cpu_count
-
-from pandas.core.indexes import interval
 
 import numpy as np
 import scipy as sp
@@ -25,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 # kill numpy warnings
 np.seterr(all="ignore")
+
+# columns required in sample data file
+required_sample_data_cols = ["id", "tabix_file", "dm_file", "beta_a", "beta_b"]
 
 class posterior_stats(process):
     def __init__(self, interval_file, samples_data, fdr_cutoff):
@@ -98,6 +99,9 @@ class posterior_stats(process):
             'post': post,
         }
 
+def write_stats_to_output(interval, stats, cutoff=1, file=sys.stdout):
+    pass
+
 @click.command(name='posterior')
 @click.argument('sample_data_file')
 @click.argument('interval_file')
@@ -123,7 +127,8 @@ def run(sample_data_file,
         fdr_cutoff=0.05,
         post_cutoff=0.2,
         batch_size=100,
-        n_threads=cpu_count()):
+        n_threads=cpu_count(),
+        outprefix='out'):
     """Compute footprint posterior probabilities
 
     \b
@@ -147,17 +152,44 @@ def run(sample_data_file,
 
     """
 
-    logger.info(f"Loading sample file {sample_data_file}")
+    logger.info(f"Loading sample data file {sample_data_file}")
+    try:
+        sample_data = pd.read_table(sample_data_file, header=0, comment='#')
+        if not all([col in sample_data.columns for col in required_sample_data_cols]):
+            raise ValueError(f"Sample data file does not contain the required columns: {required_sample_data_cols}")
+    except Exception as e:
+        logger.critical(e)
+        raise click.Abort()
 
-    sample_data = pd.read_table(sample_data_file, header=0)
-
-    logger.info("Verifying input files")
-    
-    # verification code
-
+    # Validate and load inputs
+    logger.info("Validating input files")
     try:
         [verify_tabix_file(fn) for fn in sample_data["tabix_file"]]
+        [open(fn).close() for fn in sample_data["dm_file"]]
+
     except IOError as e:
         logger.critical(e)
         raise click.Abort()
     
+    # Open output files
+    try:
+        # Output stats file
+        output_bedgraph_file = outprefix + '.bedgraph'
+        logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
+        output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
+
+    except IOError as e:
+        logger.critical(e)
+        raise click.Abort()
+
+    # Create data processor and iterator
+    dp = posterior_stats(interval_file, sample_data, fdr_cutoff)
+    dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
+
+    with logging_redirect_tqdm():
+
+        for batch in tqdm(dp_iter, colour='#cc951d'):
+            for interval, stats in zip(batch["interval"], batch["stats"]):
+                write_stats_to_output(interval, stats, post_cutoff, output_bedgraph_filehandle)
+    
+    output_bedgraph_filehandle.close()

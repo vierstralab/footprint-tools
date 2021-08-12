@@ -235,6 +235,7 @@ def run(interval_file,
     }
 
     # Validate and load inputs
+    logger.info("Validating input files")
     try:
         verify_bam_file(bam_file)
         verify_fasta_file(fasta_file)
@@ -260,19 +261,24 @@ def run(interval_file,
         logger.critical(e)
         raise click.Abort()
 
-    # Output stats file
-    output_bedgraph_file = outprefix + '.bedgraph'
+    # Open output files
+    try:
+        # Output stats file
+        output_bedgraph_file = outprefix + '.bedgraph'
+        logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
+        output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
     
-    logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
-    output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
-    
-    # Output footprints file
-    output_bed_file_template = outprefix + '.fdr{0}.bed'
-    output_bed_filehandles = {}
+        # Output footprints filex
+        output_bed_file_template = outprefix + '.fdr{0}.bed'
+        output_bed_filehandles = {}
 
-    if len(write_footprints) > 0:
-        logger.info(f"Writing FDR thresholded footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")    
-        output_bed_filehandles.update({t: open(output_bed_file_template.format(t), 'w') for t in write_footprints})
+        if len(write_footprints) > 0:
+            logger.info(f"Writing FDR thresholded footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")    
+            output_bed_filehandles.update({t: open(output_bed_file_template.format(t), 'w') for t in write_footprints})
+
+    except IOError as e:
+        logger.critical(e)
+        raise click.Abort()
     
     # Create data processor and iterator
     dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
