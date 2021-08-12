@@ -1,6 +1,6 @@
 import math
 
-from argh.decorators import named, arg
+import click
 
 import numpy as np
 import scipy.stats
@@ -113,17 +113,15 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 
     ax.legend()
 
-@named('plot_dm')
-@arg('dispersion_model_file',
-    type=str,
-    help='Dispersion model file')
-@arg('--histograms',
-    type=list_args(int),
+@click.command(name='plot_dm')
+@click.argument('dispersion_model_file')
+@click.option('--histograms',
+    type=click.STRING, default="5,25,50,75", callback=list_args(int),
     help='Plot histograms of observed counts at site with expected counts (comma-seperated list)')
-@arg('--outfile',
-    dest='output_file',
+@click.option('--outfile',
+    type=click.STRING, default='dm.pdf',
     help='Output file path for plot (suffix determines image format)')
-def run(dispersion_model_file, histograms=[15,25,50,75], output_file='dm.pdf'):
+def run(dispersion_model_file, histograms=[15,25,50,75], outfile='dm.pdf'):
     """Diagnostic plotting of a dispersion model
     
     Output:
@@ -165,8 +163,8 @@ def run(dispersion_model_file, histograms=[15,25,50,75], output_file='dm.pdf'):
 
     fig.set_size_inches(2.5*ncols, 2*nrows)
     
-    logger.info(f"Saving plots to {output_file}")	
+    logger.info(f"Saving plots to {outfile}")	
 
-    plt.savefig(output_file, transparent=True)
+    plt.savefig(outfile, transparent=True)
 
     return 0
