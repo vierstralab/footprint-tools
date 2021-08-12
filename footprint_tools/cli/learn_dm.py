@@ -1,5 +1,4 @@
 import sys
-
 import click
 
 import numpy as np
@@ -99,8 +98,8 @@ class expected_counts(process):
 @click.option('--min_qual',
     help='Ignore reads with mapping quality lower than this threshold', 
     default=1, show_default=True)
-@click.option('--remove_dups',
-    help='Remove duplicate reads',
+@click.option('--keeps_dups',
+    help='Keep duplicate reads',
     default=True, show_default=True)
 @click.option('--keep_qcfail',
     help='Keep QC-failed reads',
@@ -125,7 +124,7 @@ def run(interval_file,
         fasta_file,
         bias_model_file=None,
         min_qual=1,
-        remove_dups=False,
+        keep_dups=False,
         keep_qcfail=False,
         bam_offset=(0, -1),
         half_win_width=5,
@@ -146,7 +145,7 @@ def run(interval_file,
 
     proc_kwargs = {
         "min_qual": min_qual,
-        "remove_dups": remove_dups,
+        "remove_dups": ~keep_dups,
         "remove_qcfail": ~keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,

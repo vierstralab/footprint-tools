@@ -1,12 +1,8 @@
-from multiprocessing import Value
 import click
-from click.exceptions import BadOptionUsage
-from argh.exceptions import CommandError
-
 
 def tuple_args(value_type=int):
     def _parse_tuple(ctx, params, value):
-        """Function to parse a tuple of integers from command line"""
+        """Function to parse a tuple from command line"""
         try:
             items = tuple(map(value_type, value.split(',')))
             assert len(items) == 2
@@ -17,7 +13,7 @@ def tuple_args(value_type=int):
 
 def list_args(value_type=int):
     def _parse_list(ctx, params, value):
-        """Function to parse a list of integers from command line"""
+        """Function to parse a list from command line"""
         try:
             items = list(map(value_type, value.split(',')))
         except:

@@ -1,5 +1,4 @@
 import sys
-
 import click
 
 # Set up console logging from package file
