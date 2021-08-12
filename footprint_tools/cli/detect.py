@@ -83,7 +83,8 @@ class deviation_stats(process):
         if not self.counts_reader:
             self.counts_reader = cutcounts.bamfile(self.bam_file, **self.counts_reader_kwargs)
             self.fasta_reader = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
-            self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, self.bm, **self.counts_predictor_kwargs)
+            self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, 
+                                                        self.bm, **self.counts_predictor_kwargs)
 
         chrom, start, end = (self.intervals.iat[index, 0], 
                              self.intervals.iat[index, 1], 
@@ -131,9 +132,9 @@ def write_stats_to_output(interval, stats, file=sys.stdout):
 
 def write_segments_to_output(interval, stats, threshold, file=sys.stdout):
     """Write footprints to file"""
-     chrom = interval.chrom
-     start = interval.start
-     for sstart, send in utils.segment(1.0-stats[:,-1], 1.0-threshold, 3):
+    chrom = interval.chrom
+    start = interval.start
+    for sstart, send in utils.segment(1.0-stats[:,-1], 1.0-threshold, 3):
         print(genomic_interval(chrom, start+sstart, start+send), file=file)
 
 @click.command(name='detect')
