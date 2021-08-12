@@ -13,7 +13,7 @@ import pysam
 from genome_tools import genomic_interval
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import posterior
-from footprint_tools.cli.utils import tuple_args, get_kwargs
+from footprint_tools.cli.utils import (tuple_args, get_kwargs, verify_tabix_file)
 from footprint_tools.data.process import process
 from footprint_tools.data.utils import numpy_collate_concat
 
@@ -106,8 +106,8 @@ class posterior_stats(process):
     help='FDR cutoff to use when computing priors')
 @click.option('--post_cutoff', type=click.FLOAT,
     default=0.2, show_default=True,
-    help='Print only positions where that maximum posterior across'
-        'all samples meets this threshold. Used to control for'
+    help='Print only positions where that maximum posterior across '
+        'all samples meets this threshold. Used to control for '
         'file size.')
 @click.option('--n_threads', type=click.IntRange(1, cpu_count()),
     default=cpu_count(), show_default=True,
@@ -122,6 +122,7 @@ def run(sample_data_file,
         interval_file, 
         fdr_cutoff=0.05,
         post_cutoff=0.2,
+        batch_size=100,
         n_threads=cpu_count()):
     """Compute footprint posterior probabilities
 
@@ -137,7 +138,7 @@ def run(sample_data_file,
                         dm_file     Path to dataset JSON-encoded dispersion model file
                         beta_a      \u03b1 parameter (see 'learn_beta' command)
                         beta_b      \u03b2 parameter
-
+    \b
                         Note: File must contain a header row. Lines ignored when '#' is first
                         character.
 
@@ -152,5 +153,11 @@ def run(sample_data_file,
 
     logger.info("Verifying input files")
     
-    raise click.UsageError("Command not yet implemented")
+    # verification code
+
+    try:
+        [verify_tabix_file(fn) for fn in sample_data["tabix_file"]]
+    except IOError as e:
+        logger.critical(e)
+        raise click.Abort()
     

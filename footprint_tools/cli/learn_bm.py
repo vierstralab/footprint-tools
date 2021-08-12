@@ -1,6 +1,7 @@
+from footprint_tools.cutcounts import bamfile
 import click
 
-from footprint_tools.cli.utils import tuple_args
+from footprint_tools.cli.utils import (tuple_args, verify_bam_file, verify_fasta_file)
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -24,4 +25,12 @@ logger = logging.getLogger(__name__)
 def run(bam_file, fasta_file, mappability_file, k=6, mid=3, offset=(0, -1)):
     """Learn a sequence bias model
     """
-    raise click.UsageError("Command not yet implemented")
+    #raise click.UsageError("Command not yet implemented")
+
+    # Validate and load inputs
+    try:
+        verify_bam_file(bam_file)
+        verify_fasta_file(fasta_file)
+    except IOError as e:
+        logger.critical(e)
+        raise click.Abort()

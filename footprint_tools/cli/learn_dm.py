@@ -11,7 +11,7 @@ import pysam
 from genome_tools import genomic_interval
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
-from footprint_tools.cli.utils import tuple_args, get_kwargs
+from footprint_tools.cli.utils import (tuple_args, get_kwargs, verify_bam_file, verify_fasta_file)
 from footprint_tools.data.process import process
 from footprint_tools.data.utils import numpy_collate_concat
 
@@ -153,14 +153,24 @@ def run(interval_file,
         "half_win_width": half_win_width,
     }
 
-    # Load bias model (if specified), otherwise use the uniform model
-    if bias_model_file:
-        logger.info(f"Loading bias model from file {bias_model_file}")
-        bm = bias.kmer_model(bias_model_file)
-    else:
-        logger.info(f"No bias model file specified -- using uniform model")
-        bm = bias.uniform_model()
+    # Validate and load input files
+    try:
+        verify_bam_file(bam_file)
+        verify_fasta_file(fasta_file)
 
+        # Load bias model (if specified), otherwise use the uniform model
+        if bias_model_file:
+            logger.info(f"Loading bias model from file {bias_model_file}")
+            bm = bias.kmer_model(bias_model_file)
+        else:
+            logger.info(f"No bias model file specified -- using uniform model")
+            bm = bias.uniform_model()
+
+    except IOError as e:
+        logger.critical(e)
+        raise click.Abort()
+
+    # Initiate data processor
     dp = expected_counts(interval_file, bam_file, fasta_file, bm, **proc_kwargs)
     dp_iter = dp.batch_iter(batch_size=batch_size, collate_fn=numpy_collate_concat, num_workers=n_threads)
 

@@ -12,7 +12,7 @@ from genome_tools import genomic_interval
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing, utils
-from footprint_tools.cli.utils import list_args, tuple_args, get_kwargs
+from footprint_tools.cli.utils import (list_args, tuple_args, get_kwargs, verify_bam_file, verify_fasta_file)
 from footprint_tools.data.process import process
 
 from tqdm import tqdm
@@ -234,22 +234,31 @@ def run(interval_file,
         "seed": seed, # not used...yet
     }
 
-    # Load bias model (if specified), otherwise use the uniform model
-    if bias_model_file:
-        logger.info(f"Loading bias model from file {bias_model_file}")
-        bm = bias.kmer_model(bias_model_file)
-    else:
-        logger.info(f"No bias model file specified -- using uniform model")
-        bm = bias.uniform_model()
+    # Validate and load inputs
+    try:
+        verify_bam_file(bam_file)
+        verify_fasta_file(fasta_file)
 
-    # Load dispersion model (if specified)
-    if dispersion_model_file:
-        dm = dispersion.load_dispersion_model(dispersion_model_file)
-        logger.info(f"Loading dispersion model from file {dispersion_model_file}")
-    else:
-        logger.info(f"No dispersion model file specified -- not be reporting base-level statistics and footprints")
-        dm = None
-        write_footprints = []
+        # Load bias model (if specified), otherwise use the uniform model
+        if bias_model_file:
+            logger.info(f"Loading bias model from file {bias_model_file}")
+            bm = bias.kmer_model(bias_model_file)
+        else:
+            logger.info(f"No bias model file specified -- using uniform model")
+            bm = bias.uniform_model()
+
+        # Load dispersion model (if specified)
+        if dispersion_model_file:
+            logger.info(f"Loading dispersion model from file {dispersion_model_file}")
+            dm = dispersion.load_dispersion_model(dispersion_model_file)
+        else:
+            logger.info(f"No dispersion model file specified -- not be reporting base-level statistics and footprints")
+            dm = None
+            write_footprints = []
+
+    except IOError as e:
+        logger.critical(e)
+        raise click.Abort()
 
     # Output stats file
     output_bedgraph_file = outprefix + '.bedgraph'
