@@ -12,8 +12,7 @@ from yaspin import yaspin
 from yaspin.spinners import Spinners
 
 @click.command(name='learn_beta')
-@click.argument('bedgraph_file',
-    help='Path to bedgraph file (ouput from "detect" command')
+@click.argument('bedgraph_file')
 @click.option('--fdr_cutoff',
     type=click.FLOAT, default=0.05,
     help='Only consider nucleotides with FDR <= this value')
