@@ -1,6 +1,6 @@
 import sys
 
-from argh.decorators import named, arg
+import click
 
 import numpy as np
 import scipy as sp
@@ -87,33 +87,31 @@ class expected_counts(process):
 
         return np.column_stack((exp, obs))
 
-@named('learn_dm')
-@arg('interval_file', 
+@click.command(name='learn_dm')
+@click.argument('interval_file', 
     help='File path to BED file')
-@arg('bam_file', 
+@click.argument('bam_file', 
     help='Path to BAM-format tag alignment file')
-@arg('fasta_file',
+@click.argument('fasta_file',
     help='Path to genome FASTA file (requires associated FASTA index in same folder; see documentation on how to create an index)')
-@arg('--bias_model_file',
+@click.option('--bias_model_file',
     help='Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.')
-@arg('--min_qual',
+@click.option('--min_qual',
     help='Ignore reads with mapping quality lower than this threshold')
-@arg('--remove_dups',
+@click.option('--remove_dups',
     help='Remove duplicate reads')
-@arg('--keep_qcfail',
+@click.option('--keep_qcfail',
     help='Keep QC-failed reads')
-@arg('--bam_offset',
+@click.option('--bam_offset',
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
     type=tuple_args(int))
-@arg('--half_win_width',
+@click.option('--half_win_width',
     help='Half window width to apply bias model')
-@arg('--n_threads',
+@click.option('--n_threads',
     help='Number of processors to use')
-@arg('--batch_size',
+@click.option('--batch_size',
     help='Batch size of intervals to process')
-@arg('--outfile',
-    dest='output_file',
-    default='dm.json',
+@click.option('--outfile',
     help='Output file path')
 def run(interval_file,
         bam_file,
@@ -128,7 +126,7 @@ def run(interval_file,
         batch_size=100,
         output_file='dm.json'):
     """Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
-    
+
     Output:
         dm.json - a serialized model in JSON format to file in current working directory
     """

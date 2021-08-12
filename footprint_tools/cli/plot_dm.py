@@ -125,7 +125,7 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
     help='Output file path for plot (suffix determines image format)')
 def run(dispersion_model_file, histograms=[15,25,50,75], output_file='dm.pdf'):
     """Diagnostic plotting of a dispersion model
-
+    
     Output:
         dm.pdf - a PDF file with plots
     """

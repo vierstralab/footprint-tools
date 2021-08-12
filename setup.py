@@ -49,6 +49,7 @@ install_requires = [
     "tqdm",
     "argh",
     "matplotlib",
+    "yaspin"
 ]
 
 setup(

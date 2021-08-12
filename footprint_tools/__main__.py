@@ -1,6 +1,6 @@
 import sys
 
-import argh
+import click
 
 # Set up console logging from package file
 # This configure root logger which is inherited 
@@ -24,19 +24,8 @@ See http://github.com/jvierstra/footprint-tools for extended documentation.
 
 Software licensed under GNU General Public License version 3."""
 
+@click.group()
 def main():
-    parser = argh.ArghParser(epilog=epilog)
-    parser.add_commands([
-        learn_dm.run,
-        detect.run,
-        learn_beta.run,
-        plot_dm.run,
-        posterior.run,
-    ])
-    parser.add_argument('--version',
-            action='version',
-            version='%(prog)s ' + footprint_tools.__version__)
-    
-    argh.dispatch(parser, output_file=None)
-    
-    return 0
+    pass
+
+main.add_command(learn_dm.run)

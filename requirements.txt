@@ -10,3 +10,4 @@ genome_tools>=1.0.2
 tqdm
 argh
 matplotlib
+yaspin
