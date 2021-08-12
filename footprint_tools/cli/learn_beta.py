@@ -30,7 +30,6 @@ def run(bedgraph_file,
     Note: This step is required to compute posterior footprint probabilities.
     """
 
-
     total_lines = 0
     obs_over_exp = []
 
@@ -61,6 +60,6 @@ def run(bedgraph_file,
         
         prior = scipy.stats.beta.fit(obs_over_exp[i], floc = 0, fscale = 1)[0:2]
 
-        print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = sys.stdout)
+    print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = sys.stdout)
 
     return 0
