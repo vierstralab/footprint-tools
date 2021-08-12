@@ -47,7 +47,7 @@ def run(bedgraph_file,
 
     Note: This step is required to compute posterior footprint probabilities.
     """
-    
+
     filehandle = open(bedgraph_file, 'r')
 
     total_lines = 0
@@ -55,7 +55,7 @@ def run(bedgraph_file,
         for line in filehandle:
             total_lines +=1
 
-            if total_lines % 1000000:
+            if total_lines % 1000000 == 0:
                 sp.text = total_lines
 
     return 0
