@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 import footprint_tools
 import footprint_tools.cli.learn_dm as learn_dm
-# import footprint_tools.cli.detect as detect
+import footprint_tools.cli.detect as detect
 # import footprint_tools.cli.learn_beta as learn_beta
 # import footprint_tools.cli.plot_dm as plot_dm
 # import footprint_tools.cli.posterior as posterior
@@ -29,3 +29,4 @@ def main():
     pass
 
 main.add_command(learn_dm.run)
+main.add_command(detect.run)

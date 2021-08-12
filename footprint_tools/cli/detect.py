@@ -1,6 +1,8 @@
 import sys
+from functools import partial
+from collections import namedtuple
 
-from argh.decorators import named, arg
+import click
 
 import numpy as np
 import scipy as sp
@@ -15,7 +17,7 @@ from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing, utils
 
-from footprint_tools.cli.utils import list_args, tuple_args, get_kwargs, fstr
+from footprint_tools.cli.utils import list_args, tuple_args, get_kwargs
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -127,61 +129,64 @@ def write_stats_to_output(interval, stats, file=sys.stdout):
         out += '\t'.join(['{:0.4f}'.format(val) for val in stats[i,:]])
         file.write(out+'\n')
 
-def write_segments_to_output(interval, segments, file=sys.stdout):
-    pass
+def write_segments_to_output(interval, stats, threshold, file=sys.stdout):
+     chrom = interval.chrom
+     start = interval.start
+     for sstart, send in utils.segment(1.0-stats[:,-1], 1.0-threshold, 3):
+        print(genomic_interval(chrom, start+sstart, start+send), file=file)
 
-@named('detect')
-@arg('interval_file', 
-    help='File path to BED file contain regions to analyzed')
-@arg('bam_file', 
-    help='Path to BAM-format tag alignment file')
-@arg('fasta_file',
-    help='Path to genome FASTA file (requires associated FASTA '
-        'index in same folder; see documentation on how to create '
-        'an index)')
-@arg('--bias_model_file',
-    type=str,
+@click.command(name='detect')
+@click.argument('interval_file')
+@click.argument('bam_file')
+@click.argument('fasta_file')
+@click.option('--bias_model_file',
+    type=click.STRING,
     help='Use a k-mer model for sequence bias (supplied by file). '
         'If argument is not provided the model defaults to uniform '
         'sequence bias.')
-@arg('--dispersion_model_file',
-    type=str,
+@click.option('--dispersion_model_file',
+    type=click.STRING,
     help='Dispersion model for negative binomial tests. If argument '
         'is not provided then no stastical output is provided. File is in '
         'JSON format and generated using the command learn_dm')
-@arg('--min_qual',
-    type=int,
-    help='Ignore reads with mapping quality lower than this threshold')
-@arg('--remove_dups',
-    help='Remove duplicate reads')
-@arg('--keep_qcfail',
-    help='Retain QC-failed reads')
-@arg('--bam_offset',
-    type=tuple_args(int),
-    help='BAM file offset (enables support for other datatypes -- e.g., Tn5/ATAC)')
-@arg('--half_win_width',
-    help='Half window width to apply bias model')
-@arg('--smooth_half_win_width',
-    type=int,
+@click.option('--min_qual',
+    help='Ignore reads with mapping quality lower than this threshold', 
+    default=1, show_default=True, type=click.INT)
+@click.option('--remove_dups',
+    help='Remove duplicate reads',
+    default=False, show_default=True)
+@click.option('--keep_qcfail',
+    help='Keep QC-failed reads',
+    default=False, show_default=True)
+@click.option('--bam_offset',
+    help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
+    type=click.STRING, default="0,-1", show_default=True, callback=tuple_args())
+@click.option('--half_win_width',
+    help='Half window width to apply bias model',
+    default=5, show_default=True, type=click.INT)
+@click.option('--smooth_half_win_width',
+    type=click.INT, default=50, show_default=True,
     help='Half window width to apply smoothing model. When set to '
         '0, no smoothing is applied.')
-@arg('--smooth_clip',
-    type=float,
+@click.option('--smooth_clip',
+    type=click.FLOAT, default=0.01, show_default=True,
     help='Fraction of bases to clip when computing trimmed mean in the smoothing window')
-@arg('--fdr_shuffle_n',
-    type=int,
+@click.option('--fdr_shuffle_n',
+    type=click.INT, default=100, show_default=True,
     help='Number of times to shuffle data for FDR calculation')
-@arg('--seed',
+@click.option('--seed', type=click.INT,
     help='Seed for random number generation (not currently used)')
-@arg('--n_threads',
-    help='Number of processors to use')
-@arg('--batch_size',
-    help='Batch size of intervals to process')
-@arg('--prefix',
-    dest='output_prefix',
+@click.option('--n_threads', type=click.INT,
+    help='Number of processors to use',
+    default=16, show_default=True)
+@click.option('--batch_size',
+    help='Batch size of intervals to process',
+    default=100, show_default=True, type=click.INT)
+@click.option('--outprefix',
+    default='out', type=click.STRING
     help='Output file(s) prefix')
-@arg('--write_footprints',
-    type=list_args(float),
+@click.option('--write_footprints',
+    type=list_args(float), default=[0.001, 0.01, 0.05],
     help='Output footprints at specified FDRs')
 def run(interval_file,
         bam_file,
@@ -197,10 +202,10 @@ def run(interval_file,
         smooth_clip=0.01,
         fdr_shuffle_n=50,
         seed=None,
-        n_threads=8,
+        n_threads=16,
         batch_size=100,
         write_footprints=[0.001, 0.01, 0.05],
-        output_prefix='out'):
+        outprefix='out'):
     """Compute per-nucleotide cleavage deviation statistics	
 
     Output:
@@ -237,13 +242,13 @@ def run(interval_file,
         write_footprints = []
 
     # Output stats file
-    output_bedgraph_file = output_prefix + '.bedgraph'
+    output_bedgraph_file = outprefix + '.bedgraph'
     
     logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
     output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
     
     # Output footprints file
-    output_bed_file_template = output_prefix + '.fdr{0}.bed'
+    output_bed_file_template = outprefix + '.fdr{0}.bed'
     output_bed_filehandles = {}
 
     if len(write_footprints) > 0:
@@ -263,8 +268,7 @@ def run(interval_file,
 
                 # write footprints
                 for thresh, f in output_bed_filehandles.items():
-                    for start, end in utils.segment(1.0-stats[:,-1], 1.0-thresh, 3):
-                        print(genomic_interval(interval.chrom, interval.start+start, interval.start+end), file=f)
+                    write_segments_to_output(interval, stats, thresh, file=f)
 
     output_bedgraph_filehandle.close()
     [f.close() for f in output_bed_filehandles.values()]

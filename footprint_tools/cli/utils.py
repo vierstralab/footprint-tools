@@ -5,33 +5,25 @@ from argh.exceptions import CommandError
 
 
 def tuple_args(value_type=int):
-    def _validate_tuple(ctx, params, value):
-        """Function to parser a tuple of integers from command line"""
+    def _parse_tuple(ctx, params, value):
+        """Function to parse a tuple of integers from command line"""
         try:
             items = tuple(map(value_type, value.split(',')))
             assert len(items) == 2
         except:
-            raise click.BadOptionUsage(f'needs to be a tuple of type {value_type.__name__}')
+            raise click.BadOptionUsage(f'needs to be a comma-delimited tuple of type {value_type.__name__}')
         return items
-    return _validate_tuple
-    
-def list_args(arg_type=int):
-    """
-    Function to parser a list of integers from command line
-    """
-    def parse_list(s):
-        try:
-            return list(map(arg_type, s.split(',')))
-        except Exception as e:
-            raise CommandError("Argument must be a comma-delimited list -- i.e., 0,1,2,3")
-    return parse_list
+    return _parse_tuple
 
-def fstr(template):
-    return eval(f"f'{template}'")
+def list_args(value_type=int):
+    def _parse_list(ctx, params, value):
+        """Function to parse a list of integers from command line"""
+        try:
+            items = list(map(value_type, value.split(',')))
+        except:
+            raise click.BadOptionUsage(f'needs to be a comma-delimited list of type {value_type.__name__}')
+        return items
+    return _parse_list
 
 def get_kwargs(keys, kwargs):
     return {k:kwargs[k] for k in keys if k in kwargs}
-
-def chunkify(l, n):
-    """Splits an iterable list into n chunks"""
-    return [l[i::n] for i in range(n)]
