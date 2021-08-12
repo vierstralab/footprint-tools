@@ -33,7 +33,7 @@ def run(bedgraph_file,
     total_lines = total_passed = 0
     obs_over_exp = []
 
-    with yaspin(Spinners.bouncingBar, text='Reading nucleotides', color='#cc951d') as sp:
+    with yaspin(Spinners.bouncingBar, text='Reading nucleotides') as sp:
         
         filehandle = open(bedgraph_file, 'r')
 
