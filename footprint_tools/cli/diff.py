@@ -1,7 +1,6 @@
 import argh
 from argh.decorators import named, arg
 
-import logging
 logger = logging.getLogger(__name__)
 
 @named('diff_test')

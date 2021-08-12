@@ -141,55 +141,42 @@ def write_segments_to_output(interval, segments, file=sys.stdout):
         'an index)')
 @arg('--bias_model_file',
     type=str,
-    default=None,
     help='Use a k-mer model for sequence bias (supplied by file). '
         'If argument is not provided the model defaults to uniform '
         'sequence bias.')
 @arg('--dispersion_model_file',
     type=str,
-    default=None,
     help='Dispersion model for negative binomial tests. If argument '
         'is not provided then no stastical output is provided. File is in '
         'JSON format and generated using the command learn_dm')
 @arg('--min_qual',
     type=int,
-    default=1,
     help='Ignore reads with mapping quality lower than this threshold')
 @arg('--remove_dups',
-    help='Remove duplicate reads',
-    default=False)
+    help='Remove duplicate reads')
 @arg('--keep_qcfail',
-    help='Retain QC-failed reads',
-    default=False)
-@arg('--bam_offset',
+    help='Retain QC-failed reads')
+@arg('--bam_offset')
     type=tuple_args(int),
-    default=(0, -1),
     help='BAM file offset (enables support for other datatypes -- e.g., Tn5/ATAC)')
 @arg('--half_win_width',
-    help='Half window width to apply bias model',
-    default=5)
+    help='Half window width to apply bias model')
 @arg('--smooth_half_win_width',
     type=int,
     help='Half window width to apply smoothing model. When set to '
-        '0, no smoothing is applied.',
-    default=50)
+        '0, no smoothing is applied.')
 @arg('--smooth_clip',
     type=float,
-    help='Fraction of bases to clip when computing trimmed mean in the smoothing window',
-    default=0.01)
+    help='Fraction of bases to clip when computing trimmed mean in the smoothing window')
 @arg('--fdr_shuffle_n',
     type=int,
-    default=100,
     help='Number of times to shuffle data for FDR calculation')
 @arg('--seed',
-    default=None,
-    help='Seed for random number generation')
+    help='Seed for random number generation (not currently used)')
 @arg('--n_threads',
-    help='Number of processors to use',
-    default=8)
+    help='Number of processors to use')
 @arg('--batch_size',
-    help='Batch size of intervals to process',
-    default=100)
+    help='Batch size of intervals to process')
 @arg('--prefix',
     dest='output_prefix',
     help='Output file(s) prefix')
@@ -260,7 +247,7 @@ def run(interval_file,
     output_bed_filehandles = {}
 
     if len(write_footprints) > 0:
-        logger.info(f"Writing footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")    
+        logger.info(f"Writing FDR thresholded footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")    
         output_bed_filehandles.update({t: open(output_bed_file_template.format(t), 'w') for t in write_footprints})
     
     # Create data processor and iterator

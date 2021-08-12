@@ -98,26 +98,19 @@ class expected_counts(process):
     help='Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.')
 @arg('--min_qual',
     help='Ignore reads with mapping quality lower than this threshold',
-    default=1)
 @arg('--remove_dups',
     help='Remove duplicate reads',
-    default=False)
 @arg('--keep_qcfail',
     help='Keep QC-failed reads',
-    default=False)
 @arg('--bam_offset',
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
-    default=(0,-1),
     type=tuple_args(int))
 @arg('--half_win_width',
     help='Half window width to apply bias model',
-    default=5)
 @arg('--n_threads',
     help='Number of processors to use',
-    default=16)
 @arg('--batch_size',
     help='Batch size of intervals to process',
-    default=100)
 @arg('--outfile',
     dest='output_file',
     default='dm.json',
@@ -163,6 +156,7 @@ def run(interval_file,
     hist = np.zeros(hist_size, dtype=int)
 
     with logging_redirect_tqdm():
+        
         for cnts in tqdm(dp_iter, colour='#cc951d'):
             for i in range(cnts.shape[0]):
                 try:
