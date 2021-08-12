@@ -88,12 +88,9 @@ class expected_counts(process):
         return np.column_stack((exp, obs))
 
 @click.command(name='learn_dm')
-@click.argument('interval_file', 
-    help='File path to BED file')
-@click.argument('bam_file', 
-    help='Path to BAM-format tag alignment file')
-@click.argument('fasta_file',
-    help='Path to genome FASTA file (requires associated FASTA index in same folder; see documentation on how to create an index)')
+@click.argument('interval_file')
+@click.argument('bam_file')
+@click.argument('fasta_file')
 @click.option('--bias_model_file',
     help='Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.')
 @click.option('--min_qual',
@@ -124,11 +121,16 @@ def run(interval_file,
         half_win_width=5,
         n_threads=8,
         batch_size=100,
-        output_file='dm.json'):
+        outfile='dm.json'):
     """Learn a negative binomial dispersion model from data corrected for intrinsic sequence preference.
 
-    Output:
-        dm.json - a serialized model in JSON format to file in current working directory
+    Inputs:
+    interval_file  Path to BED-formatted file contained genomic regions to be analyzed
+    bam_file       Path to BAM-format tag alignment file
+    fasta_file     Path to genome FASTA file (requires associated FASTA index in same folder
+                   (see documentation on how to create an index)
+
+    Outputs a JSON-formated dispersion model
     """
 
     proc_kwargs = {
@@ -168,7 +170,7 @@ def run(interval_file,
     
     model = dispersion.learn_dispersion_model(hist)
 
-    logger.info("Writing dispersion model to {}".format(output_file))
+    logger.info("Writing dispersion model to {}".format(outfile))
 
     with open(output_file, "w") as output_filehandle:
         print(dispersion.write_dispersion_model(model), file=output_filehandle)
