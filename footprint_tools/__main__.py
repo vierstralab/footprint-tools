@@ -18,10 +18,9 @@ import footprint_tools.cli.learn_beta as learn_beta
 # import footprint_tools.cli.plot_dm as plot_dm
 # import footprint_tools.cli.posterior as posterior
 
-epilog = """Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). 
+epilog = """See http://github.com/jvierstra/footprint-tools for extended documentation.
 
-See http://github.com/jvierstra/footprint-tools for extended documentation.
-
+Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021).  
 Software licensed under GNU General Public License version 3."""
 
 @click.group(epilog=epilog)
