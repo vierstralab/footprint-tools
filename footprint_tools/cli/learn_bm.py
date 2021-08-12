@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 @click.option('-k', type=click.INT,
     default=6, show_default=True,
     help='Width of k-mer model')
-@click.mid('--mid', type=click.INT,
+@click.options('--mid', type=click.INT,
     default=3, show_default=True,
     help='Cleavage position of k-mer model relative to cut site')
 @click.option('--bam_offset', type=click.STRING,
