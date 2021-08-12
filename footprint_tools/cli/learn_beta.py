@@ -30,17 +30,17 @@ def run(bedgraph_file,
     Note: This step is required to compute posterior footprint probabilities.
     """
 
-    total_lines = 0
+    total_lines = total_passed = 0
     obs_over_exp = []
 
-    with yaspin(Spinners.bouncingBar, text="0") as sp:
+    with yaspin(Spinners.bouncingBar, text="Reading nucleotides") as sp:
         
         filehandle = open(bedgraph_file, 'r')
 
         for line in filehandle:
             total_lines +=1
-            if total_lines % 1000000 == 0:
-                sp.text = "Reading nucleotides -- {:,}".format(total_lines)
+            if total_lines % 500000 == 0:
+                sp.text = "Reading nucleotides -- {:,}, {:,} passed".format(total_lines, total_passed)
 
             fields = line.strip().split('\t')
             exp = float(fields[3])
@@ -49,6 +49,7 @@ def run(bedgraph_file,
 
             if fdr <= fdr_cutoff and exp >= exp_cutoff:
                 obs_over_exp.append( (obs+1)/(exp+1) )
+                total_passed += 1
         
         filehandle.close()
         
