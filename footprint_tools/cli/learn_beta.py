@@ -20,9 +20,13 @@ from yaspin.spinners import Spinners
 @arg('--exp_cutoff',
     type=int,
     help='Only consider nucleotides with expected cleavages >= this value')
+@arg('--outfile',
+    dest='output_file',
+    help='Output file path')
 def run(bedgraph_file, 
         fdr_cutoff=0.05, 
-        exp_cutoff=10):
+        exp_cutoff=10,
+        output_file='beta.txt'):
     """Learn the parameters of a Beta distribution for a single sample.
 
     Output:
@@ -64,8 +68,11 @@ def run(bedgraph_file,
         prior = scipy.stats.beta.fit(obs_over_exp[i], floc = 0, fscale = 1)[0:2]
 
     logger.info(f"{total_passed:,} positions used for fitting distribution")
-    logger.info(f"Beta distribution parameters: \u03b1 = {prior[0]}, \u03b2 = {prior[1]} ")
+    logger.info(f"Beta distribution parameters: \u03b1 = {prior[0]}, \u03b2 = {prior[1]}")
 
-    print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = sys.stdout)
+    logger.info(f"Writing parameters to file {output_file}")
+
+    with open(output_file, 'w') as f:
+        print("%0.4f\t%0.4f" % (prior[0], prior[1]), file = f)
 
     return 0
