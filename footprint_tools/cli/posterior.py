@@ -102,7 +102,7 @@ class posterior_stats(processor):
 @click.argument('sample_data_file')
 @click.argument('interval_file')
 @click.option('--fdr_cutoff', type=click.FLOAT,
-    default=0.05, show_default=True
+    default=0.05, show_default=True,
     help='FDR cutoff to use when computing priors')
 @click.option('--post_cutoff', type=click.FLOAT,
     default=0.2, show_default=True,
