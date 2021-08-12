@@ -12,7 +12,7 @@ def tuple_args(value_type=int):
             assert len(items) == 2
             return items
         except:
-            raise click.BadOptionUsage(f'Needs to be type {value_type.__name__}')
+            raise click.BadOptionUsage(f'needs to be a tuple of type {value_type.__name__}')
 
 def list_args(arg_type=int):
     """
