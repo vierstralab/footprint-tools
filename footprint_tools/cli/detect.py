@@ -186,7 +186,7 @@ def write_segments_to_output(interval, stats, threshold, file=sys.stdout):
     default='out', type=click.STRING,
     help='Output prefix')
 @click.option('--write_footprints',
-    type=list_args(float), default=[0.001, 0.01, 0.05],
+    type=list_args(float), default="0.001,0.01,0.05",
     help='Output footprints at specified FDRs')
 def run(interval_file,
         bam_file,
