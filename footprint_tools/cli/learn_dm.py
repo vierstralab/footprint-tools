@@ -94,22 +94,29 @@ class expected_counts(process):
 @click.option('--bias_model_file',
     help='Use a k-mer model for local bias (supplied by file). If argument is not provided the model defaults to uniform sequence bias.')
 @click.option('--min_qual',
-    help='Ignore reads with mapping quality lower than this threshold', show_default=True)
+    help='Ignore reads with mapping quality lower than this threshold', 
+    default=1, show_default=True)
 @click.option('--remove_dups',
-    help='Remove duplicate reads')
+    help='Remove duplicate reads'
+    default=True, show_default=True)
 @click.option('--keep_qcfail',
-    help='Keep QC-failed reads')
+    help='Keep QC-failed reads',
+    default=False, show_default=True)
 @click.option('--bam_offset',
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
-    type=tuple_args(int))
+    type=tuple_args(int), default=(0,-1), show_default=True)
 @click.option('--half_win_width',
-    help='Half window width to apply bias model')
+    help='Half window width to apply bias model',
+    default=5, show_default=True)
 @click.option('--n_threads',
-    help='Number of processors to use')
+    help='Number of processors to use',
+    default=16, show_default=True)
 @click.option('--batch_size',
-    help='Batch size of intervals to process')
+    help='Batch size of intervals to process',
+    default=100, show_default=True)
 @click.option('--outfile',
-    help='Output file path')
+    help='Output file path',
+    default='dm.json', show_default=True)
 def run(interval_file,
         bam_file,
         fasta_file,
