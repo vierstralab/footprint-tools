@@ -83,8 +83,7 @@ class deviation_stats(process):
         if not self.counts_reader:
             self.counts_reader = cutcounts.bamfile(self.bam_file, **self.counts_reader_kwargs)
             self.fasta_reader = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
-            self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, 
-                                                        self.bm, **self.counts_predictor_kwargs)
+            self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, self.bm, **self.counts_predictor_kwargs)
 
         chrom, start, end = (self.intervals.iat[index, 0], 
                              self.intervals.iat[index, 1], 
