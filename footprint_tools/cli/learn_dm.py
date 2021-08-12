@@ -97,7 +97,7 @@ class expected_counts(process):
     help='Ignore reads with mapping quality lower than this threshold', 
     default=1, show_default=True)
 @click.option('--remove_dups',
-    help='Remove duplicate reads'
+    help='Remove duplicate reads',
     default=True, show_default=True)
 @click.option('--keep_qcfail',
     help='Keep QC-failed reads',
