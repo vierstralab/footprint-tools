@@ -10,10 +10,11 @@ def tuple_args(value_type=int):
         try:
             items = tuple(map(value_type, value.split(',')))
             assert len(items) == 2
-            return items
         except:
             raise click.BadOptionUsage(f'needs to be a tuple of type {value_type.__name__}')
-
+        return items
+    return _validate_tuple
+    
 def list_args(arg_type=int):
     """
     Function to parser a list of integers from command line

@@ -141,6 +141,8 @@ def run(interval_file,
     Outputs a JSON-formated dispersion model
     """
 
+    print(bam_offset)
+
     proc_kwargs = {
         "min_qual": min_qual,
         "remove_dups": remove_dups,
