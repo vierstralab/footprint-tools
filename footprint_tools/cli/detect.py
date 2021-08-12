@@ -183,8 +183,8 @@ def write_segments_to_output(interval, stats, threshold, file=sys.stdout):
     help='Batch size of intervals to process',
     default=100, show_default=True, type=click.INT)
 @click.option('--outprefix',
-    default='out', type=click.STRING
-    help='Output file(s) prefix')
+    default='out', type=click.STRING,
+    help='Output prefix')
 @click.option('--write_footprints',
     type=list_args(float), default=[0.001, 0.01, 0.05],
     help='Output footprints at specified FDRs')
@@ -208,9 +208,19 @@ def run(interval_file,
         outprefix='out'):
     """Compute per-nucleotide cleavage deviation statistics	
 
-    Output:
-        bedGraph file written to `prefix`.bedgraph (see arguments):
-            contig start start+1 obs exp -log(pval) -log(winpval) fdr
+    \b
+    Inputs:
+    interval_file  Path to BED-formatted file contained genomic regions to be analyzed
+    bam_file       Path to BAM-format tag alignment file
+    fasta_file     Path to genome FASTA file (requires associated FASTA index in same folder
+                    (see documentation on how to create an index)
+    
+    \b
+    Outputs:
+    {outprefix}.bedgraph    bedGraph file written to 'outprefix'.bedgraph
+                            Columns: contig start start+1 obs exp -log(pval) -log(winpval) fdr
+    {outprefix}.fdr{t}.bed  BED3-format file with FDR thresholded footprints.
+                            FDR levels specified by '--write_footprints'.
     """
     proc_kwargs = {
         "min_qual": min_qual,
