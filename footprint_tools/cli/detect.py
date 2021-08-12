@@ -245,33 +245,39 @@ def run(interval_file,
         dm = dispersion.load_dispersion_model(dispersion_model_file)
         logger.info(f"Loading dispersion model from file {dispersion_model_file}")
     else:
-        logger.info(f"No dispersion model file specified -- will not be reporting base-level statistics")
+        logger.info(f"No dispersion model file specified -- not be reporting base-level statistics and footprints")
         dm = None
+        write_footprints = []
 
+    # Output stats file
     output_bedgraph_file = output_prefix + '.bedgraph'
-    output_bed_file_template = output_prefix + '.fdr{0}.bed'
     
     logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
     output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
     
+    # Output footprints file
+    output_bed_file_template = output_prefix + '.fdr{0}.bed'
+    output_bed_filehandles = {}
 
-    logger.info(f"Writing footprints to {output_bed_file_template.format('t')} for t \u22f2 {write_footprints}")
-    #output_bed_filehandles = {t: open(fstr(output_bed_file_template), 'w') for t in write_footprints}
-
-    for t in write_footprints:
-        print(output_bed_file_template.format(t))
-        #print(fstr(output_bed_file_template))
+    if len(write_footprints) > 0:
+        logger.info(f"Writing footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")    
+        output_bed_filehandles.update({t: open(output_bed_file_template.format(t), 'w') for t in write_footprints})
     
+    # Create data processor and iterator
     dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
     dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     with logging_redirect_tqdm():
         
         for batch in tqdm(dp_iter, colour='#cc951d'):
-            
             for interval, stats in zip(batch["interval"], batch["stats"]):
-                
+                # write stats
                 write_stats_to_output(interval, stats, output_bedgraph_filehandle)
 
+                # write footprints
+                for thresh, f in output_bed_filehandles.items():
+                    for start, end in utils.segment(1.0-stats[:,-1], 1.0-thresh, 3):
+                        print(genomic_interval(interval.chrom, interval.start+start, interval.start+end), file=f)
+
     output_bedgraph_filehandle.close()
-    #[f.close() for f in output_bed_filehandles.values()]
+    [f.close() for f in output_bed_filehandles.values()]
