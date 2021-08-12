@@ -14,7 +14,7 @@ from genome_tools import genomic_interval
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import posterior
 from footprint_tools.cli.utils import tuple_args, get_kwargs
-from footprint_tools.data.process import process
+from footprint_tools.data.process import processor
 from footprint_tools.data.utils import numpy_collate_concat
 
 from tqdm import tqdm
