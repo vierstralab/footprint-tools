@@ -104,7 +104,7 @@ class expected_counts(process):
     default=False, show_default=True)
 @click.option('--bam_offset',
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)',
-    type=click.STRING, default="0,-1", show_default=True, callback=tuple_args)
+    type=click.STRING, default="0,-1", show_default=True, callback=tuple_args())
 @click.option('--half_win_width',
     help='Half window width to apply bias model',
     default=5, show_default=True)

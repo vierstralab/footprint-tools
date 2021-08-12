@@ -1,15 +1,18 @@
+from multiprocessing import Value
 import click
+from click.exceptions import BadOptionUsage
 from argh.exceptions import CommandError
 
-def tuple_args(ctx, param, value):
-    """
-    Function to parser a tuple of integers from command line
-    """
-    items = value.split(',')
-    if len(items) > 2:
-        raise click.BadOptionUsage('needs to be a comma-delimited tuple')
 
-    return items
+def tuple_args(value_type=int):
+    def _validate_tuple(ctx, params, value):
+        """Function to parser a tuple of integers from command line"""
+        try:
+            items = tuple(map(value_type, value.split(',')))
+            assert len(items) == 2
+            return items
+        except:
+            raise click.BadOptionUsage(f'Needs to be type {value_type.__name__}')
 
 def list_args(arg_type=int):
     """
