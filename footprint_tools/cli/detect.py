@@ -156,7 +156,7 @@ def write_segments_to_output(interval, segments, file=sys.stdout):
     help='Remove duplicate reads')
 @arg('--keep_qcfail',
     help='Retain QC-failed reads')
-@arg('--bam_offset')
+@arg('--bam_offset',
     type=tuple_args(int),
     help='BAM file offset (enables support for other datatypes -- e.g., Tn5/ATAC)')
 @arg('--half_win_width',
