@@ -33,14 +33,14 @@ def run(bedgraph_file,
     total_lines = total_passed = 0
     obs_over_exp = []
 
-    with yaspin(Spinners.bouncingBar, text="Reading nucleotides") as sp:
+    with yaspin(Spinners.bouncingBar, text='Reading nucleotides', color='#cc951d') as sp:
         
         filehandle = open(bedgraph_file, 'r')
 
         for line in filehandle:
             total_lines +=1
             if total_lines % 500000 == 0:
-                sp.text = "Reading nucleotides -- {:,}, {:,} passed".format(total_lines, total_passed)
+                sp.text = "Reading nucleotides -- {:,} / {:,} in footprints".format(total_passed, total_lines)
 
             fields = line.strip().split('\t')
             exp = float(fields[3])
