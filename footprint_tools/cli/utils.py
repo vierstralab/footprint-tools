@@ -165,8 +165,8 @@ def write_segments_to_output(interval, stats, threshold, name='.', file=sys.stdo
     assert stats.ndim == 1
 
     segments = utils.segment(
-                -stats if decreasing else stats
-                -threshold if decreasing else threshold, 3)
+                -1.0*stats if decreasing else stats
+                -1.0*threshold if decreasing else threshold, 3)
 
     for s, e in segments:
         score = score_fn(stats[s:e])        
