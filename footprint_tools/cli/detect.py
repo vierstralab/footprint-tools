@@ -276,14 +276,15 @@ def run(interval_file,
     with logging_redirect_tqdm():
         
         for batch in tqdm(dp_iter, colour='#cc951d'):
-            
+
             for interval, stats in zip(batch["interval"], batch["stats"]):
                 # write stats
                 write_stats_to_output(interval, stats, output_bedgraph_filehandle)
 
                 # write footprints
                 for thresh, fh in output_bed_filehandles.items():
-                    write_segments_to_output(interval, stats, thresh, file=fh, decreasing=True)
+                    # fdr is last column in stats array
+                    write_segments_to_output(interval, stats[:-1], thresh, file=fh, decreasing=True)
 
     output_bedgraph_filehandle.close()
     [f.close() for f in output_bed_filehandles.values()]
