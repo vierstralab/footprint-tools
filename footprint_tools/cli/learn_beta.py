@@ -1,5 +1,5 @@
-import sys
 import click
+from click_option_group import optgroup
 
 from yaspin import yaspin
 from yaspin.spinners import Spinners
@@ -18,7 +18,8 @@ logger = logging.getLogger(__name__)
 @click.option('--exp_cutoff',
     type=click.INT, default=10,
     help='Only consider nucleotides with expected cleavages >= this value')
-@click.option('--outfile',
+@optgroup.group('Output options')
+@optgroup.option('--outfile',
     type=click.STRING, default='beta.txt',
     help='Output file path')
 def run(bedgraph_file, 
@@ -29,7 +30,7 @@ def run(bedgraph_file,
 
     \b
     Input:
-    bedgraph_file   Path to bedgraph file containg the per-nucleotide statistics
+    BEDGRAPH_FILE   Path to bedgraph file containg the per-nucleotide statistics
                     generated from the 'detect' command.
     
     Outputs the fit Beta-distribution parameters to 'outfile'.

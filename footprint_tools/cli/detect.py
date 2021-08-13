@@ -161,6 +161,13 @@ class deviation_stats(process):
 @optgroup.option('--keep_qcfail', type=click.BOOL,
     default=False, show_default=True,
     help='Keep QC-failed reads')
+@optgroup.group('Output options')
+@optgroup.option('--outprefix', type=click.STRING,
+    default='out', show_default=True,
+    help='Output prefix')
+@optgroup.option('--write_footprints', type=click.STRING, 
+    default="0.001,0.01,0.05", show_default=True, callback=list_args(float),
+    help='Output footprints at specified FDRs')
 @optgroup.group('Other options')
 @optgroup.option('--bam_offset', type=click.STRING,
     default="0,-1", show_default=True, callback=tuple_args(int),
@@ -173,13 +180,6 @@ class deviation_stats(process):
 @optgroup.option('--batch_size', type=click.INT,
     default=100, show_default=True,
     help='Batch size of intervals to process')
-@optgroup.group('Output options')
-@optgroup.option('--outprefix', type=click.STRING,
-    default='out', show_default=True,
-    help='Output prefix')
-@optgroup.option('--write_footprints', type=click.STRING, 
-    default="0.001,0.01,0.05", show_default=True, callback=list_args(float),
-    help='Output footprints at specified FDRs')
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -202,9 +202,9 @@ def run(interval_file,
 
     \b
     Inputs:
-    interval_file  Path to BED-formatted file contained genomic regions to be analyzed
-    bam_file       Path to BAM-format tag alignment file
-    fasta_file     Path to genome FASTA file (requires associated FASTA index in same folder
+    INTERVAL_FILE  Path to BED-formatted file contained genomic regions to be analyzed
+    BAM_FILE       Path to BAM-format tag alignment file
+    FASTA_FILE     Path to genome FASTA file (requires associated FASTA index in same folder
                     (see documentation on how to create an index)
     
     \b

@@ -1,5 +1,5 @@
-import sys
 import click
+from click_option_group import optgroup
 
 from multiprocessing import cpu_count
 
@@ -86,37 +86,42 @@ class expected_counts(process):
         return np.column_stack((exp, obs))
 
 @click.command(name='learn_dm')
+@click.command(name='detect')
 @click.argument('interval_file')
 @click.argument('bam_file')
 @click.argument('fasta_file')
-@click.option('--bias_model_file', type=click.STRING,
+@optgroup.group('Bias modelling options')
+@optgroup.option('--bias_model_file', type=click.STRING,
     help='Use a k-mer model for sequence bias (supplied by file). '
         'If argument is not provided the model defaults to uniform '
         'sequence bias.')
-@click.option('--min_qual', type=click.INT, 
-    default=1, show_default=True,
-    help='Ignore reads with mapping quality lower than this threshold')
-@click.option('--keep_dups', type=click.BOOL,
-    default=False, show_default=True,
-    help='Keep duplicate reads')
-@click.option('--keep_qcfail', type=click.BOOL,
-    default=False, show_default=True,
-    help='Keep QC-failed reads')
-@click.option('--bam_offset', type=click.STRING,
-    default="0,-1", show_default=True, callback=tuple_args(int),
-    help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
-@click.option('--half_win_width', type=click.INT,
+@optgroup.option('--half_win_width', type=click.INT,
     default=5, show_default=True,
     help='Half window width to apply bias model')
-@click.option('--n_threads', type=click.IntRange(1, cpu_count()),
+@optgroup.group('Read filtering options')
+@optgroup.option('--min_qual', type=click.INT, 
+    default=1, show_default=True,
+    help='Ignore reads with mapping quality lower than this threshold')
+@optgroup.option('--keep_dups', type=click.BOOL,
+    default=False, show_default=True,
+    help='Keep duplicate reads')
+@optgroup.option('--keep_qcfail', type=click.BOOL,
+    default=False, show_default=True,
+    help='Keep QC-failed reads')
+@optgroup.group('Output options')
+@optgroup.option('--outfile', type=click.STRING,
+    default='out', show_default=True,
+    help='Output prefix')
+@optgroup.group('Other options')
+@optgroup.option('--bam_offset', type=click.STRING,
+    default="0,-1", show_default=True, callback=tuple_args(int),
+    help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
+@optgroup.option('--n_threads', type=click.IntRange(1, cpu_count()),
     default=cpu_count(), show_default=True,
     help='Number of processors to use')
-@click.option('--batch_size', type=click.INT,
+@optgroup.option('--batch_size', type=click.INT,
     default=100, show_default=True,
     help='Batch size of intervals to process')
-@click.option('--outfile', type=click.STRING,
-    default='dm.json', show_default=True,
-    help='Output file path')
 def run(interval_file,
         bam_file,
         fasta_file,
@@ -137,12 +142,12 @@ def run(interval_file,
 
     \b
     Inputs:
-    interval_file  Path to BED-formatted file contained genomic regions to be analyzed
-    bam_file       Path to BAM-format tag alignment file
-    fasta_file     Path to genome FASTA file (requires associated FASTA index in same folder
+    INTERVAL_FILE  Path to BED-formatted file contained genomic regions to be analyzed
+    BAM_FILE       Path to BAM-format tag alignment file
+    FASTA_FILE     Path to genome FASTA file (requires associated FASTA index in same folder
                     (see documentation on how to create an index)
 
-    Outputs a JSON-formated dispersion model to 'outfile'
+    Outputs a JSON-formated dispersion model
     """
 
     proc_kwargs = {

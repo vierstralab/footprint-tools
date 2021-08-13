@@ -1,7 +1,7 @@
-import math
-
 import click
+from click_option_group import optgroup
 
+import math
 import numpy as np
 import scipy.stats
 
@@ -115,10 +115,11 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 
 @click.command(name='plot_dm')
 @click.argument('dispersion_model_file')
-@click.option('--histograms',
+@optgroup.group('Output options')
+@optgroup.option('--histograms',
     type=click.STRING, default="5,25,50,75", callback=list_args(int),
     help='Plot histograms of observed counts at site with expected counts (comma-seperated list)')
-@click.option('--outfile',
+@optgroup.option('--outfile',
     type=click.STRING, default='dm.pdf',
     help='Output file path for plot (suffix determines image format)')
 def run(dispersion_model_file, histograms=[15,25,50,75], outfile='dm.pdf'):

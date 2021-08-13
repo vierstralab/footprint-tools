@@ -1,9 +1,9 @@
-import argh
-from argh.decorators import named, arg
+import click
+from click_option_group import optgroup
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)    
 
-@named('diff_test')
+@click.command('diff_test')
 def run():
     """Base-pair resolution test for differential DNase I cleavage
     """

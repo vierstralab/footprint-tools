@@ -1,4 +1,5 @@
 import click
+from click_option_group import optgroup
 
 from multiprocessing import cpu_count
 
@@ -106,20 +107,22 @@ class posterior_stats(process):
 @click.option('--fdr_cutoff', type=click.FLOAT,
     default=0.05, show_default=True,
     help='FDR cutoff to use when computing priors')
-@click.option('--post_cutoff', type=click.FLOAT,
+@optgroup.group('Output options')
+@optgroup.option('--post_cutoff', type=click.FLOAT,
     default=0.2, show_default=True,
     help='Print only positions where that maximum posterior across '
         'all samples meets this threshold. Used to control for '
         'file size.')
-@click.option('--n_threads', type=click.IntRange(1, cpu_count()),
-    default=cpu_count(), show_default=True,
-    help='Number of processors to use')
-@click.option('--batch_size', type=click.INT,
-    default=100, show_default=True,
-    help='Batch size of intervals to process')
-@click.option('--outprefix', type=click.STRING,
+@optgroup.option('--outprefix', type=click.STRING,
     default='out', show_default=True,
     help='Output prefix')
+@optgroup.group('Other options')
+@optgroup.option('--n_threads', type=click.IntRange(1, cpu_count()),
+    default=cpu_count(), show_default=True,
+    help='Number of processors to use')
+@optgroup.option('--batch_size', type=click.INT,
+    default=100, show_default=True,
+    help='Batch size of intervals to process')
 def run(sample_data_file,
         interval_file, 
         fdr_cutoff=0.05,
@@ -134,8 +137,8 @@ def run(sample_data_file,
 
     \b
     Inputs:
-    interval_file       Path to BED-formatted file contained genomic regions to be analyzed
-    sample_data_file    Path to file that contains sample data. File is tab-delimited with the
+    INTERVAL_FILE       Path to BED-formatted file contained genomic regions to be analyzed
+    SAMPLE_DATA_FILE    Path to file that contains sample data. File is tab-delimited with the
                         following columns:
 
     \b
