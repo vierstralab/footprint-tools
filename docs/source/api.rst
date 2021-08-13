@@ -101,7 +101,7 @@ The ``dispersion`` module contains a :class:`dispersion_mdel` and helper functio
 
 .. automethod:: footprint_tools.modeling.dispersion.write_dispersion_model
 
-.. automethod:: footprint_tools.modeling.dispersion.read_dispersion_model
+.. automethod:: footprint_tools.modeling.dispersion.load_dispersion_model
 
 ``prediction`` class
 ********************

@@ -8,7 +8,7 @@ from Numerical Recipes
 */
 #define SWAP(a,b) temp=(a);(a)=(b);(b)=temp;
 
-double quickselect(double* arr, int n, int k)
+double quickselect(double* arr, unsigned int n, unsigned int k)
 {
     unsigned long i, ir, j, l, mid;
     double a, temp;

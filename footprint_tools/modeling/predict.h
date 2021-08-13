@@ -3,7 +3,8 @@
 #ifndef __PREDICT_H_
 #define __PREDICT_H_
 
-#include "cephes.h"
+#include <math.h>
+
 #include "smoothing.h"
 
 typedef struct result
@@ -58,7 +59,7 @@ result_t* fast_predict(
     // Compute expected
     for (i = half_win_width; i < l-half_win_width; i++)
     {
-        exp_counts[i] = c_round( (probs[i] / win_probs[i]) * win_counts[i] );
+        exp_counts[i] = round( (probs[i] / win_probs[i]) * win_counts[i] );
     }
 
     result_t *res = (result_t*) malloc(sizeof(result_t));

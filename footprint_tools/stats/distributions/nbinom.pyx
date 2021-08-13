@@ -10,12 +10,15 @@ import numpy as np
 cimport cython
 cimport numpy as np
 
-cdef extern from "cephes.h":
-    double c_exp(double) nogil
-    double c_log(double) nogil
-    double c_log1p(double) nogil
-    double c_lgamma(double) nogil
-    double c_incbet(double, double, double) nogil
+cdef extern from "math.h":
+    double log(double) nogil
+    double sqrt(double) nogil
+    double exp(double) nogil
+
+cdef extern from "hcephes.h":
+    double hcephes_log1p(double) nogil
+    double hcephes_lgam(double) nogil
+    double hcephes_incbet(double, double, double) nogil
 
 import warnings
 
@@ -93,8 +96,8 @@ cpdef data_type_t logpmf(int k, data_type_t p, data_type_t r) nogil:
     p : float
         log of probability mass at value `k`
     """
-    cdef double coeff = c_lgamma(k+r) - c_lgamma(k+1) - c_lgamma(r)
-    return coeff + r * c_log(p) + k * c_log1p(-p)
+    cdef double coeff = hcephes_lgam(k+r) - hcephes_lgam(k+1) - hcephes_lgam(r)
+    return coeff + r * log(p) + k * hcephes_log1p(-p)
 
 cpdef data_type_t pmf(int k, data_type_t p, data_type_t r) nogil:
     """Probability mass function for negative binomial
@@ -113,7 +116,7 @@ cpdef data_type_t pmf(int k, data_type_t p, data_type_t r) nogil:
     p : float
         Probability mass at value `k`
     """
-    return c_exp( logpmf(k, p, r) )
+    return exp(logpmf(k, p, r))
 
 cpdef data_type_t cdf(int k, data_type_t p, data_type_t r) nogil:
     """Cumulative distribution function for negative binomial
@@ -132,7 +135,7 @@ cpdef data_type_t cdf(int k, data_type_t p, data_type_t r) nogil:
     p : float
         Cumulative density at value `k`
     """
-    return c_incbet(r, k+1, p)
+    return hcephes_incbet(r, k+1, p)
 
 cpdef data_type_t mean(data_type_t p, data_type_t r) nogil:
     """Mean of negative binomial distribution

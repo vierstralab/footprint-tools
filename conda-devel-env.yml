@@ -16,10 +16,18 @@ dependencies:
 - tqdm
 - click
 - matplotlib
+- bumpversion
+- sphinx
+- nbsphinx
+- ipykernel
+- sphinx-panels
+- pydata-sphinx-theme
+- sphinx-click
+
 - pip:
   - git+https://github.com/jvierstra/pysam.git
-  - pwlf
   - genome_tools
+  - pwlf
   - yaspin
   - click-option-group
   - .

@@ -2,13 +2,8 @@
 #ifndef __WINDOWING_H__
 #define __WINDOWING_H__
 
-#include "cephes.h"
-
-extern double c_log( double );
-extern double c_sqrt( double );
-extern double c_chdtrc( double, double );
-extern double c_ndtri( double );
-extern double c_ndtr( double );
+#include <math.h>
+#include "hcephes.h"
 
 typedef double (*func_t)(const double * const, int);
 typedef double (*weighted_func_t)(const double* const, const double* const, int);
@@ -47,11 +42,11 @@ double fast_fishers_combined(const double* const x, int k)
 
     for (i = 0; i < k; i++)
     {
-        chi += c_log(x[i]);
+        chi += log(x[i]);
     }
     chi *= -2.0;
     
-    p = c_chdtrc( (double) 2.0 * k, chi);
+    p = hcephes_chdtrc( (double) 2.0 * k, chi);
     return p;
 }
 
@@ -63,10 +58,10 @@ double fast_stouffers_z(const double* const x, int k)
     
     for (i = 0; i < k; ++i)
     {
-        s += c_ndtri(1.0 - x[i]);
+        s += hcephes_ndtri(1.0 - x[i]);
     }
-    z = s / c_sqrt((double)k);
-    p = c_ndtr(-z);
+    z = s / sqrt((double)k);
+    p = hcephes_ndtr(-z);
 
     return p;
 }
@@ -97,11 +92,11 @@ double fast_weighted_stouffers_z(const double* const x, const double* const w, i
 
     for (i = 0; i < k; ++i)
     {
-        s += w[i] * c_ndtri(1.0 - x[i]);
+        s += w[i] * hcephes_ndtri(1.0 - x[i]);
         sw += w[i] * w[i];
     }
-    z = s / c_sqrt(sw);
-    p = c_ndtr(-z);
+    z = s / sqrt(sw);
+    p = hcephes_ndtr(-z);
 
     return p;	
 }

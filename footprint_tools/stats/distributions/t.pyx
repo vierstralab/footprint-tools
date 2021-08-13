@@ -6,11 +6,13 @@ Implementation of Student's t distribution
 cimport cython
 cimport numpy as np
 
-cdef extern from "cephes.h":
-    double c_lgamma(double) nogil
-    double c_log(double) nogil
-    double c_sqrt(double) nogil
-    double PI
+cdef extern from "math.h":
+    double log(double) nogil
+    double sqrt(double) nogil
+
+cdef extern from "hcephes.h":
+    double hcephes_lgam(double) nogil
+    double HCEPHES_PI
 
 cpdef data_type_t logpmf(data_type_t x, data_type_t nu, data_type_t mu, data_type_t sig2) nogil:
     """Log probability mass function of Student's t distribution
@@ -29,4 +31,4 @@ cpdef data_type_t logpmf(data_type_t x, data_type_t nu, data_type_t mu, data_typ
     -------
     p : float
     """
-    return c_lgamma((nu+1.0)/2.0) - c_lgamma(nu/2.0) - c_log(c_sqrt(PI*nu*sig2)) - ((nu+1.0)/2.0 * c_log(1.0+((x-mu)**2)/sig2/nu ))
+    return hcephes_lgam((nu+1.0)/2.0) - hcephes_lgam(nu/2.0) - log(sqrt(HCEPHES_PI*nu*sig2)) - ((nu+1.0)/2.0 * log(1.0+((x-mu)**2)/sig2/nu ))
