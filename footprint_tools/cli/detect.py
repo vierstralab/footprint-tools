@@ -284,7 +284,7 @@ def run(interval_file,
                 # write footprints
                 for thresh, fh in output_bed_filehandles.items():
                     # fdr is last column in stats array
-                    write_segments_to_output(interval, stats[:,-1], thresh, file=fh, decreasing=True)
+                    write_segments_to_output(interval, stats[:,-1], thresh, file=fh, decreasing=False)
 
     output_bedgraph_filehandle.close()
     [f.close() for f in output_bed_filehandles.values()]
