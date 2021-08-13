@@ -1,4 +1,3 @@
-import sys
 import click
 
 from multiprocessing import cpu_count
@@ -11,8 +10,10 @@ import pysam
 from genome_tools import genomic_interval
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
-from footprint_tools.stats import fdr, windowing, utils
-from footprint_tools.cli.utils import (list_args, tuple_args, get_kwargs, verify_bam_file, verify_fasta_file)
+from footprint_tools.stats import fdr, windowing
+from footprint_tools.cli.utils import (list_args, tuple_args, get_kwargs, 
+                                        verify_bam_file, verify_fasta_file, write_output_header,
+                                        write_stats_to_output, write_segments_to_output)
 from footprint_tools.data.process import process
 
 from tqdm import tqdm
@@ -120,22 +121,6 @@ class deviation_stats(process):
             'interval': interval,
             'stats': stats
         }
-
-def write_stats_to_output(interval, stats, file=sys.stdout):
-    """Write per-nucleotide statistics to file"""
-    chrom = interval.chrom
-    start = interval.start
-    for i in range(stats.shape[0]):
-        out = f'{chrom}\t{start+i}\t{start+i+1}\t'
-        out += '\t'.join(['{:0.4f}'.format(val) for val in stats[i,:]])
-        file.write(out+'\n')
-
-def write_segments_to_output(interval, stats, threshold, file=sys.stdout):
-    """Write footprints to file"""
-    chrom = interval.chrom
-    start = interval.start
-    for sstart, send in utils.segment(1.0-stats[:,-1], 1.0-threshold, 3):
-        print(genomic_interval(chrom, start+sstart, start+send), file=file)
 
 @click.command(name='detect')
 @click.argument('interval_file')
@@ -267,14 +252,19 @@ def run(interval_file,
         output_bedgraph_file = outprefix + '.bedgraph'
         logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
         output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
-    
+        write_output_header(["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"], file=output_bedgraph_filehandle)
+
+
         # Output footprints filex
         output_bed_file_template = outprefix + '.fdr{0}.bed'
         output_bed_filehandles = {}
 
         if len(write_footprints) > 0:
-            logger.info(f"Writing FDR thresholded footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")    
-            output_bed_filehandles.update({t: open(output_bed_file_template.format(t), 'w') for t in write_footprints})
+            logger.info(f"Writing FDR thresholded footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")
+            for t in write_footprints:
+                fh =  open(output_bed_file_template.format(t), 'w')
+                write_output_header(["name", "fdr"], file=fh, extra=f"thresholded @ FDR {t}")
+                output_bed_filehandles.update({t:fh})
 
     except IOError as e:
         logger.critical(e)
@@ -293,7 +283,7 @@ def run(interval_file,
 
                 # write footprints
                 for thresh, f in output_bed_filehandles.items():
-                    write_segments_to_output(interval, stats, thresh, file=f)
+                    write_segments_to_output(interval, stats, thresh, file=f, decreasing=True)
 
     output_bedgraph_filehandle.close()
     [f.close() for f in output_bed_filehandles.values()]

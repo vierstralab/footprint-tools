@@ -1,4 +1,3 @@
-import sys
 import click
 
 from multiprocessing import cpu_count
@@ -9,9 +8,11 @@ import pandas as pd
 import pysam
 
 from genome_tools import genomic_interval
+import footprint_tools
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import posterior
-from footprint_tools.cli.utils import (tuple_args, get_kwargs, verify_tabix_file)
+from footprint_tools.cli.utils import (verify_tabix_file, write_stats_to_output, 
+                                        write_output_header)
 from footprint_tools.data.process import process
 from footprint_tools.data.utils import numpy_collate_concat
 
@@ -99,9 +100,6 @@ class posterior_stats(process):
             'post': post,
         }
 
-def write_stats_to_output(interval, stats, cutoff=1, file=sys.stdout):
-    pass
-
 @click.command(name='posterior')
 @click.argument('sample_data_file')
 @click.argument('interval_file')
@@ -131,6 +129,9 @@ def run(sample_data_file,
         outprefix='out'):
     """Compute footprint posterior probabilities
 
+    Applies an emperical Bayesian approach to compute the posterior probability a
+    nucleotide is protected by jointly analyzing many datasets.
+
     \b
     Inputs:
     interval_file       Path to BED-formatted file contained genomic regions to be analyzed
@@ -149,7 +150,11 @@ def run(sample_data_file,
 
     \b
     Output:
-
+    {outprefix}.bedgraph    bedGraph file written to 'outprefix'.bedgraph .Columns are
+                                'contig start start+1 -log(1-p)_1 ... -log(1-p)_n'
+                            where n is the total number samples. Note that values are
+                            1-posterior probability. Samples (columns) are in the same 
+                            order as the sample data file.
     """
 
     logger.info(f"Loading sample data file {sample_data_file}")
@@ -178,6 +183,9 @@ def run(sample_data_file,
         logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
         output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
 
+        #write header lines
+        write_output_header(sample_data["id"], output_bedgraph_filehandle)
+
     except IOError as e:
         logger.critical(e)
         raise click.Abort()
@@ -186,10 +194,13 @@ def run(sample_data_file,
     dp = posterior_stats(interval_file, sample_data, fdr_cutoff)
     dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
+    # filter function to apply when writing posteriors to file
+    filter_fn = lambda x: np.min(x, axis=1) > post_cutoff
+
     with logging_redirect_tqdm():
 
         for batch in tqdm(dp_iter, colour='#cc951d'):
             for interval, stats in zip(batch["interval"], batch["stats"]):
-                write_stats_to_output(interval, stats, post_cutoff, output_bedgraph_filehandle)
+                write_stats_to_output(interval, stats, output_bedgraph_filehandle, filter_fn=filter_fn)
     
     output_bedgraph_filehandle.close()
