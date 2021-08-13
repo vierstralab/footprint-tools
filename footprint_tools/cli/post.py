@@ -155,7 +155,7 @@ def run(sample_data_file,
 
     \b
     Output:
-    {outprefix}.bedgraph    bedGraph file written to 'outprefix'.bedgraph .Columns are
+    {outprefix}.bedgraph    bedGraph file written to 'outprefix'.bedgraph. Columns are
                                 'contig start start+1 -log(1-p)_1 ... -log(1-p)_n'
                             where n is the total number samples. Note that values are
                             1-posterior probability. Samples (columns) are in the same 
