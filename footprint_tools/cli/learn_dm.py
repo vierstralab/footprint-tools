@@ -86,7 +86,6 @@ class expected_counts(process):
         return np.column_stack((exp, obs))
 
 @click.command(name='learn_dm')
-@click.command(name='detect')
 @click.argument('interval_file')
 @click.argument('bam_file')
 @click.argument('fasta_file')
