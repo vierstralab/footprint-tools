@@ -162,6 +162,8 @@ def write_segments_to_output(interval, stats, threshold, name='.', file=sys.stdo
     chrom = interval.chrom
     start = interval.start
 
+    assert stats.ndim == 1
+
     segments = utils.segment(
                 -stats if decreasing else stats
                 -threshold if decreasing else threshold, 3)
