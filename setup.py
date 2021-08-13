@@ -13,8 +13,6 @@ from Cython.Distutils import build_ext
 
 import numpy as np
 
-__version__ = "1.2.2"
-
 if sys.version_info[0] != 3 or sys.version_info[1] < 6:
     print("Package requires Python version 3.6+")
     sys.exit(1)
@@ -55,7 +53,7 @@ install_requires = [
 
 setup(
     name = "footprint_tools",
-    version = __version__,
+    version = "1.2.2",
     license = "GPL-3.0-or-later",
     description = "Genomic footprint detection",
     long_description=(pathlib.Path(__file__).parent / "README.md").read_text(),
