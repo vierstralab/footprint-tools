@@ -200,6 +200,7 @@ def run(sample_data_file,
     with logging_redirect_tqdm():
 
         for batch in tqdm(dp_iter, colour='#cc951d'):
+            
             for interval, stats in zip(batch["interval"], batch["stats"]):
                 write_stats_to_output(interval, stats, output_bedgraph_filehandle, filter_fn=filter_fn)
     

@@ -254,7 +254,6 @@ def run(interval_file,
         output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
         write_output_header(["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"], file=output_bedgraph_filehandle)
 
-
         # Output footprints filex
         output_bed_file_template = outprefix + '.fdr{0}.bed'
         output_bed_filehandles = {}
@@ -277,13 +276,14 @@ def run(interval_file,
     with logging_redirect_tqdm():
         
         for batch in tqdm(dp_iter, colour='#cc951d'):
+            
             for interval, stats in zip(batch["interval"], batch["stats"]):
                 # write stats
                 write_stats_to_output(interval, stats, output_bedgraph_filehandle)
 
                 # write footprints
-                for thresh, f in output_bed_filehandles.items():
-                    write_segments_to_output(interval, stats, thresh, file=f, decreasing=True)
+                for thresh, fh in output_bed_filehandles.items():
+                    write_segments_to_output(interval, stats, thresh, file=fh, decreasing=True)
 
     output_bedgraph_filehandle.close()
     [f.close() for f in output_bed_filehandles.values()]
