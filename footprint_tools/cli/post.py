@@ -6,7 +6,9 @@ from multiprocessing import cpu_count
 import numpy as np
 import scipy as sp
 import pandas as pd
+
 import pysam
+pysam.set_verbosity(0)
 
 from genome_tools import genomic_interval
 import footprint_tools
