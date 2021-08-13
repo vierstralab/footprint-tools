@@ -51,9 +51,11 @@ install_requires = [
     "yaspin"
 ]
 
+__version__ = "1.3.0"
+
 setup(
     name = "footprint_tools",
-    version = "1.3.0",
+    version = __version__,
     license = "GPL-3.0-or-later",
     description = "Genomic footprint detection",
     long_description=(pathlib.Path(__file__).parent / "README.md").read_text(),
