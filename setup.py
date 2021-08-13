@@ -53,7 +53,7 @@ install_requires = [
 
 setup(
     name = "footprint_tools",
-    version = "1.2.2",
+    version = "1.3.0",
     license = "GPL-3.0-or-later",
     description = "Genomic footprint detection",
     long_description=(pathlib.Path(__file__).parent / "README.md").read_text(),
