@@ -48,6 +48,7 @@ install_requires = [
     "simplejson",
     "tqdm",
     "click",
+    "click-option-group",
     "matplotlib",
     "yaspin"
 ]

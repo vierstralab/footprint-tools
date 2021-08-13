@@ -127,7 +127,7 @@ class deviation_stats(process):
 @click.argument('interval_file')
 @click.argument('bam_file')
 @click.argument('fasta_file')
-@optgroup.group('Bias modelling options')
+@optgroup.group('Bias modeling options')
 @optgroup.option('--bias_model_file', type=click.STRING,
     help='Use a k-mer model for sequence bias (supplied by file). '
         'If argument is not provided the model defaults to uniform '
