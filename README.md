@@ -7,16 +7,7 @@ are computed from a series emperically fit negative binomial distribution.
 
 ## Requirements
 
-``footprint-tools`` requires Python 3.6+ and depends on the following additional
-packages:
-
-* cython
-* numpy
-* scipy
-* statsmodels
-* pysam
-* genome_tools (http://www.github.com/jvierstra/genome_tools)
-* pwlf (https://github.com/cjekel/piecewise_linear_fit_py)
+``footprint-tools`` requires Python 3.6+
 
 We also recommend these non-Python analysis tools:
 
@@ -47,7 +38,8 @@ conda env create -f conda-env.yml
 conda activate footprint-tools
 
 # Run commands
-ftd-learn-dispersion... 
+ftd --version
+ftd {commands}
 ```
 
 ## Documentation & usage

@@ -1,16 +1,18 @@
-# Copyright 2015 Jeff Vierstra
+"""
+This sub-module contains functions for performing sliding window functions
+written in native C. 
+"""
+
+# Copyright 2015-2021 Jeff Vierstra
 
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: nonecheck=False
 # cython: embedsignature=True
 
-
-from libc.stdlib cimport free
-
-
 import numpy as np
 
+from libc.stdlib cimport free
 cimport numpy as np
 
 ctypedef np.float64_t data_type_t
@@ -30,7 +32,18 @@ cdef extern from "windowing.h":
     double* fast_weighted_windowing_func(const double* const, const double* const, int, int, weighted_func_t)
 
 cdef windowing_func(data_type_t [:] x, int hw, func_t func_ptr):
-    
+    """Windowing function wrapper that passes ndarray to
+    fast functions written in native C
+
+    Parameters
+    ---------
+    x : ndarray
+        Array of values to perform sliding window function
+    hw : int
+        Half window width
+    func_ptr: callable
+        Function to apply to each window 
+    """
     cdef int i
     cdef int n = x.shape[0]
 
@@ -45,52 +58,92 @@ cdef windowing_func(data_type_t [:] x, int hw, func_t func_ptr):
     return np.asarray(win)
 
 cpdef sum(data_type_t [:] x, int hw):
-    """Sum of values in sliding local window
+    """Sum of values in sliding local window across array
 
-    :param x: (array) values
-    :param hw: (int) half window size to smooth
-    
-    :return: (float) summed values
+    Paramters
+    ---------
+    x : ndarray
+        Values to perform windowed sum. Must be memory
+        contiguous (i.e., np.ascontiguousarray(x))
+    hw: int
+        Half window with to apply sum
+
+    Returns
+    -------
+    out : ndarray
+       Array of windowed summed values
     """
-
     return windowing_func(x, hw, fast_sum)
 
 cpdef product(data_type_t [:] x, int hw):
-    """Product of values in sliding local window
+    """Sum of values in sliding local window across array
 
-    :param x: (array) values
-    :param hw: (int) half window size to smooth
-    
-    :return: (float) product of values
+    Paramters
+    ---------
+    x : ndarray
+        Values to perform windowed product. Must be memory
+        contiguous (i.e., np.ascontiguousarray(x))
+    hw: int
+        Half window with to apply sum
+
+    Returns
+    -------
+    out : ndarray
+       Array of windowed product values
     """
-    
     return windowing_func(x, hw, fast_product)
 
 cpdef fishers_combined(data_type_t [:] x, int hw):
-    """Compute p-value for a window using Fisher's combined method
+    """Compute p-values for a window using Fisher's combined method
 
-    :param x: (array) p-values
-    :param hw: (int) half window size to smooth
-    
-    :return p: (float) combined p-values
+    Paramters
+    ---------
+    x : ndarray
+        P-values to perform Fisher's combined method. Array must 
+        be memory contiguous (i.e., np.ascontiguousarray(x))
+    hw: int
+        Half window with to combined p-values
+
+    Returns
+    -------
+    out : ndarray
+       Array of combined p-values
     """
-
-
     return windowing_func(x, hw, fast_fishers_combined)
 
 cpdef stouffers_z(data_type_t [:] x, int hw):
-    """Compute p-value for a window using Stouffer's method
+    """Compute p-values for a window using Stouffer's Z-score method
 
-    :param x: (array) p-values
-    :param hw: (int) half window size to smooth
-    
-    :return p: (float) combined p-values
+    Paramters
+    ---------
+    x : ndarray
+        P-values to perform Stouffer's Z-score method. Array must 
+        be memory contiguous (i.e., np.ascontiguousarray(x))
+    hw: int
+        Half window with to combined p-values
+
+    Returns
+    -------
+    out : ndarray
+       Array of combined p-values
     """
-
     return windowing_func(x, hw, fast_stouffers_z)
 
 cdef weighted_windowing_func(data_type_t [:] x, data_type_t [:] w, int hw, weighted_func_t func_ptr):
-    
+    """Weighted windowing function wrapper that passes ndarray to
+    fast functions written in native C
+
+    Parameters
+    ---------
+    x : ndarray
+        Array of values to perform sliding window function
+    w: ndarray
+        Weights for each array element
+    hw : int
+        Half window width
+    func_ptr: callable
+        Function to apply to each window 
+    """
     cdef int i
     cdef int n = x.shape[0]
 
@@ -107,11 +160,19 @@ cdef weighted_windowing_func(data_type_t [:] x, data_type_t [:] w, int hw, weigh
 cpdef weighted_stouffers_z(data_type_t [:] x, data_type_t [:] w, int hw):
     """Compute p-value for a window using weighted Stouffer's method
 
-    :param x: (array) p-values
-    :param w: (array) weights
-    :param hw: (int) half window size to smooth
-    
-    :return p: (float) combined p-values
-    """
+    Parameters
+    ----------
+    x : ndarray
+        P-values to perform Stouffer's Z-score method. Array must 
+        be memory contiguous (i.e., np.ascontiguousarray(x))
+    w: ndarray
+        Weights for each elements in `x`
+    hw: int
+        Half window with to combined p-values
 
+    Returns
+    -------
+    out : ndarray
+       Array of combined p-values
+    """
     return weighted_windowing_func(x, w, hw, fast_weighted_stouffers_z)
