@@ -65,7 +65,7 @@ Writer functions
 import sys
 import numpy as np
 
-from footprint_tools
+import footprint_tools
 from footprint_tools.stats import utils
 
 def write_output_header(columns, file=sys.stdout, delim='\t', include_name=True, extra=None):
