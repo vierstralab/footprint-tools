@@ -26,6 +26,15 @@ Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). Software licensed u
 @click.group(epilog=epilog)
 @click.version_option(version=footprint_tools.__version__)
 def main():
+    """footprint_tools: analysis of digital genomic footprints 
+    
+    This software packages enables de novo detection and analysis of genomic footprints from DNase 
+    I data. The underying model simulates expected cleavage rates using a 6-mer DNase I cleavage
+    preference model combined with density smoothing. Statistical significance of per-nucleotide 
+    cleavages are computed from a series emperically fit negative binomial distribution. In addition
+    to footprint detection in a single, isolated dataset, this packages has a stastical framework
+    to jointly analyze 100s to 1000s of datasets in unison.
+    """
     pass
 
 main.add_command(learn_bm.run)
