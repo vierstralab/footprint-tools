@@ -16,7 +16,7 @@ cpdef segment(data_type_t [:] x, data_type_t threshold, int w = 1, bint decreasi
     """Segment an array into continuous elements passing a threshold
 
     Parameters
-    ---------
+    ----------
     x : array_like
         Array of values to segment
     threshold : float
