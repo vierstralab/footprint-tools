@@ -15,7 +15,7 @@ sphinx:
 python:
   version: 3.6
   install:
-    - method: pip
+    - method: setuptools
       path: .
 
 conda:
