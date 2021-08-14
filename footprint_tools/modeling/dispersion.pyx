@@ -107,7 +107,7 @@ cdef class dispersion_model:
     
     property metadata:
         def __get__(self):
-            return self._metdata
+            return self._metadata
         def __set__(self, x):
             self._metadata = x
     
