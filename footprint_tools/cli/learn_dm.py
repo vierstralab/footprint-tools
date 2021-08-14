@@ -9,11 +9,13 @@ import pandas as pd
 import pysam
 
 from genome_tools import genomic_interval
+from genome_tools.data.dataset import dataset
+from genome_tools.data.utils import numpy_collate_concat
+
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
+
 from footprint_tools.cli.utils import (tuple_args, get_kwargs, verify_bam_file, verify_fasta_file)
-from footprint_tools.data.process import process
-from footprint_tools.data.utils import numpy_collate_concat
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -24,7 +26,7 @@ logger = logging.getLogger(__name__)
 # kill numpy warnings
 np.seterr(all="ignore")
 
-class expected_counts(process):
+class expected_counts(dataset):
     """Computes observed and expected cleavage counts
     """
     def __init__(self, interval_file, bam_file, fasta_file, bm, **kwargs):
@@ -67,10 +69,10 @@ class expected_counts(process):
         
         # Open file handlers on first call. This avoids problems when
         # parallel processing data with non-thread safe code (i.e., pysam)
-        if not self.counts_reader:
-            self.counts_reader = cutcounts.bamfile(self.bam_file, **self.counts_reader_kwargs)
-            self.fasta_reader = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
-            self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, 
+        if not self.counts_extractor:
+            self.counts_extractor = cutcounts.bamfile(self.bam_file, **self.counts_reader_kwargs)
+            self.fasta_extractor = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
+            self.count_predictor = predict.prediction(self.counts_extractor, self.fasta_extractor, 
                                                         self.bm, **self.counts_predictor_kwargs)
 
         chrom, start, end = (self.intervals.iat[index, 0], 
@@ -174,15 +176,15 @@ def run(interval_file,
         raise click.Abort()
 
     # Initiate data processor
-    dp = expected_counts(interval_file, bam_file, fasta_file, bm, **proc_kwargs)
-    dp_iter = dp.batch_iter(batch_size=batch_size, collate_fn=numpy_collate_concat, num_workers=n_threads)
+    dl = expected_counts(interval_file, bam_file, fasta_file, bm, **proc_kwargs)
+    dl_iter = dl.batch_iter(batch_size=batch_size, collate_fn=numpy_collate_concat, num_workers=n_threads)
 
     hist_size = (200, 1000)
     hist = np.zeros(hist_size, dtype=int)
 
     with logging_redirect_tqdm():
 
-        for cnts in tqdm(dp_iter, colour='#cc951d'):
+        for cnts in tqdm(dl_iter, colour='#cc951d'):
             for i in range(cnts.shape[0]):
                 try:
                     # expected, observed

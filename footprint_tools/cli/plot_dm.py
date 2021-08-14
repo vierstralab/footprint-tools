@@ -4,12 +4,13 @@ from click_option_group import optgroup
 import math
 
 from matplotlib.pylab import rcParams
-import matplotlib.pyplot as mpl
+import matplotlib.pyplot as plt
 import matplotlib.gridspec as mgridspec
 
-from footprint_tools.cli.utils import list_args
 from footprint_tools.modeling import dispersion
 from footprint_tools.plotting import (plot_model_fit, plot_model_histogram)
+
+from footprint_tools.cli.utils import list_args
 
 import logging
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ def run(dispersion_model_file, histograms=[15,25,50,75], outfile='dm.pdf'):
     ncols = 2
     nrows = math.ceil(npanels/ncols)
 
-    fig = mpl.figure()
+    fig = plt.figure()
     gs = mgridspec.GridSpec(nrows, ncols,  wspace=0.75, hspace=0.75)
 
     logger.info("Plotting model parameters")
@@ -71,6 +72,6 @@ def run(dispersion_model_file, histograms=[15,25,50,75], outfile='dm.pdf'):
     
     logger.info(f"Saving plots to {outfile}")	
 
-    mpl.savefig(outfile, transparent=True)
+    plt.savefig(outfile, transparent=True)
 
     return 0

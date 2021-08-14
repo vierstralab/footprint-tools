@@ -11,13 +11,13 @@ import pysam
 pysam.set_verbosity(0)
 
 from genome_tools import genomic_interval
-import footprint_tools
+from genome_tools.data.dataset import dataset
+
 from footprint_tools.modeling import dispersion
 from footprint_tools.stats import posterior
+
 from footprint_tools.cli.utils import (verify_tabix_file, write_stats_to_output, 
                                         write_output_header)
-from footprint_tools.data.process import process
-from footprint_tools.data.utils import numpy_collate_concat
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -31,7 +31,7 @@ np.seterr(all="ignore")
 # columns required in sample data file
 required_sample_data_cols = ["id", "tabix_file", "dm_file", "beta_a", "beta_b"]
 
-class posterior_stats(process):
+class posterior_stats(dataset):
     def __init__(self, interval_file, samples_data, fdr_cutoff):
 
         self.intervals = pd.read_table(interval_file)
@@ -46,6 +46,7 @@ class posterior_stats(process):
         self.tabix_files = [pysam.TabixFile(fn) for fn in self.samples_data["tabix_file"]]
 
     def _load_data(self, interval):
+        """TODO: Use a genome_tools.data.extractors.tabix_extractor"""
         assert self.tabix_files or len(self.tabix_files) > 0
         
         n = len(self.tabix_files)
@@ -197,15 +198,15 @@ def run(sample_data_file,
         raise click.Abort()
 
     # Create data processor and iterator
-    dp = posterior_stats(interval_file, sample_data, fdr_cutoff)
-    dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
+    dl = posterior_stats(interval_file, sample_data, fdr_cutoff)
+    dl_iter = dl.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     # filter function to apply when writing posteriors to file
     filter_fn = lambda x: np.min(x, axis=1) > post_cutoff
 
     with logging_redirect_tqdm():
 
-        for batch in tqdm(dp_iter, colour='#cc951d'):
+        for batch in tqdm(dl_iter, colour='#cc951d'):
             
             for interval, stats in zip(batch["interval"], batch["stats"]):
                 write_stats_to_output(interval, stats, output_bedgraph_filehandle, filter_fn=filter_fn)

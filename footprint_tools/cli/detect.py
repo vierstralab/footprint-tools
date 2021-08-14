@@ -11,13 +11,15 @@ import pysam
 pysam.set_verbosity(0)
 
 from genome_tools import genomic_interval
+from genome_tools.data.dataset import dataset
+
 from footprint_tools import cutcounts
 from footprint_tools.modeling import bias, predict, dispersion
 from footprint_tools.stats import fdr, windowing
+
 from footprint_tools.cli.utils import (list_args, tuple_args, get_kwargs, 
                                         verify_bam_file, verify_fasta_file, write_output_header,
                                         write_stats_to_output, write_segments_to_output)
-from footprint_tools.data.process import process
 
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -28,7 +30,7 @@ logger = logging.getLogger(__name__)
 # kill numpy warnings
 np.seterr(all="ignore")
 
-class deviation_stats(process):
+class deviation_stats(dataset):
     """Class that computes per-nucleotide cleavage
     deviation statistics
     """
@@ -66,8 +68,8 @@ class deviation_stats(process):
         self.fdr_shuffle_n = kwargs['fdr_shuffle_n']
         self.seed = kwargs['seed']
 
-        self.counts_reader = None
-        self.fasta_reader = None
+        self.counts_extractor = None
+        self.fasta_extractor = None
         self.count_predictor = None
 
         self.win_pval_fn = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
@@ -84,10 +86,10 @@ class deviation_stats(process):
         
         # Open file handlers on first call. This avoids problems when
         # parallel processing data with non-thread safe code (i.e., pysam)
-        if not self.counts_reader:
-            self.counts_reader = cutcounts.bamfile(self.bam_file, **self.counts_reader_kwargs)
-            self.fasta_reader = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
-            self.count_predictor = predict.prediction(self.counts_reader, self.fasta_reader, 
+        if not self.counts_extractor:
+            self.counts_extractor = cutcounts.bamfile(self.bam_file, **self.counts_reader_kwargs)
+            self.fasta_extractor = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
+            self.count_predictor = predict.prediction(self.counts_extractor, self.fasta_extractor, 
                                                         self.bm, **self.counts_predictor_kwargs)
 
         chrom, start, end = (self.intervals.iat[index, 0], 
@@ -275,12 +277,12 @@ def run(interval_file,
         raise click.Abort()
     
     # Create data processor and iterator
-    dp = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
-    dp_iter = dp.batch_iter(batch_size=batch_size, num_workers=n_threads)
+    dl = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
+    dl_iter = dl.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     with logging_redirect_tqdm():
         
-        for batch in tqdm(dp_iter, colour='#cc951d'):
+        for batch in tqdm(dl_iter, colour='#cc951d'):
 
             for interval, stats in zip(batch["interval"], batch["stats"]):
                 # write stats
