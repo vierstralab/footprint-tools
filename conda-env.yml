@@ -11,15 +11,16 @@ dependencies:
 - numpy
 - scipy
 - pandas
+- pysam
 - statsmodels
 - simplejson
 - tqdm
 - click
+- click-option-group
 - matplotlib
+
 - pip:
-  - git+https://github.com/jvierstra/pysam.git
   - pwlf
   - genome_tools
   - yaspin
-  - click-option-group
   - .

@@ -12,5 +12,11 @@ sphinx:
 # formats:
 #  - pdf
 
+python:
+  version: 3.6
+  install:
+    - method: pip
+      path: .
+
 conda:
   environment: conda-docs-env.yml
