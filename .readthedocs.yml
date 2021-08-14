@@ -13,4 +13,4 @@ sphinx:
 #  - pdf
 
 conda:
-  enviroment: conda-docs-env.yml
+  environment: conda-docs-env.yml
