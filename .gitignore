@@ -1,4 +1,6 @@
 *.py[cod]
+*.so
+*.o
 .DS_Store
 .vscode
 
@@ -9,3 +11,5 @@ build/
 
 docs/build/
 .ipynb_checkpoints/
+
+footprints_tools/**/*.c
