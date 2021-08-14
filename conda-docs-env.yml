@@ -11,10 +11,12 @@ dependencies:
 - numpy
 - scipy
 - pandas
+- pysam
 - statsmodels
 - simplejson
 - tqdm
 - click
+- click-option-group
 - matplotlib
 - bumpversion
 - sphinx
@@ -22,12 +24,11 @@ dependencies:
 - ipykernel
 - sphinx-panels
 - pydata-sphinx-theme
-- sphinx-click
+- numpydoc
+- pandoc
 
 - pip:
-  - git+https://github.com/jvierstra/pysam.git
+  - git+https://github.com/jvierstra/sphinx-click.git
   - genome_tools
   - pwlf
   - yaspin
-  - click-option-group
-  - .
