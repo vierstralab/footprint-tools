@@ -6,7 +6,7 @@ statsmodels
 pwlf
 simplejson
 cython
-genome_tools>=1.0.2
+genome-tools>=1.0.3
 tqdm
 click
 click-option-group

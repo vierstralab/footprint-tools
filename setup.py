@@ -41,7 +41,7 @@ install_requires = [
     "pandas",
     "pysam>=0.15",
     "statsmodels",
-    "genome_tools>=1.0.2",
+    "genome-tools>=1.0.3",
     "pwlf",
     "simplejson",
     "tqdm",
