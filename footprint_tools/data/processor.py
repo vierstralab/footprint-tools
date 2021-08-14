@@ -47,7 +47,7 @@ class data_processor_iter(object):
 
         self.sample_iter = iter(self.batch_sampler)
                 
-        if self.num_workers > 0:
+        if self.num_workers > 1:
 
             logger.info(f"Using {self.num_workers} threads to process data")
 
@@ -81,7 +81,7 @@ class data_processor_iter(object):
         return len(self.batch_sampler)
 
     def __next__(self):
-        if self.num_workers == 0:
+        if self.num_workers <= 1:
             indices = next(self.sample_iter)
             batch = self.collate_fn([self.process[i] for i in indices])
             return batch

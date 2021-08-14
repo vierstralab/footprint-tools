@@ -1,7 +1,7 @@
-footprint-tools: *de novo* genomic footprint detection 
-======================================================
+footprint-tools: digital genomic footprint detection and analysis
+=================================================================
 
-footprint-tools is a python module for *de novo* detection of genomic footprints from DNase I data.
+A Python package for *de novo* detection of genomic footprints from DNase I data.
 
 **Features:**
 
@@ -20,12 +20,10 @@ Contents
 .. toctree::
         :maxdepth: 1
         
-        installation.rst
-        detect.rst
-        posterior.rst
-        differential.rst
+        quickstart.rst
+        commands.rst
+        tutorials.rst
         api.rst
-        examples.rst
 
 Pre-processed data
 -------------------

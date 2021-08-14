@@ -1,11 +1,7 @@
 #!/bin/bash
 
-# Copyright 2016-18 Jeff Vierstra
+# Copyright 2016-21 Jeff Vierstra
 # Altius Institute for Biomedical Sciences
-
-#bam_filepath="/home/jvierstra/proj/dnase-perspective/cleavage_model/reads.filtered.bam"
-#genome_mappability_filepath=
-#fasta_filepath="/home/jvierstra/data/genomes/hg19/hg.ribo.all.fa"
 
 mapq=1
 filtered_contigs="chrX,chrY,chrM"
@@ -160,7 +156,7 @@ for line in sys.stdin:
 	except:
 		pass
 __EOF__
-#
+
 cat ${tmpdir}/positions.bed \
 | python ${tmpdir}/observed_context.py \
 | bedmap --faster --ec --delim "\t" --echo --count - ${tmpdir}/pos.bed \
@@ -174,17 +170,16 @@ cat ${tmpdir}/positions.bed \
 	}' \
 | sort -k1,1 - \
 > ${tmpdir}/observed.kmers.txt
-#
+
 end=$(date +%s.%N)
 dur=$(echo "$end-$start" | bc)
-#
+
 echo "Done! ($dur secs)"
 
-#
 echo -e -n "+ Computing background sequence context..."
-#
+
 start=$(date +%s.%N)
-#
+
 cat > ${tmpdir}/expected_context.py <<__EOF__
 from __future__ import print_function
 import sys
@@ -222,10 +217,10 @@ cat ${genome_mappability_filepath} \
 | python ${tmpdir}/expected_context.py \
 | sort -k1,1 - \
 > ${tmpdir}/expected.kmers.txt
-#
+
 end=$(date +%s.%N)
 dur=$(echo "$end-$start" | bc)
-#
+
 echo "Done! ($dur secs)"
 
 echo -e -n "+ Completing..."
@@ -261,10 +256,5 @@ for kmer in kmers:
 __EOF__
  
 python ${tmpdir}/finalize.py ${tmpdir}/observed.kmers.txt ${tmpdir}/expected.kmers.txt > ${model_filepath}
-
-#join -j 1 ${tmpdir}/observed.kmers.txt ${tmpdir}/expected.kmers.txt \
-#| tr " " "\t" | grep -v "N" \
-#| awk -v OFS="\t" '{ print $0, $2/$3; }' \
-#> ${model_filepath}
 
 echo "Done!"

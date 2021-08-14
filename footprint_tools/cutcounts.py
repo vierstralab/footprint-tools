@@ -99,12 +99,12 @@ class bamfile(object):
         
         Parameters
         ----------
-        read : pysam.AlignedSegment
+        read : :class:`pysam.AlignedSegment`
             Read from BAM/SAM file
         
         Returns
         -------
-        read: pysam.AlignedSegment
+        read: :class:`pysam.AlignedSegment`
             Same read as input
         
         Raises
@@ -122,17 +122,17 @@ class bamfile(object):
 
         return read
 
-    def get_read_mate(self, read):
+    def _get_read_mate(self, read):
         """Fetch the mate pair for paired-end reads
         
         Parameters
         ----------
-        read : pysam.AlignedSegment
+        read : :class:`pysam.AlignedSegment`
             One  of the read-pairs
         
         Returns
         -------
-        mate: pysam.AlignedSegment
+        mate: :class:`pysam.AlignedSegment`
             The corresponding mate read two input read
         """
 
@@ -160,7 +160,7 @@ class bamfile(object):
         Yields
         ------
         reads: tuple
-            A tuple of :class:`pysam.AlignedSegment`. Elements may be `NoneType` if 
+            A tuple of :class:`pysam.AlignedSegment`. Elements may be NoneType if 
             single-end sequencing or one of pairs falls outisde of query range.
         """
 
@@ -205,12 +205,12 @@ class bamfile(object):
         for k, reads in read_dict.items():
             yield reads[0], reads[1]
             
-    def __add_read(self, read, fw, rev):
+    def _add_read(self, read, fw, rev):
         """Add read to output dictionary
 
         Parameters
         ----------
-        read: pysam.AlignedSegment
+        read: :class:`pysam.AlignedSegment`
             Aligned read segment to add
         fw: dict
             Dictionary of read counts on forward strand
@@ -224,12 +224,12 @@ class bamfile(object):
             a = int(read.reference_start)+self.offset[0]
             fw[a] = fw.get(a, 0.0) + 1.0
 
-    def __get_fragment(self, read):
+    def _get_fragment(self, read):
         """Returns a fragment from a mapped read
         
         Parameters
         ----------
-        read : pysam.AlignedSegment
+        read : class:`pysam.AlignedSegment`
             An aligned read
 
         Returns
@@ -273,10 +273,10 @@ class bamfile(object):
 
         for read1, read2 in self.read_pair_generator(chrom, max(start-10, 0), end+10):
             if read1:
-                self.__add_read(read1, tmp_fw, tmp_rev)
-                reads.append(self.__get_fragment(read1))
+                self._add_read(read1, tmp_fw, tmp_rev)
+                reads.append(self._get_fragment(read1))
             if read2:
-                self.__add_read(read2, tmp_fw, tmp_rev)
+                self._add_read(read2, tmp_fw, tmp_rev)
             
         fw_cutarray = np.array([tmp_fw.get(i, 0.0) for i in range(start, end)])
         rev_cutarray = np.array([tmp_rev.get(i, 0.0) for i in range(start, end)])
@@ -287,12 +287,12 @@ class bamfile(object):
             "fragments": reads
         }
 
-    def __validate_genotype(self, read, pos, ref, alt):
+    def _validate_genotype(self, read, pos, ref, alt):
         """Validate read genotype
 
         Parameters
         ----------
-        read : pysam.AlignedSegment
+        read : :class:`pysam.AlignedSegment`
             Read to validate
         pos: int
             Genomic postion of variant (0-based)
@@ -376,8 +376,8 @@ class bamfile(object):
                 # Check reads for proper genotypes; raise Genotype error
                 # if some thing is problematic, if a read pair doesn't exist or
                 # doesn't overlap the SNV then returns 0
-                read1_gt = self.__validate_genotype(read1, pos, ref, alt)
-                read2_gt = self.__validate_genotype(read2, pos, ref, alt)
+                read1_gt = self._validate_genotype(read1, pos, ref, alt)
+                read2_gt = self._validate_genotype(read2, pos, ref, alt)
 
                 if (not read1_gt) and (not read2_gt): # neither read overlaps SNV
                     fw = tmp_non_fw
@@ -397,14 +397,14 @@ class bamfile(object):
                     raise ReadError()
 
                 if read1:
-                    self.__add_read(read1, fw, rev)
+                    self._add_read(read1, fw, rev)
                 if read2:
-                    self.__add_read(read2, fw, rev)					
+                    self._add_read(read2, fw, rev)					
 
                 if read1:
-                    reads.append(self.__get_fragment(read1))
+                    reads.append(self._get_fragment(read1))
                 else:
-                    reads.append(self.__get_fragment(read2))
+                    reads.append(self._get_fragment(read2))
     
             except ReadError as e:
                 continue
@@ -443,7 +443,7 @@ class bamfile(object):
         
         Parameters
         ----------
-        x : genome_tools.genomic_interval or pysam.VariantRecord
+        x : :class:`genome_tools.genomic_interval` or :class:`pysam.VariantRecord`
             Retrieve cleavages over a windowed region or resolve allelically 
             over a known variant
         
@@ -456,8 +456,8 @@ class bamfile(object):
         Raises
         ------
         TypeError
-            Input is neither a genome_tools.genomic_interval nor 
-            pysam.VariantRecord
+            Input is neither a :class:`genome_tools.genomic_interval` nor 
+            :class:`pysam.VariantRecord`
         """
         if isinstance(x, genome_tools.genomic_interval):
             return self.lookup(x)

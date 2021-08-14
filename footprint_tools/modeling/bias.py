@@ -29,9 +29,11 @@ class bias_model(object):
     def shuffle(self):
         """Randomly shuffle the bias model
 
-        :returns: 
+        Returns
+        -------
+        model : :class:`bias_model`
+            A shuffled bias model
         """
-
         ret = bias_model()
         ret.model = { x: y for (x, y) in zip(list(self.model.keys()), sorted(list(self.model.values()), key = lambda k: random.random())) }
         ret.offset = self.offset
@@ -40,12 +42,12 @@ class bias_model(object):
     def predict(self, probs, n = 100):
         """Compute cleavage propensities from sequence
         
-        :param probs: an array of probilities (relative values)
-        :type probs: numpy array (float64)
-        :param n: number tags to distrbute
-        :type n: integer
-
-        :returns: integer array of relative cleavage counts
+        Parameters
+        ----------
+        probs : :class:`numpy.ndarray`
+            An array of probilities (relative values)
+        n : int
+            Number of total tags to distrbute
         """
 
         return np.around( probs / np.sum(probs) * n )
@@ -60,15 +62,23 @@ class kmer_model(bias_model):
     def read_model(self, filepath):
         """Read the k-mer model from a file.
 
-        :param filepath: the path to a 6-model
-        :type filepath: string
+        Parameters
+        ----------
+        filepath : str
+            Path to a K-mer model file
 
-        :returns:
         """
+
+        import urllib.request as request
 
         try:
 
-            for line in open(filepath, 'r'):
+            if filepath.startswith('http'):
+                file = request.urlopen(filepath)
+            else:
+                file = open(filepath, 'r')
+
+            for line in file:
                 (seq, prob) = line.strip().split('\t')
                 self.model[seq.upper()] = float(prob)
 
@@ -79,9 +89,15 @@ class kmer_model(bias_model):
     def probs(self, seq):
         """Generate cleavage preference array from DNA sequence
 
-        :param seq: DNA sequence
+        Parameters
+        ----------
+        seq: str
+            A DNA sequence to compute relative sequence preference
 
-        :returns: array (float)
+        Returns
+        -------
+        out : :class:`numpy.ndarray`
+            Relate sequence preferencew
         """
         k = self.k
         mid = self.mid

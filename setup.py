@@ -17,9 +17,9 @@ if sys.version_info[0] != 3 or sys.version_info[1] < 6:
     print("Package requires Python version 3.6+")
     sys.exit(1)
 
-cephes_include = "cephes"
-cephes_src = glob("cephes/*.c")
-cehpes_lib = ('cephes', { 'sources': cephes_src })
+hcephes_include = "hcephes/include"
+hcephes_src = glob('hcephes/src/**/*.c', recursive=True)
+hcehpes_lib = ('hcephes', { 'sources': hcephes_src })
 
 # see MANIFEST.in -- a slight hack to include all of the header files in the source distrubution
 
@@ -67,9 +67,9 @@ setup(
     keywords = ["genomic footprints", "bioinformatics", "chromatin", "transcription factors", "dnase"],
     zip_safe = False,
     packages =  find_packages(),
-    libraries = [cehpes_lib],
+    libraries = [hcehpes_lib],
     ext_modules = [Extension(**opts) for opts in modules],
-    include_dirs=[np.get_include(), cephes_include],
+    include_dirs=[np.get_include(), hcephes_include],
     package_data={'footprint_tools':['*.pxd', 'logging.conf']},
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
     install_requires = install_requires,

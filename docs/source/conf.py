@@ -1,23 +1,27 @@
 import os
 import sys
 
-import sphinx_rtd_theme
 import distutils.util
 
+from datetime import datetime
 extensions = [
-    "sphinx_rtd_theme",
     "sphinx.ext.intersphinx",
     "sphinx.ext.autodoc",
-    "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.extlinks",
+    "sphinx.ext.todo",
     "sphinx.ext.mathjax",
-    "sphinx.ext.autosectionlabel",
-    "nbsphinx",
-    "sphinx_gallery.load_style",
+    "IPython.sphinxext.ipython_directive",
+    "IPython.sphinxext.ipython_console_highlighting",
+    "matplotlib.sphinxext.plot_directive",
+    "numpydoc",
+    "sphinx_panels",
+    "sphinx_click",
+    "nbsphinx"
 ]
 
 autosectionlabel_prefix_document = True
-
+numpydoc_show_class_members = False
 
 intersphinx_mapping = {
     'pysam': ('http://pysam.readthedocs.org/en/latest', None),
@@ -28,9 +32,9 @@ intersphinx_mapping = {
 sys.path.insert(0, os.path.abspath('../..'))
 
 project = 'footprint-tools'
-copyright = '2020, Jeff Vierstra'
+copyright = f'2015-{datetime.now().year}, Jeff Vierstra'
 author = 'Jeff Vierstra'
-release = '1.1.5'
+version = '1.3.1'
 templates_path = ['_templates']
 source_suffix = {
     ".rst": "restructuredtext",
@@ -38,7 +42,13 @@ source_suffix = {
 }
 master_doc = 'index'
 pygments_style = 'sphinx'
-html_theme = "sphinx_rtd_theme"
+
+html_theme = 'pydata_sphinx_theme'
+html_theme_options = {
+    "external_links": [],
+    "github_url": "https://github.com/jvierstra/footprint-tools",
+}
+
 html_static_path = ['_static']
 html_css_files = ['extra.css']
 
@@ -48,7 +58,7 @@ html_css_files = ['extra.css']
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 _libdir = "../../build/lib.%s-%s.%s" % (distutils.util.get_platform(),
                                         sys.version_info[0], sys.version_info[1])
-
+print(_libdir)
 if os.path.exists(_libdir):
     sys.path.insert(0, os.path.abspath(_libdir))
 

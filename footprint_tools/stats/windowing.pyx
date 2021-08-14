@@ -37,7 +37,7 @@ cdef windowing_func(data_type_t [:] x, int hw, func_t func_ptr):
 
     Parameters
     ---------
-    x : ndarray
+    x : :class:`numpy.ndarray`
         Array of values to perform sliding window function
     hw : int
         Half window width
@@ -62,7 +62,7 @@ cpdef sum(data_type_t [:] x, int hw):
 
     Paramters
     ---------
-    x : ndarray
+    x : :class:`numpy.ndarray`
         Values to perform windowed sum. Must be memory
         contiguous (i.e., np.ascontiguousarray(x))
     hw: int
@@ -80,7 +80,7 @@ cpdef product(data_type_t [:] x, int hw):
 
     Paramters
     ---------
-    x : ndarray
+    x : :class:`numpy.ndarray`
         Values to perform windowed product. Must be memory
         contiguous (i.e., np.ascontiguousarray(x))
     hw: int
@@ -88,7 +88,7 @@ cpdef product(data_type_t [:] x, int hw):
 
     Returns
     -------
-    out : ndarray
+    out : :class:`numpy.ndarray`
        Array of windowed product values
     """
     return windowing_func(x, hw, fast_product)
@@ -98,7 +98,7 @@ cpdef fishers_combined(data_type_t [:] x, int hw):
 
     Paramters
     ---------
-    x : ndarray
+    x : :class:`numpy.ndarray`
         P-values to perform Fisher's combined method. Array must 
         be memory contiguous (i.e., np.ascontiguousarray(x))
     hw: int
@@ -106,7 +106,7 @@ cpdef fishers_combined(data_type_t [:] x, int hw):
 
     Returns
     -------
-    out : ndarray
+    out : :class:`numpy.ndarray`
        Array of combined p-values
     """
     return windowing_func(x, hw, fast_fishers_combined)
@@ -116,7 +116,7 @@ cpdef stouffers_z(data_type_t [:] x, int hw):
 
     Paramters
     ---------
-    x : ndarray
+    x : :class:`numpy.ndarray`
         P-values to perform Stouffer's Z-score method. Array must 
         be memory contiguous (i.e., np.ascontiguousarray(x))
     hw: int
@@ -124,7 +124,7 @@ cpdef stouffers_z(data_type_t [:] x, int hw):
 
     Returns
     -------
-    out : ndarray
+    out : :class:`numpy.ndarray`
        Array of combined p-values
     """
     return windowing_func(x, hw, fast_stouffers_z)
@@ -135,7 +135,7 @@ cdef weighted_windowing_func(data_type_t [:] x, data_type_t [:] w, int hw, weigh
 
     Parameters
     ---------
-    x : ndarray
+    x : :class:`numpy.ndarray`
         Array of values to perform sliding window function
     w: ndarray
         Weights for each array element
@@ -162,7 +162,7 @@ cpdef weighted_stouffers_z(data_type_t [:] x, data_type_t [:] w, int hw):
 
     Parameters
     ----------
-    x : ndarray
+    x : :class:`numpy.ndarray`
         P-values to perform Stouffer's Z-score method. Array must 
         be memory contiguous (i.e., np.ascontiguousarray(x))
     w: ndarray
@@ -172,7 +172,7 @@ cpdef weighted_stouffers_z(data_type_t [:] x, data_type_t [:] w, int hw):
 
     Returns
     -------
-    out : ndarray
+    out : :class:`numpy.ndarray`
        Array of combined p-values
     """
     return weighted_windowing_func(x, w, hw, fast_weighted_stouffers_z)

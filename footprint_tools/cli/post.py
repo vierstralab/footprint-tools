@@ -137,29 +137,30 @@ def run(sample_data_file,
     Applies an emperical Bayesian approach to compute the posterior probability a
     nucleotide is protected by jointly analyzing many datasets.
 
+    INTERVAL_FILE is a BED-formatted file containing genomic regions to be 
+    analyzed. SAMPLE_DATA_FILE file that specifying sample metadata. 
+    
+    SAMPLE_DATA_FILE is tab-delimited with the following columns::
+    
     \b
-    Inputs:
-    INTERVAL_FILE       Path to BED-formatted file contained genomic regions to be analyzed
-    SAMPLE_DATA_FILE    Path to file that contains sample data. File is tab-delimited with the
-                        following columns:
+        id          Sample identifier (unique)
+        tabix_file  Path to TABIX-format cleavage statistics file
+        dm_file     Path to dataset JSON-encoded dispersion model file
+        beta_a      \u03b1 parameter (see 'learn_beta' command)
+        beta_b      \u03b2 parameter
+    
+    Note: File must contain a header row. Lines ignored when '#' 
+    is first character.
+
+    A bedGraph-like file ({N_samples}+3 columns) with the folowing
+    annotations::
 
     \b
-                        id          Sample identifier (unique)
-                        tabix_file  Path to TABIX-format cleavage statistics file
-                        dm_file     Path to dataset JSON-encoded dispersion model file
-                        beta_a      \u03b1 parameter (see 'learn_beta' command)
-                        beta_b      \u03b2 parameter
-    \b
-                        Note: File must contain a header row. Lines ignored when '#' is first
-                        character.
-
-    \b
-    Output:
-    {outprefix}.bedgraph    bedGraph file written to 'outprefix'.bedgraph .Columns are
-                                'contig start start+1 -log(1-p)_1 ... -log(1-p)_n'
-                            where n is the total number samples. Note that values are
-                            1-posterior probability. Samples (columns) are in the same 
-                            order as the sample data file.
+        contig start start+1 -log(1-p)_1 ... -log(1-p)_N
+    
+    where N is the total number samples. Note that values are
+    1-posterior probability. Columns (samples) are in the same 
+    order as the sample data file.
     """
 
     logger.info(f"Loading sample data file {sample_data_file}")

@@ -16,11 +16,10 @@ dependencies:
 - tqdm
 - click
 - matplotlib
-
 - pip:
-- git+https://github.com/jvierstra/pysam.git
-- pwlf
-- genome_tools
-- yapsin
-- click-option-group
-- .
+  - git+https://github.com/jvierstra/pysam.git
+  - pwlf
+  - genome_tools
+  - yaspin
+  - click-option-group
+  - .

@@ -109,7 +109,7 @@ class expected_counts(process):
     help='Keep QC-failed reads')
 @optgroup.group('Output options')
 @optgroup.option('--outfile', type=click.STRING,
-    default='out', show_default=True,
+    default='dm.json', show_default=True,
     help='Output prefix')
 @optgroup.group('Other options')
 @optgroup.option('--bam_offset', type=click.STRING,
@@ -139,12 +139,10 @@ def run(interval_file,
     sequence preferences and then builds a dispersion model used for footprint
     detection and analysis.
 
-    \b
-    Inputs:
-    INTERVAL_FILE  Path to BED-formatted file contained genomic regions to be analyzed
-    BAM_FILE       Path to BAM-format tag alignment file
-    FASTA_FILE     Path to genome FASTA file (requires associated FASTA index in same folder
-                    (see documentation on how to create an index)
+    INTERVAL_FILE is a BED-formatted file contained genomic regions to be analyzed.
+    BAM_FILE is the path to a BAM-format tag alignment file. FASTA_FILE is the path
+    to genome FASTA file (requires associated FASTA index in same folder (see 
+    documentation on how to create an index).
 
     Outputs a JSON-formated dispersion model
     """
