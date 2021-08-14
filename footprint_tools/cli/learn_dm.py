@@ -57,8 +57,8 @@ class expected_counts(dataset):
             ],
             kwargs)
 
-        self.counts_reader = None
-        self.fasta_reader = None
+        self.counts_extractor = None
+        self.fasta_extractor = None
         self.count_predictor = None
 
     def __len__(self):
