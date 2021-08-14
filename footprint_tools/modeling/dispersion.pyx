@@ -537,7 +537,7 @@ def write_dispersion_model(model):
             'p': base64encode(np.asarray(model.p, order = 'C')),
             'r': base64encode(np.asarray(model.r, order = 'C')),
             'metadata': f"Created with {footprint_tools.__name__} {footprint_tools.__version__}"
-                         + f"on {datetime.now().strftie('%Y-%m-%d %H:%M:%S')}",
+                         + f"on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
     }
 
     return json.dumps(out, indent = 4)
