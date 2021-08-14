@@ -35,7 +35,7 @@ cpdef data_type_t log_likelihood(data_type_t [:] x, data_type_t nu, data_type_t 
 
     Parameters
     ----------
-    data : ndarray
+    data : :class:`numpy.ndarray`
         Data values
     nu : float
 

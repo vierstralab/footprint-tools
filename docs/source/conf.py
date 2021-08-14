@@ -17,10 +17,10 @@ extensions = [
     "numpydoc",
     "sphinx_panels",
     "sphinx_click",
+    "nbsphinx"
 ]
 
 autosectionlabel_prefix_document = True
-
 numpydoc_show_class_members = False
 
 intersphinx_mapping = {

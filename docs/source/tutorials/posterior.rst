@@ -1,6 +1,7 @@
+.. _tutorial_posterior:
+
 Emperical Bayes footprint detection
 ===================================
-
 
 Overview
 ~~~~~~~~
@@ -41,88 +42,70 @@ Step-by-step guide
 Step 1: Call footprints in individual datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To build the priors and likelihood functions, footprints need to first be identified in each individual dataset. Please see  :doc:`<detect>` for this task.
+To build the priors and likelihood functions, footprints need to first be identified 
+in each individual dataset. Please see  :ref:`command_detect` for this task.
 
 Step 2: Compute the per-dataset footprint priors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Run the script ``ftd-learn-beta-prior`` to compute the hyperparameters of the Beta prior. 
+Used the command :ref:`command_learn_bm` to compute the hyperparameters of the Beta prior. 
 
 .. code:: bash
 
-	ftd-learn-beta-prior \
+	ftd learn_beta \
 		--fdr-cutoff 0.05 --exp-cutoff 10 \
-		interval.all.bedgraph.gz \
-	> beta_prior.txt
+		interval.bedgraph
 
 .. note:: 
 
-	This command is run for every dataset.
+	This command is run for every dataset before continuing to Step 2.
 
 Step 2: Create a metadata file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. |br| raw:: html
+Next, we create a metadata file that contains  the pertinent 
+information for each dataset. The format of this file is **tab-delimited** and 
+must contain the the following columns in a header (additional columns are
+permissable). Lines are ignore when ``#`` is the first character.
 
-    <br>
++---+-------------------------+------------------------------------------+
+| # | Column                  | Description                              |
++===+=========================+==========================================+
+| 1 | ``id``                  |  Dataset identifier                      |
++---+-------------------------+------------------------------------------+
+| 2 | ``dm_file``             |  Dispersion model filepath  (JSON file)  |
++---+-------------------------+------------------------------------------+
+| 3 | ``tabix_file``          |  Output file from :ref:`command_detect`  |
+|   |                         |  Note: must be gzipped with tabix index  |
++---+-------------------------+------------------------------------------+
+| 4 |  ``beta_a``             |  Beta distribution parameters            |
++---+-------------------------+  Output from :ref:`command_learn_beta`   |
+| 5 | ``beta_b``              |                                          |
++---+-------------------------+------------------------------------------+
 
-Next, we create a metadata file that contains the pertinent information for each dataset. The format of this file is **tab-delimited**.
+Step 3: Compute posterior probabilites
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-=== =========================  ==========================================
-#   Column                     Description
-=== =========================  ==========================================
-1   ``id``                     Dataset identifier 
-2   ``dispersion_model_file``  Dispersion model filepath  (JSON file) 
-3   ``tabix_file``             Output file from ``ftd-compute-deviation`` |br|
-                               Note: must be gzipped with tabix index 
-4   ``beta_prior_file``        Beta distribution parameters filepath |br|
-                               Output from ``ftd-learn-beta-prior``
-=== =========================  ==========================================
-
-
-
-Step 3: Run ``ftd-compute-posterior``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The posterior footprint probabilities are called using the script ``ftd-compute-posterior``. This scripts takes both the metadata file created above and a BED-formated file containing the genomic regions where footprint detection will occur. Typically, the input regions are defined by merging the DNase I hotspots across all samples.
+The posterior footprint probabilities are called using the command :ref:`command_posterior`. 
+This command takes both the metadata file created above and a BED-formated file containing 
+the genomic regions where footprint detection will occur. Typically, the input regions are 
+defined by merging the DNase I hotspots across all samples.
 
 .. code:: bash
 
-	[jvierstra@test0 ~]$ ftd-compute-posterior -h
-	usage: ftd-compute-posterior [-h] [--fdr-cutoff N] [--post-cutoff N]
-	                             [--processors N]
-	                             metadata_file interval_file
+	ftd posterior sample_data.txt intervals.bed
 
-	Compute the posterior probability of cleavage data
+**Example output:**
 
-	positional arguments:
-	  metadata_file    Path to configuration file containing metadata for samples
-	  interval_file    File path to BED file
-
-	optional arguments:
-	  -h, --help       show this help message and exit
-
-	Statistical options:
-	  --fdr-cutoff N   Only consider nucleotides with FDR <= this value. (default:
-	                   0.05)
-
-	Output options:
-	  --post-cutoff N  Only output nucleotides with posterior probability <= this
-	                   value. (default: 0.2)
-
-	Other options:
-	  --processors N   Number of processors to use. Note that value excludes the
-	                   minimum 2 threads that are dedicated to data I/O. (default:
-	                   all available processors)
-
-**Output format:**
-
-This script writes to standard output. Each row consists of an individual nucleotide and columns correspond to datasets (in the same order as the input metdata file.)
+This script writes a bedgrah-like file. Each row consists of an individual nucleotide and 
+columns correspond to datasets (in the same order as the input metdata file).
 
 
 .. note::
 
-	Because this is a potentially huge operation (millions of DHS vs. hundreds of samples), we typicall split the input file (DHSs) into chunks and the parallel process the chunks.
+	Because this is a potentially huge operation (millions of DHS vs. hundreds of samples), we 
+	typicall split the input file (DHSs) into chunks and the parallel process the chunks on
+	a high-performance computing cluster.
 
 	.. code:: bash
 
@@ -132,8 +115,6 @@ This script writes to standard output. Each row consists of an individual nucleo
 		regions.chunk.0001
 		regions.chunk.0002
 		...
-
-	See :ref:`posterior-appendix-slurm-parallelization` for an example of how to parallelize.
 
 Step 4: Retrieve footprints
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -150,12 +131,5 @@ Footprints (per dataset) can be retrieved by thresholding on posterior probabili
    > footprints.bed
 
 
-.. _posterior-appendix-slurm-parallelization:
-
-Appendix: SLURM parallelization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-See :download:`this script <../../examples/compute_posterior.slurm>` for an example of how to
-parallelize footprint discovery on the a SLURM enabled cluster.
 
 

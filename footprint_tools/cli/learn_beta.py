@@ -28,12 +28,10 @@ def run(bedgraph_file,
         outfile='beta.txt'):
     """Learn the parameters of a Beta distribution
 
-    \b
-    Input:
-    BEDGRAPH_FILE   Path to bedgraph file containg the per-nucleotide statistics
-                    generated from the 'detect' command.
+    BEDGRAPH_FILE is a path to bedgraph file containg the per-nucleotide 
+    statistics generated from the 'detect' command.
     
-    Outputs the fit Beta-distribution parameters to 'outfile'.
+    Outputs the fit Beta-distribution parameters to <outfile>
 
     Note: This step is required to compute posterior footprint probabilities.
     """

@@ -12,13 +12,13 @@ static char *ermsg[7] = {
 
 HCEPHES_API int hcephes_mtherr(char *name, int code) {
 
-    printf("\n%s ", name);
+    //printf("\n%s ", name);
 
     merror = code;
 
     if ((code <= 0) || (code >= 7))
         code = 0;
-    printf("%s error\n", ermsg[code]);
+    //printf("%s error\n", ermsg[code]);
 
     return 0;
 }

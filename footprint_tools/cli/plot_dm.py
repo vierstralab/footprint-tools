@@ -125,8 +125,10 @@ def plot_histogram(dm, n=25, show_poisson=True, ax=None, xlim=(0, 125)):
 def run(dispersion_model_file, histograms=[15,25,50,75], outfile='dm.pdf'):
     """Diagnostic plotting of a dispersion model
     
-    Output:
-        dm.pdf - a PDF file with plots
+    Using the ``--histogram`` argument specifies the histograms to plot. An arbitry 
+    number of histograms can be plotted.
+
+    Outputs a PDF with plots
     """
     
     dm = dispersion.load_dispersion_model(dispersion_model_file)

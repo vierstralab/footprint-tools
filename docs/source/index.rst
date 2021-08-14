@@ -21,10 +21,9 @@ Contents
         :maxdepth: 1
         
         quickstart.rst
-        tutorials.rst
         commands.rst
+        tutorials.rst
         api.rst
-        examples.rst
 
 Pre-processed data
 -------------------

@@ -149,7 +149,7 @@ class deviation_stats(process):
 @optgroup.option('--dispersion_model_file', type=click.STRING,
     help='Dispersion model for negative binomial tests. If argument '
         'is not provided then no stastical output is provided. File is in '
-        'JSON format and generated using the command learn_dm')
+        'JSON format and generated using the command ``learn_dm``')
 @optgroup.option('--fdr_shuffle_n', type=click.INT,
     default=100, show_default=True,
     help='Number of times to shuffle data for FDR calculation')
@@ -202,19 +202,15 @@ def run(interval_file,
         outprefix='out'):
     """Compute per-nucleotide cleavage deviation statistics	
 
-    \b
-    Inputs:
-    INTERVAL_FILE  Path to BED-formatted file contained genomic regions to be analyzed
-    BAM_FILE       Path to BAM-format tag alignment file
-    FASTA_FILE     Path to genome FASTA file (requires associated FASTA index in same folder
-                    (see documentation on how to create an index)
-    
-    \b
-    Outputs:
-    {outprefix}.bedgraph    bedGraph file written to 'outprefix'.bedgraph
-                            Columns: contig start start+1 obs exp -log(pval) -log(winpval) fdr
-    {outprefix}.fdr{t}.bed  BED3-format file with FDR thresholded footprints.
-                            FDR levels specified by '--write_footprints'.
+    INTERVAL_FILE is a BED-formatted file contained genomic regions to be analyzed.
+    BAM_FILE is the path to a BAM-format tag alignment file. FASTA_FILE is the path
+    to genome FASTA file (requires associated FASTA index in same folder (see 
+    documentation on how to create an index).
+
+    Per-nucleotde statistics are written to a bedGraph file: <outprefix>.bedgraph).
+    Footprints are *optionally* written to a BED3-format file: <outprefix>.fdr<thresh>.bed).
+    Footprint FDR threshold(s) can be specified using the ``--write_footprints`` option.
+    Output file column definitions are written to a header within each file.
     """
     proc_kwargs = {
         "min_qual": min_qual,

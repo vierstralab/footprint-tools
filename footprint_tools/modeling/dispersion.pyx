@@ -11,6 +11,8 @@ cimport cython
 cimport numpy as np
 import numpy as np
 
+import footprint_tools
+
 from footprint_tools.stats.distributions cimport nbinom
 from footprint_tools.stats.distributions import nbinom
 
@@ -68,6 +70,8 @@ cdef class dispersion_model:
 
         self._mu_params = self._r_params = None
 
+        self._metadata = ''
+
     # Pickling function
     def __reduce__(self):
         x = {}
@@ -100,7 +104,13 @@ cdef class dispersion_model:
             return self._r
         def __set__(self, x):
             self._r = x
-
+    
+    property metadata:
+        def __get__(self):
+            return self._metdata
+        def __set__(self, x):
+            self._metadata = x
+    
     property mu_params:
         def __get__(self):
             return self._mu_params
@@ -162,14 +172,14 @@ cdef class dispersion_model:
 
         Parameters
         ----------
-        exp: ndarray
+        exp: :class:`numpy.ndarray`
             Expected cleavage counts
-        obs: ndarray
+        obs: :class:`numpy.ndarray`
             Observed cleavage counts
 
         Returns
         -------
-        logp : ndarray
+        logp : :class:`numpy.ndarray`
             Array of log probability mass function values computed from 
             the expected cleavage distributions
         """
@@ -191,14 +201,14 @@ cdef class dispersion_model:
 
         Parameters
         ----------
-        exp: ndarray
+        exp: :class:`numpy.ndarray`
             Expected cleavage counts
-        obs: ndarray
+        obs: :class:`numpy.ndarray`
             Observed cleavage counts
 
         Returns
         -------
-        p : ndarray
+        p : :class:`numpy.ndarray`
             Array of probability mass function values computed from 
             the expected cleavage distributions
         """
@@ -216,18 +226,18 @@ cdef class dispersion_model:
 
     @cython.cdivision(True)
     cpdef data_type_t [:] log_pmf_values_0(self, data_type_t [:] exp, data_type_t [:] obs, data_type_t [:] res):
-        """Computing the log probability mass function
+        """Computing the log probability mass function to pointer
 
         Parameters
         ----------
-        exp: ndarray
+        exp: :class:`numpy.ndarray`
             Expected cleavage counts
-        obs: ndarray
+        obs: :class:`numpy.ndarray`
             Observed cleavage counts
 
         Returns
         -------
-        logp : ndarray (memoryview)
+        logp : :class:`numpy.ndarray` (memoryview)
             Array pointer to log probability mass function values computed from 
             the expected cleavage distributions
 
@@ -248,18 +258,18 @@ cdef class dispersion_model:
     
     @cython.cdivision(True)
     cpdef data_type_t [:] pmf_values_0(self, data_type_t [:] exp, data_type_t [:] obs, data_type_t [:] res):
-        """Compute the probability mass function
+        """Compute the probability mass function to pointer
 
         Parameters
         ----------
-        exp: ndarray
+        exp: :class:`numpy.ndarray`
             Expected cleavage counts
-        obs: ndarray
+        obs: :class:`numpy.ndarray`
             Observed cleavage counts
 
         Returns
         -------
-        p : ndarray (memoryview)
+        p : :class:`numpy.ndarray` (memoryview)
             Array pointer to probability mass function values computed from 
             the expected cleavage distributions
 
@@ -284,14 +294,14 @@ cdef class dispersion_model:
 
         Parameters
         ----------
-        exp: ndarray
+        exp: :class:`numpy.ndarray`
             Expected cleavage counts
-        obs: ndarray
+        obs: :class:`numpy.ndarray`
             Observed cleavage counts
 
         Returns
         -------
-        pvals : ndarray
+        pvals : :class:`numpy.ndarray`
             Array of p-values
         """     
         cdef int i, n = exp.shape[0]
@@ -311,7 +321,7 @@ cdef class dispersion_model:
 
         Parameters
         ----------
-        x : ndarray
+        x : :class:`numpy.ndarray`
             Count values to specifying from which distribution
             to resample. This typically expected count values.
         times : int
@@ -319,9 +329,9 @@ cdef class dispersion_model:
 
         Returns
         -------
-        sampled_counts : ndarray
+        sampled_counts : :class:`numpy.ndarray`
             Array of sample counts (2-D array - positions by number of samples)
-        sampled_pvals : ndarray
+        sampled_pvals : :class:`numpy.ndarray`
             Array of sample counts (2-D array - positions by number of samples)
         """
         cdef int i, j, n = x.shape[0]
@@ -350,7 +360,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
     Parameters
     ----------
-    h : ndarray
+    h : :class:`numpy.ndarray`
         A 2-dimemsional array containing the distribution of
         observerd cleavages at each expected cleavage rate
     cutoff : int
@@ -362,7 +372,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
     Returns
     -------
-    model : dispersion_model
+    model : :class:`dispersion_model`
         A dispersion model learned from observed and expected counts
 
     Todo
@@ -472,6 +482,11 @@ def load_dispersion_model(filename):
     ----------
     filename : str
         Path to JSON-format dispersion model
+
+    Returns
+    -------
+    model : :class:`dispersion_model`
+        A dispersion model loaded from file
     """
     import simplejson as json
     import urllib.request as request
@@ -486,15 +501,17 @@ def load_dispersion_model(filename):
     file.close()
 
     model = dispersion_model()
-    model.mu_params = base64decode(params["mu_params"])
-    model.r_params = base64decode(params["r_params"])
+    model.mu_params = base64decode(params['mu_params'])
+    model.r_params = base64decode(params['r_params'])
 
-    if "h" in params:
-        model.h = base64decode(params["h"])
-    if "p" in params:
-        model.p = base64decode(params["p"])
-    if "r" in params:
-        model.r = base64decode(params["r"])
+    if 'h' in params:
+        model.h = base64decode(params['h'])
+    if 'p' in params:
+        model.p = base64decode(params['p'])
+    if 'r' in params:
+        model.r = base64decode(params['r'])
+    if 'metadata' in params:
+        model.metadata = params['metadata']
 
     return model
 
@@ -503,7 +520,7 @@ def write_dispersion_model(model):
 
     Parameters
     ----------
-    model : dispersion_model
+    model : :class:`dispersion_model`
         An instance of dispersion_model
 
     Returns
@@ -512,12 +529,15 @@ def write_dispersion_model(model):
         JSON-formatted dump of dispersion model
     """
     import simplejson as json
+    from datetime import datetime
 
-    out = { "mu_params": base64encode(np.asarray(model.mu_params, order = 'C')), 
-            "r_params": base64encode(np.asarray(model.r_params, order = 'C')),
-            "h": base64encode(np.asarray(model.h, order = 'C')),
-            "p": base64encode(np.asarray(model.p, order = 'C')),
-            "r": base64encode(np.asarray(model.r, order = 'C')),
+    out = { 'mu_params': base64encode(np.asarray(model.mu_params, order = 'C')), 
+            'r_params': base64encode(np.asarray(model.r_params, order = 'C')),
+            'h': base64encode(np.asarray(model.h, order = 'C')),
+            'p': base64encode(np.asarray(model.p, order = 'C')),
+            'r': base64encode(np.asarray(model.r, order = 'C')),
+            'metadata': f"Created with {footprint_tools.__name} {footprint_tools.__version__}"
+                         + f"on {datetime.now().strftie('%Y-%m-%d %H:%M:%S')}",
     }
 
     return json.dumps(out, indent = 4)

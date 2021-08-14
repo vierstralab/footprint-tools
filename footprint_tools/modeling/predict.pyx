@@ -66,11 +66,11 @@ class prediction(object):
     
     Attributes
     ----------
-    bm : bias.bias_model
+    bm : :class:`bias.bias_model`
         Sequence bias model to apply
-    read_func : cutcounts.bamfile
+    read_func : :class:`cutcounts.bamfile`
        Cut-counts reader
-    fasta_func : pysam.FastaFile
+    fasta_func : :class`pysam.FastaFile`
         FASTA-file reader
     half_win_width : int
         Window width to apply bias model (final windows size = 2W+1)
@@ -87,11 +87,11 @@ class prediction(object):
         
         Parameters
         ----------
-        read_func : cutcounts.bamfile
+        read_func : :class:`cutcounts.bamfile`
             Description
-        fasta_func : pysam.FastaFile
+        fasta_func : :class:`pysam.FastaFile`
             Description
-        bm : bias.bias_model
+        bm : :class:`bias.bias_model`
             Description
         half_win_width : int, optional
             Description
@@ -118,7 +118,7 @@ class prediction(object):
         
         Parameters
         ----------
-        x : genome_toools.genomic_interval
+        x : :class:`genome_toools.genomic_interval`
             Genomic region to generate predicted cleavages
         
         Returns
