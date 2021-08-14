@@ -1,5 +1,5 @@
 ``modeling`` submodule
-******************
+**********************
 
 .. automodule:: footprint_tools.modeling.bias
 	:members:

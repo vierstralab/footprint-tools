@@ -54,44 +54,44 @@ Python analysis workflows
 
     ---
 
-    Detect footprints
-    ^^^^^^^^^^^^^^^^^
+    Plotting and analysis of dispersion model
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-    Learn how to detect footprints *de novo* from a sequencing file
+    Learn how to inspect a dispersion model object using the
+    Python API
 
     +++
 
-    .. link-button:: tutorials/single_dataset  
+    .. link-button:: tutorials/dispersion  
         :type: ref
         :text: Learn more
         :classes: btn-block btn-secondary stretched-link
 
     ---
 
-    Emperical Bayes footprint detection
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Detecting and plotting footprints using API
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-    An example of how to jointly call identify footprints
-    across 100s to 100s of samples
+    An example of how to identify and plot footprints using
+    the Python modules in a Jupyter notebook
 
     +++
 
-    .. link-button:: tutorials/dispersion
+    .. link-button:: tutorials/single_dataset
         :type: ref
         :text: Learn more
         :classes: btn-block btn-secondary stretched-link
     
     ---
 
-    Analysis of a dispersion model
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Remote access and plotting posterior footprint probabilities
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-    An example of how to jointly call identify footprints
-    across 100s to 100s of samples
+    An example of how to recreate a figure from [Vierstra2020]_.
 
     +++
 
-    .. link-button:: tutorials/dispersion
+    .. link-button:: tutorials/posterior_plot
         :type: ref
         :text: Learn more
         :classes: btn-block btn-secondary stretched-link
