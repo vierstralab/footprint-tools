@@ -161,7 +161,7 @@ analyses.
      ftd plot_dm dm.json --histograms 5,50,100
 
    In addition to the command-line interface, you can perform plotting directly
-   with the Python packge. See the :doc:`here <examples/dispersion>` for an example 
+   with the Python packge. See the :doc:`here <dispersion>` for an example 
    of how to visualize the dispersion model using python and matplotlib
 
 Step 5: Compute per-nucleotide expected cleavages

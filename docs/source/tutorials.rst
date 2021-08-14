@@ -14,7 +14,7 @@ CLI analysis workflows
 
 .. panels::
     :card: + install-card
-    :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
+    :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 p-3
 
     ---
 
@@ -50,14 +50,14 @@ Python analysis workflows
 
 .. panels::
     :card: + install-card
-    :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex
+    :column: col-lg-6 col-md-6 col-sm-6 col-xs-12 p-3
 
     ---
 
     Detect footprints
     ^^^^^^^^^^^^^^^^^
     
-    Learn hoow to detect footprints *de novo* from a sequencing file
+    Learn how to detect footprints *de novo* from a sequencing file
 
     +++
 
@@ -83,8 +83,8 @@ Python analysis workflows
     
     ---
 
-    Analysis of dispersion model
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    Analysis of a dispersion model
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
     An example of how to jointly call identify footprints
     across 100s to 100s of samples

@@ -1,5 +1,6 @@
 *.py[cod]
 .DS_Store
+.vscode
 
 dist/
 sdist/

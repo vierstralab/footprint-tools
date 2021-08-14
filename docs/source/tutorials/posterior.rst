@@ -25,7 +25,7 @@ where :math:`X` corresponds to the observed cleavage rates and :math:`Y` represe
 	p_j = \frac{r_j}{r_j + \mu_j}
 	\end{gather*}
 
-Here, :math:`\Phi_{NB}(y_j)` is a function that returns the parameters :math:`(\mu, r)` of the fitted negative binomial at the expected cleavage rate :math:`y_j` (see :ref:`dispersion-model`).
+Here, :math:`\Phi_{NB}(y_j)` is a function that returns the parameters :math:`(\mu, r)` of the fitted negative binomial at the expected cleavage rate :math:`y_j` (see :ref:`tutorial_detect_dispersion-model`).
 
 
 The likelihood function corresponding to an **occupied nucleotide**, :math:`\mathcal{L}(X,Y │θ_+)`, is determined similar to the unoccupied case after scaling the expected cleavage rate by the expected depletion of cleavage at occupied nucleotides:
