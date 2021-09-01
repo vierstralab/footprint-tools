@@ -31,8 +31,8 @@ def main():
     This software packages enables de novo detection and analysis of genomic footprints from DNase 
     I data. The underying model simulates expected cleavage rates using a 6-mer DNase I cleavage
     preference model combined with density smoothing. Statistical significance of per-nucleotide 
-    cleavages are computed from a series emperically fit negative binomial distribution. In addition
-    to footprint detection in a single, isolated dataset, this packages has a stastical framework
+    cleavages are computed from a series of emperically fit negative binomial distributions. In addition
+    to footprint detection in a single, isolated dataset, this package has a statistical framework
     to jointly analyze 100s to 1000s of datasets in unison.
     """
     pass

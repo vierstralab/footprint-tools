@@ -12,4 +12,4 @@ build/
 docs/build/
 .ipynb_checkpoints/
 
-footprints_tools/**/*.c
+footprint_tools/**/*.c
