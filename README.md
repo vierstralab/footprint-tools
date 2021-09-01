@@ -27,9 +27,6 @@ If you run into errors, try installing footprint-tools in a conda environment (u
 # Clone repository
 git clone https://github.com/jvierstra/footprint-tools.git
 
-# Switch to devel branch; note that “master” branch is still “old” code
-git checkout devel
-
 # Create conda enviroment from config YAML file
 cd footprint-tools
 conda env create -f conda-env.yml
