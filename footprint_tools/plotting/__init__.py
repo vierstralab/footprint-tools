@@ -95,7 +95,7 @@ def plot_model_histogram(dm, n=25, ax=None, xlim=(0, 125), show_poisson=True):
     mu = dm.fit_mu(n)
     r = dm.fit_r(n)
 
-    dens = dm.h[n,x[0]:(x[-1]+1)].copy()
+    dens = dm.h[n,x[0]:(x[-1]+1)].astype(float)
     dens /= dm.h[n,:].sum()
 
     set_spines(ax)
