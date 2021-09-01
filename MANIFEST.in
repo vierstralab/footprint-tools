@@ -1,1 +1,1 @@
-global-include *.h *.pxd 
+global-include *.h *.pxd *.conf

@@ -21,7 +21,7 @@ CLI analysis workflows
     Detect footprints
     ^^^^^^^^^^^^^^^^^
     
-    Learn hoow to detect footprints *de novo* from a sequencing file
+    Learn how to detect footprints *de novo* from a sequencing file
 
     +++
 
@@ -36,7 +36,7 @@ CLI analysis workflows
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
     An example of how to jointly call identify footprints
-    across 100s to 100s of samples
+    across 100s to 1000s of samples
 
     +++
 
