@@ -1,1 +1,2 @@
 global-include *.h *.pxd 
+global-include logging.conf

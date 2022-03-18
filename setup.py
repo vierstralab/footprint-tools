@@ -71,7 +71,7 @@ setup(
     libraries = [hcehpes_lib],
     ext_modules = [Extension(**opts) for opts in modules],
     include_dirs=[np.get_include(), hcephes_include],
-    package_data={'footprint_tools':['footprints_tools/logging.conf']},
+    package_data={'footprint_tools':['footprint_tools/logging.conf']},
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
     install_requires = install_requires,
     include_package_data = True,
