@@ -159,10 +159,10 @@ class deviation_stats(dataset):
 @optgroup.option('--min_qual', type=click.INT, 
     default=1, show_default=True,
     help='Ignore reads with mapping quality lower than this threshold')
-@optgroup.option('--keep_dups', type=click.BOOL,
+@optgroup.option('--keep_dups',
     default=False, show_default=True,
     help='Keep duplicate reads')
-@optgroup.option('--keep_qcfail', type=click.BOOL,
+@optgroup.option('--keep_qcfail',
     default=False, show_default=True,
     help='Keep QC-failed reads')
 @optgroup.group('Output options')
@@ -216,8 +216,8 @@ def run(interval_file,
     """
     proc_kwargs = {
         "min_qual": min_qual,
-        "remove_dups": ~keep_dups,
-        "remove_qcfail": ~keep_qcfail,
+        "remove_dups":  not keep_dups,
+        "remove_qcfail": not keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,
         "smoothing_half_win_width": smooth_half_win_width,

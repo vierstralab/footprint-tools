@@ -74,7 +74,7 @@ class expected_counts(dataset):
             self.fasta_extractor = pysam.FastaFile(self.fasta_file, **self.fasta_reader_kwargs)
             self.count_predictor = predict.prediction(self.counts_extractor, self.fasta_extractor, 
                                                         self.bm, **self.counts_predictor_kwargs)
-
+            
         chrom, start, end = (self.intervals.iat[index, 0], 
                              self.intervals.iat[index, 1], 
                              self.intervals.iat[index, 2])
@@ -82,9 +82,10 @@ class expected_counts(dataset):
         interval = genomic_interval(chrom, start, end)
 
         obs, exp, _ = self.count_predictor.compute(interval)
+        
         obs = obs['+'][1:] + obs['-'][:-1]
         exp = exp['+'][1:] + exp['-'][:-1]
-
+        
         return np.column_stack((exp, obs))
 
 @click.command(name='learn_dm')
@@ -103,10 +104,10 @@ class expected_counts(dataset):
 @optgroup.option('--min_qual', type=click.INT, 
     default=1, show_default=True,
     help='Ignore reads with mapping quality lower than this threshold')
-@optgroup.option('--keep_dups', type=click.BOOL,
-    default=False, show_default=True,
+@optgroup.option('--keep_dups',
+    default=True, show_default=True,
     help='Keep duplicate reads')
-@optgroup.option('--keep_qcfail', type=click.BOOL,
+@optgroup.option('--keep_qcfail',
     default=False, show_default=True,
     help='Keep QC-failed reads')
 @optgroup.group('Output options')
@@ -128,7 +129,7 @@ def run(interval_file,
         fasta_file,
         bias_model_file=None,
         min_qual=1,
-        keep_dups=False,
+        keep_dups=True,
         keep_qcfail=False,
         bam_offset=(0, -1),
         half_win_width=5,
@@ -151,8 +152,8 @@ def run(interval_file,
 
     proc_kwargs = {
         "min_qual": min_qual,
-        "remove_dups": ~keep_dups,
-        "remove_qcfail": ~keep_qcfail,
+        "remove_dups":  not keep_dups,
+        "remove_qcfail":  not keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,
     }
@@ -194,6 +195,7 @@ def run(interval_file,
                     pass
 
     logger.info("Learning dispersion model")
+    
     
     model = dispersion.learn_dispersion_model(hist)
 
