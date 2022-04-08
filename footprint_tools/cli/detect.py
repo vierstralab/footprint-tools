@@ -1,3 +1,5 @@
+import sys
+
 import click
 from click_option_group import optgroup
 
@@ -160,7 +162,7 @@ class deviation_stats(dataset):
     default=1, show_default=True,
     help='Ignore reads with mapping quality lower than this threshold')
 @optgroup.option('--keep_dups',
-    default=False, show_default=True,
+    default=True, show_default=True,
     help='Keep duplicate reads')
 @optgroup.option('--keep_qcfail',
     default=False, show_default=True,
@@ -226,6 +228,8 @@ def run(interval_file,
         "seed": seed, # not used...yet
     }
 
+    args = ' '.join(sys.argv)
+    
     # Validate and load inputs
     logger.info("Validating input files")
     try:
@@ -245,7 +249,7 @@ def run(interval_file,
             logger.info(f"Loading dispersion model from file {dispersion_model_file}")
             dm = dispersion.load_dispersion_model(dispersion_model_file)
         else:
-            logger.info(f"No dispersion model file specified -- not be reporting base-level statistics and footprints")
+            logger.info(f"No dispersion model file specified -- reporting of base-level cleavage statistics and footprints is disabled")
             dm = None
             write_footprints = []
 
@@ -253,13 +257,21 @@ def run(interval_file,
         logger.critical(e)
         raise click.Abort()
 
+    if seed is not None:
+        np.random.seed(seed)
+        logger.info(f"Using seed = {seed} for sampling procedures")
+    else:
+         np.random.seed()
+         logger.info(f"No seed set for sampling -- Caution: results may not be entirely reproducible!")
+
+
     # Open output files
     try:
         # Output stats file
         output_bedgraph_file = outprefix + '.bedgraph'
         logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
         output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
-        write_output_header(["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"], file=output_bedgraph_filehandle)
+        write_output_header(["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"], file=output_bedgraph_filehandle, extra=args)
 
         # Output footprints filex
         output_bed_file_template = outprefix + '.fdr{0}.bed'
@@ -269,7 +281,7 @@ def run(interval_file,
             logger.info(f"Writing FDR thresholded footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")
             for t in write_footprints:
                 fh =  open(output_bed_file_template.format(t), 'w')
-                write_output_header(["name", "fdr"], file=fh, extra=f"thresholded @ FDR {t}")
+                write_output_header(["name", "fdr"], file=fh, extra=[args, f"thresholded @ FDR {t}"])
                 output_bed_filehandles.update({t:fh})
 
     except IOError as e:

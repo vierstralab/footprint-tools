@@ -47,6 +47,11 @@ def run(bedgraph_file,
             filehandle = open(bedgraph_file, 'r')
 
             for line in filehandle:
+
+                # remove comment lines
+                if line.lstrip()[0] in ['#']:
+                    continue
+
                 total_lines +=1
                 if total_lines % 500000 == 0:
                     sp.text = "Reading nucleotides -- {:,} / {:,} passed filters".format(total_passed, total_lines)
