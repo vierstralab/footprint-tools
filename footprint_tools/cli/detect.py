@@ -179,7 +179,8 @@ class deviation_stats(dataset):
     default="0,-1", show_default=True, callback=tuple_args(int),
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
 @optgroup.option('--seed', type=click.INT,
-    help='Seed for random number generation (not currently used)')
+    help='Seed for random number generator -- set for reproducible results',
+    show_default=True)
 @optgroup.option('--n_threads', type=click.IntRange(1, cpu_count()),
     default=cpu_count(), show_default=True,
     help='Number of processors to use')
@@ -229,7 +230,7 @@ def run(interval_file,
     }
 
     args = ' '.join(sys.argv)
-    
+
     # Validate and load inputs
     logger.info("Validating input files")
     try:
