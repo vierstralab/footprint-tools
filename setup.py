@@ -52,7 +52,7 @@ install_requires = [
     "colorlog",
 ]
 
-__version__ = "1.3.6"
+__version__ = "1.3.7"
 
 setup(
     name = "footprint_tools",
