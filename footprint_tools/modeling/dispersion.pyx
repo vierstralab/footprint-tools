@@ -396,7 +396,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
             x[pos:pos+num] = j
             pos += num
 
-        # If more than 500k points downsample to
+        # If more than 100k points downsample to
         # make curve-fitting tractable
         if len(x)>1e5:
             x=np.random.choice(x, size=int(1e5))

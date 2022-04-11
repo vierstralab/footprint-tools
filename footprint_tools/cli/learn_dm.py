@@ -118,6 +118,9 @@ class expected_counts(dataset):
 @optgroup.option('--bam_offset', type=click.STRING,
     default="0,-1", show_default=True, callback=tuple_args(int),
     help='BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)')
+@optgroup.option('--seed', type=click.INT,
+    help='Seed for random number generator -- set for reproducible results',
+    show_default=True)
 @optgroup.option('--n_threads', type=click.IntRange(1, cpu_count()),
     default=cpu_count(), show_default=True,
     help='Number of processors to use')
@@ -133,6 +136,7 @@ def run(interval_file,
         keep_qcfail=False,
         bam_offset=(0, -1),
         half_win_width=5,
+        seed=None,
         n_threads=cpu_count(),
         batch_size=100,
         outfile='dm.json'):
@@ -176,6 +180,13 @@ def run(interval_file,
         logger.critical(e)
         raise click.Abort()
 
+    if seed is not None:
+        np.random.seed(seed)
+        logger.info(f"Using seed = {seed} for sampling procedures")
+    else:
+         np.random.seed()
+         logger.info(f"No seed set for sampling -- Caution: results may not be entirely reproducible!")
+
     # Initiate data processor
     dl = expected_counts(interval_file, bam_file, fasta_file, bm, **proc_kwargs)
     dl_iter = dl.batch_iter(batch_size=batch_size, collate_fn=numpy_collate_concat, num_workers=n_threads)
@@ -195,7 +206,6 @@ def run(interval_file,
                     pass
 
     logger.info("Learning dispersion model")
-    
     
     model = dispersion.learn_dispersion_model(hist)
 

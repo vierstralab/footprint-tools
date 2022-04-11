@@ -68,7 +68,6 @@ class deviation_stats(dataset):
             kwargs)
 
         self.fdr_shuffle_n = kwargs['fdr_shuffle_n']
-        self.seed = kwargs['seed']
 
         self.counts_extractor = None
         self.fasta_extractor = None
@@ -226,7 +225,6 @@ def run(interval_file,
         "smoothing_half_win_width": smooth_half_win_width,
         "smoothing_clip": smooth_clip,
         "fdr_shuffle_n": fdr_shuffle_n,
-        "seed": seed, # not used...yet
     }
 
     args = ' '.join(sys.argv)
