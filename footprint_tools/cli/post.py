@@ -98,7 +98,7 @@ class posterior_stats(dataset):
 
         prior = posterior.compute_prior_weighted(fdr, w, cutoff=self.fdr_cutoff)   
         delta = posterior.compute_delta_prior(obs, exp, fdr, self.betas, cutoff=self.fdr_cutoff)
-        ll_on = posterior.log_likelihood(obs, exp, self.dms, delta=delta, w=3) 
+        ll_on = posterior.log_likelihood(obs, exp, self.disp_models, delta=delta, w=3) 
         ll_off = posterior.log_likelihood(obs, exp, self.disp_models, w=3)
 
         post = -posterior.posterior(prior, ll_on, ll_off)
