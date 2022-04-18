@@ -201,7 +201,7 @@ def run(sample_data_file,
         output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
 
         #write header lines
-        write_output_header(sample_data["id"], output_bedgraph_filehandle)
+        write_output_header(sample_data["id"], file=output_bedgraph_filehandle, include_name=False)
 
     except IOError as e:
         logger.critical(e)

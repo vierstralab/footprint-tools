@@ -270,7 +270,7 @@ def run(interval_file,
         output_bedgraph_file = outprefix + '.bedgraph'
         logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
         output_bedgraph_filehandle = open(output_bedgraph_file , 'w')
-        write_output_header(["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"], file=output_bedgraph_filehandle, extra=args)
+        write_output_header(["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"], file=output_bedgraph_filehandle, include_name=False, extra=args)
 
         # Output footprints filex
         output_bed_file_template = outprefix + '.fdr{0}.bed'
@@ -280,7 +280,7 @@ def run(interval_file,
             logger.info(f"Writing FDR thresholded footprints to {output_bed_file_template.format('{threshold}')} for threshold \u22f2 {write_footprints}")
             for t in write_footprints:
                 fh =  open(output_bed_file_template.format(t), 'w')
-                write_output_header(["name", "fdr"], file=fh, extra=[args, f"thresholded @ FDR {t}"])
+                write_output_header(["fdr"], file=fh, include_name=True, extra=[args, f"thresholded @ FDR {t}"])
                 output_bed_filehandles.update({t:fh})
 
     except IOError as e:
