@@ -105,8 +105,8 @@ class posterior_stats(dataset):
         post[post<=0] = 0.0
 
         return {
-            'interval': interval,
-            'post': post,
+            "interval": interval,
+            "stats": post,
         }
 
 @click.command(name='posterior')
