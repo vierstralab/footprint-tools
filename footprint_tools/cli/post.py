@@ -7,9 +7,7 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 
-
 from pandas.api.types import is_numeric_dtype
-
 
 import pysam
 pysam.set_verbosity(0)
@@ -45,7 +43,6 @@ class posterior_stats(dataset):
         self.tabix_files = [] # these get loaded on first call of __getitem__
         self.disp_models = [dispersion.load_dispersion_model(fn) for fn in self.samples_data["dm_file"]]
         self.betas = self.samples_data[["beta_a", "beta_b"]].to_numpy()
-        print(self.betas)
 
     def _open_tabix_files(self):
         self.tabix_files = [pysam.TabixFile(fn) for fn in self.samples_data["tabix_file"]]
@@ -106,7 +103,7 @@ class posterior_stats(dataset):
 
         return {
             "interval": interval,
-            "stats": post,
+            "stats": post.T,
         }
 
 @click.command(name='posterior')
@@ -215,7 +212,7 @@ def run(sample_data_file,
     dl_iter = dl.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     # filter function to apply when writing posteriors to file
-    filter_fn = lambda x: np.min(x, axis=1) > post_cutoff
+    filter_fn = lambda x: np.nanmax(x, axis=1) > -np.log(post_cutoff)
 
     with logging_redirect_tqdm():
 
@@ -223,5 +220,6 @@ def run(sample_data_file,
             
             for interval, stats in zip(batch["interval"], batch["stats"]):
                 write_stats_to_output(interval, stats, output_bedgraph_filehandle, filter_fn=filter_fn)
-    
+            output_bedgraph_filehandle.flush()
+
     output_bedgraph_filehandle.close()

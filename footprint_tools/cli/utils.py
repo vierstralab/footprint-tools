@@ -94,7 +94,8 @@ def write_output_header(columns, file=sys.stdout, delim='\t', include_name=True,
     if include_name:
         file.write(f"{delim}name")
     file.write(delim + delim.join(columns) + '\n')
-
+    file.flush()
+    
 def write_stats_to_output(interval, stats, file=sys.stdout, delim='\t', filter_fn=None, fmt_string='0.4f'):
     """Write per-nucleotide statistics to file
     
@@ -129,7 +130,7 @@ def write_stats_to_output(interval, stats, file=sys.stdout, delim='\t', filter_f
     chrom = interval.chrom
     start = interval.start
 
-    idxs = np.nonzero(filter_fn(stats)) if filter_fn else range(stats.shape[0])
+    idxs = np.nonzero(filter_fn(stats))[0] if filter_fn else range(stats.shape[0])
 
     for i in idxs:
         out = f'{chrom}{delim}{start+i}{delim}{start+i+1}{delim}'
