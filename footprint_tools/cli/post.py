@@ -7,6 +7,10 @@ import numpy as np
 import scipy as sp
 import pandas as pd
 
+
+from pandas.api.types import is_numeric_dtype
+
+
 import pysam
 pysam.set_verbosity(0)
 
@@ -38,9 +42,10 @@ class posterior_stats(dataset):
         self.samples_data = samples_data
         self.fdr_cutoff = fdr_cutoff
 
-        self.tabix_files = None # these get loaded on first call of __getitem__
+        self.tabix_files = [] # these get loaded on first call of __getitem__
         self.disp_models = [dispersion.load_dispersion_model(fn) for fn in self.samples_data["dm_file"]]
         self.betas = self.samples_data[["beta_a", "beta_b"]].to_numpy()
+        print(self.betas)
 
     def _open_tabix_files(self):
         self.tabix_files = [pysam.TabixFile(fn) for fn in self.samples_data["tabix_file"]]
@@ -92,7 +97,7 @@ class posterior_stats(dataset):
         obs, exp, fdr, w = self._load_data(interval)
 
         prior = posterior.compute_prior_weighted(fdr, w, cutoff=self.fdr_cutoff)   
-        delta = posterior.compute_delta_prior(obs, exp, fdr, self.beta, cutoff=self.fdr_cutoff)
+        delta = posterior.compute_delta_prior(obs, exp, fdr, self.betas, cutoff=self.fdr_cutoff)
         ll_on = posterior.log_likelihood(obs, exp, self.dms, delta=delta, w=3) 
         ll_off = posterior.log_likelihood(obs, exp, self.disp_models, w=3)
 
@@ -167,8 +172,16 @@ def run(sample_data_file,
     logger.info(f"Loading sample data file {sample_data_file}")
     try:
         sample_data = pd.read_table(sample_data_file, header=0, comment='#')
+        
         if not all([col in sample_data.columns for col in required_sample_data_cols]):
             raise ValueError(f"Sample data file does not contain the required columns: {required_sample_data_cols}")
+
+        if not all([is_numeric_dtype(sample_data[col]) for col in ["beta_a", "beta_b"]]):
+            raise ValueError(f"Sample data columns 'beta_a' and 'beta_b' must be numeric")
+
+        if sample_data[["beta_a", "beta_b"]].isna().any(axis=None):
+            raise ValueError(f"Sample data columns 'beta_a' and 'beta_b' cannot contain NaNs")
+
     except Exception as e:
         logger.critical(e)
         raise click.Abort()
