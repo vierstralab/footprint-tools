@@ -3,19 +3,22 @@ import numpy as np
 import matplotlib.pyplot as mpl
 import matplotlib.ticker as mtick
 
-def set_spines(ax, remove=['top', 'right']):
+
+def set_spines(ax, remove=["top", "right"]):
     """Clear spines"""
-    [ax.spines[loc].set_color('none') for loc in remove]
+    [ax.spines[loc].set_color("none") for loc in remove]
+
 
 def format_axis_default(ax):
     """Format axis with defaults"""
-    ax.xaxis.set_ticks_position('bottom')
-    ax.xaxis.set_tick_params(direction='out')
-    ax.xaxis.set(major_locator = mtick.MaxNLocator(4))
+    ax.xaxis.set_ticks_position("bottom")
+    ax.xaxis.set_tick_params(direction="out")
+    ax.xaxis.set(major_locator=mtick.MaxNLocator(4))
 
-    ax.yaxis.set_ticks_position('left')
-    ax.yaxis.set_tick_params(direction='out')
-    ax.yaxis.set(major_locator = mtick.MaxNLocator(4))
+    ax.yaxis.set_ticks_position("left")
+    ax.yaxis.set_tick_params(direction="out")
+    ax.yaxis.set(major_locator=mtick.MaxNLocator(4))
+
 
 def plot_model_fit(dm, axs=None, xlim=(0, 100)):
     """Plot model mu parameters
@@ -38,7 +41,7 @@ def plot_model_fit(dm, axs=None, xlim=(0, 100)):
     # Raw parameters
     r = np.array([dm.r[i] for i in x])
     p = np.array([dm.p[i] for i in x])
-    mu = p*r/(1.0-p)
+    mu = p * r / (1.0 - p)
 
     # Smoothed parameters
     fit_mu = np.array([dm.fit_mu(i) for i in x])
@@ -48,12 +51,12 @@ def plot_model_fit(dm, axs=None, xlim=(0, 100)):
     set_spines(axs[0])
     format_axis_default(axs[0])
 
-    axs[0].plot(x, mu, label='MLE neg. binomial fit')
-    axs[0].plot(x, fit_mu, label='Smoothed fit', ls='dashed')
-    axs[0].plot(xlim, xlim, label='y=x', color='grey', ls='dashed', zorder=-10)
+    axs[0].plot(x, mu, label="MLE neg. binomial fit")
+    axs[0].plot(x, fit_mu, label="Smoothed fit", ls="dashed")
+    axs[0].plot(xlim, xlim, label="y=x", color="grey", ls="dashed", zorder=-10)
 
-    axs[0].set_xlabel('Expected cleavage count')
-    axs[0].set_ylabel('Observed cleavages')
+    axs[0].set_xlabel("Expected cleavage count")
+    axs[0].set_ylabel("Observed cleavages")
 
     axs[0].legend()
 
@@ -61,15 +64,16 @@ def plot_model_fit(dm, axs=None, xlim=(0, 100)):
     set_spines(axs[1])
     format_axis_default(axs[1])
 
-    axs[1].plot(x, 1/r, label='MLE neg. binomial fit')
-    axs[1].plot(x, 1/fit_r, label='Smoothed fit', ls='dashed')
+    axs[1].plot(x, 1 / r, label="MLE neg. binomial fit")
+    axs[1].plot(x, 1 / fit_r, label="Smoothed fit", ls="dashed")
 
-    axs[1].set_xlabel('Expected cleavage count')
-    axs[1].set_ylabel('1/r')
+    axs[1].set_xlabel("Expected cleavage count")
+    axs[1].set_ylabel("1/r")
 
     axs[1].legend()
 
     return fig, axs
+
 
 def plot_model_histogram(dm, n=25, ax=None, xlim=(0, 125), show_poisson=True):
     """Plots a density histogram of the observed cleavage counts
@@ -95,17 +99,17 @@ def plot_model_histogram(dm, n=25, ax=None, xlim=(0, 125), show_poisson=True):
     mu = dm.fit_mu(n)
     r = dm.fit_r(n)
 
-    dens = dm.h[n,x[0]:(x[-1]+1)].astype(float)
-    dens /= dm.h[n,:].sum()
+    dens = dm.h[n, x[0] : (x[-1] + 1)].astype(float)
+    dens /= dm.h[n, :].sum()
 
     set_spines(ax)
     format_axis_default(ax)
 
     # Raw observed counts
-    ax.bar(x, dens, width=1, color='lightgrey', label="Observed")
+    ax.bar(x, dens, width=1, color="lightgrey", label="Observed")
 
     # NB fit
-    y = nbinom.pmf(x, r, r/(r+mu))
+    y = nbinom.pmf(x, r, r / (r + mu))
     ax.plot(x, y, color="red", label="Negative binomial")
 
     # Poisson
