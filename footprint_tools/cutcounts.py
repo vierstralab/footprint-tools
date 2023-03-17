@@ -435,8 +435,12 @@ class bamfile(object):
                     reads.append(self._get_fragment(read2))
 
             except ReadError as e:
-                print(e)
+                logging.debug(e)
                 continue
+
+            except ReadFormatError as e:
+                logging.critical(e)
+                raise e
 
         ref_fw_cutarray = np.array([tmp_ref_fw.get(i, 0.0) for i in range(start, end)])
         ref_rev_cutarray = np.array(
