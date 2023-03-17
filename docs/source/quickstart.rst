@@ -23,7 +23,7 @@ footprint-tools requires Python is compatible with Python 3.6 or greater
 
 	or for the lastest release::
 
-		pip install git+https://github.com/jvierstra/footprint-tools.git
+		pip install git+https://github.com/vierstralab/footprint-tools.git
     
 	---
     :column: col-12 p-3
@@ -33,7 +33,7 @@ footprint-tools requires Python is compatible with Python 3.6 or greater
 
     .. code-block:: bash
 
-	git clone https://github.com/jvierstra/footprint-tools.git
+	git clone https://github.com/vierstralab/footprint-tools.git
 	cd footprint-tools
 	pip install .		
 

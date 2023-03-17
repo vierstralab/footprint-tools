@@ -21,7 +21,7 @@ CLI analysis workflows
     Detect footprints
     ^^^^^^^^^^^^^^^^^
     
-    Learn how to detect footprints *de novo* from a sequencing file
+    Learn how to detect footprints *de novo* from a sequence alignment file
 
     +++
 
@@ -35,7 +35,7 @@ CLI analysis workflows
     Emperical Bayes footprint detection
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-    An example of how to jointly call identify footprints
+    An example of how to call identify footprints
     across 100s to 1000s of samples
 
     +++

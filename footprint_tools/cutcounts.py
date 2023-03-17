@@ -32,6 +32,10 @@ class GenotypeError(Exception):
     pass
 
 
+class ReadFormatError(Exception):
+    pass
+
+
 class bamfile(object):
     """Class to access BAM files
 
@@ -341,7 +345,16 @@ class bamfile(object):
             if offset_5p <= 3:
                 raise ReadError(ReadError.ERROR_5PROXIMITY)
 
-            mm = int(read.get_tag("XM", with_value_type=False))
+            if read.has_tag("XM"):
+                tag = "XM"
+            elif read.has_tag("NM"):
+                tag = "NM"
+            else:
+                raise ReadFormatError(
+                    "No mismatch tag in read! (must contain XM or NM tag)"
+                )
+
+            mm = int(read.get_tag(tag, with_value_type=False))
 
             if base_call == ref:
                 if mm > 1:
@@ -422,6 +435,7 @@ class bamfile(object):
                     reads.append(self._get_fragment(read2))
 
             except ReadError as e:
+                print(e)
                 continue
 
         ref_fw_cutarray = np.array([tmp_ref_fw.get(i, 0.0) for i in range(start, end)])
