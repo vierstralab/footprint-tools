@@ -85,7 +85,7 @@ class posterior_stats(dataset):
         """Clean-up filehandlers"""
         if self.tabix_files and len(self.tabix_files) > 0:
             [tbf.close() for tbf in self.tabix_files]
-        self.tabix_files = None
+        self.tabix_files = []
 
     def __len__(self):
         return len(self.intervals)
