@@ -29,6 +29,6 @@ dependencies:
 
 - pip:
   - git+https://github.com/jvierstra/sphinx-click.git
-  - genome-tools==1.0.3
+  - genome-tools==1.0.4
   - pwlf
   - yaspin

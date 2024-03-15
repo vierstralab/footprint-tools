@@ -67,11 +67,9 @@ class posterior_stats(dataset):
         exp = np.zeros((n, m), dtype=float)
         fdr = np.zeros((n, m), dtype=float)
         w = np.zeros((n, m), dtype=float)
-        
+
         i = 0
         j = 0
-
-        print(f"Loading interval: {str(interval)}")
 
         for i, tbf in enumerate(self.tabix_files):
             try:
@@ -84,7 +82,7 @@ class posterior_stats(dataset):
                     fdr[i, j] = float(row[7])
                     w[i, j] = 1
             except:
-                print("Problem!")
+                logger.debug(f"Problem reading TABIX file! ({str(interval)})")
 
         return obs, exp, fdr, w
 
@@ -224,12 +222,12 @@ def run(
             [is_numeric_dtype(sample_data[col]) for col in ["beta_a", "beta_b"]]
         ):
             raise ValueError(
-                f"Sample data columns 'beta_a' and 'beta_b' must be numeric"
+                "Sample data columns 'beta_a' and 'beta_b' must be numeric"
             )
 
         if sample_data[["beta_a", "beta_b"]].isna().any(axis=None):
             raise ValueError(
-                f"Sample data columns 'beta_a' and 'beta_b' cannot contain NaNs"
+                "Sample data columns 'beta_a' and 'beta_b' cannot contain NaNs"
             )
 
     except Exception as e:
