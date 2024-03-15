@@ -232,7 +232,7 @@ def run(
     else:
         np.random.seed()
         logger.info(
-            f"No seed set for sampling -- Caution: results may not be entirely reproducible!"
+            "No seed set for sampling -- Caution: results may not be entirely reproducible!"
         )
 
     # Initiate data processor

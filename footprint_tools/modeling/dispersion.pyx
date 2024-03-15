@@ -385,6 +385,8 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
     logger.info("Analyzing {:,} cleavages".format(np.sum(h)))
 
+    mus_guess = np.zeros(size)
+
     # Make an initial negative binomial fit
     for i in range(0, size):
     
@@ -398,9 +400,9 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
         # If more than 100k points downsample to
         # make curve-fitting tractable
-        if len(x)>1e5:
-            x=np.random.choice(x, size=int(1e5))
-            x=np.sort(x)
+        if len(x) > 1e5:
+            x = np.random.choice(x, size=int(1e5))
+            x = np.sort(x)
 
         if len(x) >= cutoff:		
             # Find data points to trim
@@ -410,6 +412,9 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
             # Compute intial estimates of mean and variance
             mu = np.mean(x[lower:upper])
             var = np.var(x[lower:upper])
+
+            mus_guess[i] = mu
+
 
             est_r = (mu * mu) / (var - mu)
             if est_r <= 0.0: 
@@ -439,11 +444,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
     # fit mu with a 3 segments
     fit_mu = pwlf.PiecewiseLinFit(x[sele], mus[sele])
-
-    print(x[sele])
-    print(mus[sele])
-
-    res = fit_mu.fit_with_breaks_force_points(np.linspace(first_x, last_x, 4), [0], [mus[0]])
+    res = fit_mu.fit_with_breaks_force_points(np.linspace(first_x, last_x, 4), [x[sele][0]], [mus[sele][0]])
 
     # fit r with 5 s segments
     fit_r = pwlf.PiecewiseLinFit(x[sele], 1.0/r[sele])
