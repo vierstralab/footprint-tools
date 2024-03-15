@@ -34,6 +34,11 @@ modules = [
     dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"]),
 ]
 
+ext_modules = [Extension(**opts) for opts in modules]
+
+for e in ext_modules:
+	e.cython_directives = {'language_level': "3"} #all are Python-3)
+
 install_requires = [
     "cython",
     "numpy>=1.10",
@@ -69,7 +74,7 @@ setup(
     zip_safe = False,
     packages =  find_packages(),
     libraries = [hcehpes_lib],
-    ext_modules = [Extension(**opts) for opts in modules],
+    ext_modules = ext_modules,
     include_dirs=[np.get_include(), hcephes_include],
     package_data={'footprint_tools':['footprint_tools/logging.conf']},
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},

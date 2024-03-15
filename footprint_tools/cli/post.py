@@ -63,8 +63,15 @@ class posterior_stats(dataset):
         n = len(self.tabix_files)
         m = len(interval)
 
-        obs = exp = fdr = w = np.zeros((n, m), dtype=np.float)
-        i = j = 0
+        obs = np.zeros((n, m), dtype=float)
+        exp = np.zeros((n, m), dtype=float)
+        fdr = np.zeros((n, m), dtype=float)
+        w = np.zeros((n, m), dtype=float)
+        
+        i = 0
+        j = 0
+
+        print(f"Loading interval: {str(interval)}")
 
         for i, tbf in enumerate(self.tabix_files):
             try:
@@ -72,12 +79,12 @@ class posterior_stats(dataset):
                     interval.chrom, interval.start, interval.end, parser=pysam.asTuple()
                 ):
                     j = int(row[1]) - interval.start
-                    obs[i, j] = np.float(row[3])
-                    exp[i, j] = np.float(row[4])
-                    fdr[i, j] = np.float(row[7])
+                    obs[i, j] = float(row[3])
+                    exp[i, j] = float(row[4])
+                    fdr[i, j] = float(row[7])
                     w[i, j] = 1
             except:
-                pass
+                print("Problem!")
 
         return obs, exp, fdr, w
 

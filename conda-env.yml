@@ -21,6 +21,6 @@ dependencies:
 
 - pip:
   - pwlf
-  - genome-tools==1.0.3
+  - genome-tools==1.0.4
   - yaspin
   - .

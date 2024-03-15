@@ -21,7 +21,7 @@ cdef class dispersion_model:
     cdef np.ndarray _r_params
     cdef np.ndarray _mu_params
     
-    cpdef str _metadata
+    cdef str _metadata
 
     cpdef data_type_t fit_mu(self, data_type_t x)
     cpdef data_type_t fit_r(self, data_type_t x)

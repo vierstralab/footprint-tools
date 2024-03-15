@@ -14,8 +14,8 @@ import scipy.optimize
 
 ctypedef np.float64_t data_type_t
 
-from ..modeling cimport dispersion
-from .distributions cimport invchi2, t
+from footprint_tools.modeling cimport dispersion
+from footprint_tools.stats.distributions cimport invchi2, t
 
 ctypedef dispersion.dispersion_model dm_t
 
