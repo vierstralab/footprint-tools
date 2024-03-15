@@ -41,7 +41,7 @@ required_sample_data_cols = ["id", "tabix_file", "dm_file", "beta_a", "beta_b"]
 
 class posterior_stats(dataset):
     def __init__(self, interval_file, samples_data, fdr_cutoff):
-        self.intervals = pd.read_table(interval_file)
+        self.intervals = pd.read_table(interval_file, header=None, comment="#")
         self.samples_data = samples_data
         self.fdr_cutoff = fdr_cutoff
 

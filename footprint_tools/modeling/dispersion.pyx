@@ -439,6 +439,10 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
     # fit mu with a 3 segments
     fit_mu = pwlf.PiecewiseLinFit(x[sele], mus[sele])
+
+    print(x[sele])
+    print(mus[sele])
+
     res = fit_mu.fit_with_breaks_force_points(np.linspace(first_x, last_x, 4), [0], [mus[0]])
 
     # fit r with 5 s segments

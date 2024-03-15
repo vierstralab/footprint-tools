@@ -219,7 +219,7 @@ def run(
             logger.info(f"Loading bias model from file {bias_model_file}")
             bm = bias.kmer_model(bias_model_file)
         else:
-            logger.info(f"No bias model file specified -- using uniform model")
+            logger.info("No bias model file specified -- using uniform model")
             bm = bias.uniform_model()
 
     except IOError as e:
@@ -241,8 +241,8 @@ def run(
         batch_size=batch_size, collate_fn=numpy_collate_concat, num_workers=n_threads
     )
 
-    hist_size = (200, 1000)
-    hist = np.zeros(hist_size, dtype=int)
+    hist_dims = (200, 1000)
+    hist = np.zeros(hist_dims, dtype=int)
 
     with logging_redirect_tqdm():
         for cnts in tqdm(dl_iter, colour="#cc951d"):
