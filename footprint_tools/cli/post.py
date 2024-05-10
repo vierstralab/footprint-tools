@@ -65,7 +65,7 @@ class posterior_stats(dataset):
 
         obs = np.zeros((n, m), dtype=float)
         exp = np.zeros((n, m), dtype=float)
-        fdr = np.zeros((n, m), dtype=float)
+        fdr = np.ones((n, m), dtype=float)
         w = np.zeros((n, m), dtype=float)
 
         i = 0
