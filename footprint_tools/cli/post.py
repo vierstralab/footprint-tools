@@ -63,10 +63,10 @@ class posterior_stats(dataset):
         n = len(self.tabix_files)
         m = len(interval)
 
-        obs = np.zeros((n, m), dtype=float)
-        exp = np.zeros((n, m), dtype=float)
-        fdr = np.ones((n, m), dtype=float)
-        w = np.zeros((n, m), dtype=float)
+        obs = np.zeros((n, m), dtype=np.float64)
+        exp = np.zeros((n, m), dtype=np.float64)
+        fdr = np.ones((n, m), dtype=np.float64)
+        w = np.zeros((n, m), dtype=np.float64)
 
         i = 0
         j = 0
@@ -77,10 +77,10 @@ class posterior_stats(dataset):
                     interval.chrom, interval.start, interval.end, parser=pysam.asTuple()
                 ):
                     j = int(row[1]) - interval.start
-                    obs[i, j] = float(row[3])
-                    exp[i, j] = float(row[4])
-                    fdr[i, j] = float(row[7])
-                    w[i, j] = 1
+                    exp[i, j] = np.float64(row[3])
+                    obs[i, j] = np.float64(row[4])
+                    fdr[i, j] = np.float64(row[7])
+                    w[i, j] = 1.0
             except:
                 logger.debug(f"Problem reading TABIX file! ({str(interval)})")
 
