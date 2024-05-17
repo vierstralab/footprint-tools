@@ -3,7 +3,12 @@
 footprint-tools is a python module for *de novo* detection of genomic footprints from DNase I data 
 by simulating expected cleavage rates using a 6-mer DNase I cleavage preference model combined
 with density smoothing. Statistical significance of per-nucleotide cleavages
-are computed from a series emperically fit negative binomial distribution.
+are computed from a series of emperically fit negative binomial distribution.
+
+
+> [!CAUTION]
+> There is a massive bug in the `posterior` footprint caller in versions 1.2.0 to 1.3.7. Please pull the lastest code from the master branch. 
+
 
 ## Requirements
 
