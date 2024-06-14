@@ -50,7 +50,7 @@ class bamfile(object):
         Remove reads with duplicate flag (512) set
     remove_qcfail : bool
         Remove reads with QC fail flag (1024) set
-    samfile : pysam.Samfile
+    filepath : pysam.Samfile
         SAM/BAM file object
     """
 
@@ -61,6 +61,8 @@ class bamfile(object):
         remove_dups=False,
         remove_qcfail=True,
         offset=(0, -1),
+	    is_cram=False,
+        fasta_reference_filepath=None,
     ):
         """Constructor
 
@@ -76,6 +78,10 @@ class bamfile(object):
             Remove reads with QC fail flag (1024) set
         offset : tuple, optional
             Position offsets to apply to the `+` and `-` strands (default =(0, -1))
+        is_cram : bool
+            Alignment file is in CRAM format
+       fasta_reference_filepath : str
+            CRAM file reference filepath override 
 
         Raises
         ------
@@ -86,7 +92,10 @@ class bamfile(object):
         """
 
         try:
-            self.samfile = pysam.Samfile(filepath, "rb")
+            if is_cram:
+                self.samfile = pysam.AlignmentFile(filepath, mode="rc", reference_filename=fasta_reference_filepath)
+            else:
+                self.samfile = pysam.AlignmentFile(filepath, mode="rb")
         except:
             raise IOError("Cannot open BAM file: %s" % filepath)
 

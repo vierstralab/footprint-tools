@@ -43,10 +43,10 @@ File validation functions
 import pysam
 
 
-def verify_bam_file(fn):
+def verify_bam_file(fn, is_cram):
     """Tries to open a file, raises IOError with problems"""
     try:
-        pysam.AlignmentFile(fn).close()
+        pysam.AlignmentFile(fn, "rc" if is_cram else "rb").close()
     except IOError:
         raise IOError(f"No such file: {fn}")
     except ValueError:

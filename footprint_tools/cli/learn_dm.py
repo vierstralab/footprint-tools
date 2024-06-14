@@ -47,7 +47,15 @@ class expected_counts(dataset):
 
         # kwargs for cutcounts.bamfile
         self.counts_reader_kwargs = get_kwargs(
-            ["min_qual", "remove_dups", "remove_qcfail", "offset"], kwargs
+            [
+                "min_qual",
+                "remove_dups",
+                "remove_qcfail",
+                "offset",
+                "is_cram",
+                "fasta_reference_filepath",
+            ],
+            kwargs,
         )
 
         self.fasta_reader_kwargs = {}
@@ -129,10 +137,18 @@ class expected_counts(dataset):
     help="Ignore reads with mapping quality lower than this threshold",
 )
 @optgroup.option(
-    "--keep_dups", default=True, show_default=True, help="Keep duplicate reads"
+    "--keep_dups",
+    default=True,
+    show_default=True,
+    is_flag=True,
+    help="Keep duplicate reads",
 )
 @optgroup.option(
-    "--keep_qcfail", default=False, show_default=True, help="Keep QC-failed reads"
+    "--keep_qcfail",
+    default=False,
+    show_default=True,
+    is_flag=True,
+    help="Keep QC-failed reads",
 )
 @optgroup.group("Output options")
 @optgroup.option(
@@ -150,6 +166,13 @@ class expected_counts(dataset):
     show_default=True,
     callback=tuple_args(int),
     help="BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)",
+)
+@optgroup.option(
+    "--is_cram",
+    default=False,
+    show_default=True,
+    is_flag=True,
+    help="Read alignment file is CRAM format",
 )
 @optgroup.option(
     "--seed",
@@ -180,6 +203,7 @@ def run(
     keep_dups=True,
     keep_qcfail=False,
     bam_offset=(0, -1),
+    is_cram=False,
     half_win_width=5,
     seed=None,
     n_threads=cpu_count(),
@@ -206,12 +230,18 @@ def run(
         "remove_qcfail": not keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,
+        "is_cram": is_cram,
+        "fasta_reference_filepath": fasta_file,
     }
 
     # Validate and load input files
     logger.info("Validating input files")
     try:
-        verify_bam_file(bam_file)
+        verify_bam_file(bam_file, is_cram)
+
+        if is_cram:
+            logger.info("Alignment file in CRAM-format")
+
         verify_fasta_file(fasta_file)
 
         # Load bias model (if specified), otherwise use the uniform model

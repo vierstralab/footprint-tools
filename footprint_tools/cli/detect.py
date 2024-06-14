@@ -59,7 +59,15 @@ class deviation_stats(dataset):
 
         # kwargs for cutcounts.bamfile
         self.counts_reader_kwargs = get_kwargs(
-            ["min_qual", "remove_dups", "remove_qcfail", "offset"], kwargs
+            [
+                "min_qual",
+                "remove_dups",
+                "remove_qcfail",
+                "offset",
+                "is_cram",
+                "fasta_reference_filepath",
+            ],
+            kwargs,
         )
 
         self.fasta_reader_kwargs = {}
@@ -231,6 +239,13 @@ class deviation_stats(dataset):
     help="BAM file offset (enables support for other datatypes -- e.g. Tn5/ATAC)",
 )
 @optgroup.option(
+    "--is_cram",
+    default=False,
+    show_default=True,
+    is_flag=True,
+    help="Read alignment file is CRAM format",
+)
+@optgroup.option(
     "--seed",
     type=click.INT,
     help="Seed for random number generator -- set for reproducible results",
@@ -260,6 +275,7 @@ def run(
     keep_dups=False,
     keep_qcfail=False,
     bam_offset=(0, -1),
+    is_cram=False,
     half_win_width=5,
     smooth_half_win_width=50,
     smooth_clip=0.01,
@@ -288,6 +304,8 @@ def run(
         "remove_qcfail": not keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,
+        "is_cram": is_cram,
+        "fasta_reference_filepath": fasta_file,
         "smoothing_half_win_width": smooth_half_win_width,
         "smoothing_clip": smooth_clip,
         "fdr_shuffle_n": fdr_shuffle_n,
@@ -299,6 +317,10 @@ def run(
     logger.info("Validating input files")
     try:
         verify_bam_file(bam_file)
+
+        if is_cram:
+            logger.info("Alignment file in CRAM-format")
+
         verify_fasta_file(fasta_file)
 
         # Load bias model (if specified), otherwise use the uniform model
@@ -306,7 +328,7 @@ def run(
             logger.info(f"Loading bias model from file {bias_model_file}")
             bm = bias.kmer_model(bias_model_file)
         else:
-            logger.info(f"No bias model file specified -- using uniform model")
+            logger.info("No bias model file specified -- using uniform model")
             bm = bias.uniform_model()
 
         # Load dispersion model (if specified)
@@ -315,7 +337,7 @@ def run(
             dm = dispersion.load_dispersion_model(dispersion_model_file)
         else:
             logger.info(
-                f"No dispersion model file specified -- reporting of base-level cleavage statistics and footprints is disabled"
+                "No dispersion model file specified -- reporting of base-level cleavage statistics and footprints is disabled"
             )
             dm = None
             write_footprints = []
@@ -330,7 +352,7 @@ def run(
     else:
         np.random.seed()
         logger.info(
-            f"No seed set for sampling -- Caution: results may not be entirely reproducible!"
+            "No seed set for sampling -- Caution: results may not be entirely reproducible!"
         )
 
     # Open output files

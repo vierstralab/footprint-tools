@@ -134,6 +134,7 @@ class prediction(object):
 
         # Get the raw cleavage counts and FASTA sequence
         raw_counts = self.read_func[pad_interval]
+
         raw_seq = self.fasta_func.fetch(pad_interval.chrom, 
                                         pad_interval.start-self.bm.offset(), 
                                         pad_interval.end+self.bm.offset()).upper()
@@ -141,6 +142,7 @@ class prediction(object):
         obs_counts = {'+': None, '-': None}
         exp_counts = {'+': None, '-': None}
         win_counts = {'+': None, '-': None}
+
 
         for strand in ['+', '-']:
 
