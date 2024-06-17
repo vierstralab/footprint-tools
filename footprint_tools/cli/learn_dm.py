@@ -32,7 +32,6 @@ logger = logging.getLogger(__name__)
 # kill numpy warnings
 np.seterr(all="ignore")
 
-
 class expected_counts(dataset):
     """Computes observed and expected cleavage counts"""
 

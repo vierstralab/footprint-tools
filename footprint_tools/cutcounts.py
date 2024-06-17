@@ -2,6 +2,7 @@
 This modules contains classes and functions to compute cleavage counts
 directly from an alignment file.
 """
+
 import genome_tools
 import pysam
 
@@ -61,39 +62,41 @@ class bamfile(object):
         remove_dups=False,
         remove_qcfail=True,
         offset=(0, -1),
-	    is_cram=False,
+        is_cram=False,
         fasta_reference_filepath=None,
     ):
         """Constructor
 
-        Parameters
-        ----------
-        filepath : str
-            Fileath to SAM/BAM file
-        min_qual : int, optional
-            Filter reads by minimim mapping quality (MAPQ)
-        remove_dups : bool, optional
-            Remove reads with duplicate flag (512) set
-        remove_qcfail : bool, optional
-            Remove reads with QC fail flag (1024) set
-        offset : tuple, optional
-            Position offsets to apply to the `+` and `-` strands (default =(0, -1))
-        is_cram : bool
-            Alignment file is in CRAM format
-       fasta_reference_filepath : str
-            CRAM file reference filepath override 
+         Parameters
+         ----------
+         filepath : str
+             Fileath to SAM/BAM file
+         min_qual : int, optional
+             Filter reads by minimim mapping quality (MAPQ)
+         remove_dups : bool, optional
+             Remove reads with duplicate flag (512) set
+         remove_qcfail : bool, optional
+             Remove reads with QC fail flag (1024) set
+         offset : tuple, optional
+             Position offsets to apply to the `+` and `-` strands (default =(0, -1))
+         is_cram : bool
+             Alignment file is in CRAM format
+        fasta_reference_filepath : str
+             CRAM file reference filepath override
 
-        Raises
-        ------
-        IOError
-            If file is not found
-        ValueError
-            If file has not associated index
+         Raises
+         ------
+         IOError
+             If file is not found
+         ValueError
+             If file has not associated index
         """
 
         try:
             if is_cram:
-                self.samfile = pysam.AlignmentFile(filepath, mode="rc", reference_filename=fasta_reference_filepath)
+                self.samfile = pysam.AlignmentFile(
+                    filepath, mode="rc", reference_filename=fasta_reference_filepath
+                )
             else:
                 self.samfile = pysam.AlignmentFile(filepath, mode="rb")
         except:
@@ -419,8 +422,8 @@ class bamfile(object):
                     rev = tmp_non_rev
                     reads = reads_non
                 elif (
-                    read1_gt and read2_gt
-                ) and read1_gt != read2_gt:  # Both reads have a GT, but discordant genotypes
+                    (read1_gt and read2_gt) and read1_gt != read2_gt
+                ):  # Both reads have a GT, but discordant genotypes
                     raise ReadError(ReadError.ERROR_GENOTYPE)
                 elif read1_gt == ref or read2_gt == ref:  # Matches REF allele
                     fw = tmp_ref_fw

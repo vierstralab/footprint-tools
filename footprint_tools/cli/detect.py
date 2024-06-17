@@ -316,7 +316,7 @@ def run(
     # Validate and load inputs
     logger.info("Validating input files")
     try:
-        verify_bam_file(bam_file)
+        verify_bam_file(bam_file, is_cram=is_cram)
 
         if is_cram:
             logger.info("Alignment file in CRAM-format")

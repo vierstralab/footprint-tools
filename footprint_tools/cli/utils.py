@@ -43,7 +43,7 @@ File validation functions
 import pysam
 
 
-def verify_bam_file(fn, is_cram):
+def verify_bam_file(fn, is_cram=False):
     """Tries to open a file, raises IOError with problems"""
     try:
         pysam.AlignmentFile(fn, "rc" if is_cram else "rb").close()
