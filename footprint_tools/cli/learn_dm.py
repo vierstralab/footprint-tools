@@ -1,10 +1,11 @@
+import sys
+
 import click
 from click_option_group import optgroup
 
 from multiprocessing import cpu_count
 
 import numpy as np
-import scipy as sp
 import pandas as pd
 import pysam
 
@@ -233,6 +234,8 @@ def run(
         "fasta_reference_filepath": fasta_file,
     }
 
+    args = " ".join(sys.argv)
+
     # Validate and load input files
     logger.info("Validating input files")
     try:
@@ -291,7 +294,7 @@ def run(
 
     try:
         with open(outfile, "w") as output_filehandle:
-            print(dispersion.write_dispersion_model(model), file=output_filehandle)
+            print(dispersion.write_dispersion_model(model, extra=args), file=output_filehandle)
 
     except IOError as e:
         logger.critical(e)

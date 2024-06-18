@@ -6,7 +6,6 @@ from click_option_group import optgroup
 from multiprocessing import cpu_count
 
 import numpy as np
-import scipy as sp
 import pandas as pd
 
 import pysam

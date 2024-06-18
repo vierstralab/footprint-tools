@@ -520,7 +520,7 @@ def load_dispersion_model(filename):
 
     return model
 
-def write_dispersion_model(model):
+def write_dispersion_model(model, extra=None):
     """Write a JSON format dispersion model
 
     Parameters
@@ -541,8 +541,9 @@ def write_dispersion_model(model):
             'h': base64encode(np.asarray(model.h, order = 'C')),
             'p': base64encode(np.asarray(model.p, order = 'C')),
             'r': base64encode(np.asarray(model.r, order = 'C')),
-            'metadata': f"Created with {footprint_tools.__name__} {footprint_tools.__version__} "
-                         + f"on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            'version': f"{footprint_tools.__name__} {footprint_tools.__version__}",
+            'date': f"on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            'metadata': extra if extra else "",
     }
 
     return json.dumps(out, indent = 4)
