@@ -3,7 +3,7 @@ This modules contains classes and functions to compute cleavage counts
 directly from an alignment file.
 """
 
-import genome_tools
+from genome_tools import GenomicInterval
 import pysam
 
 import numpy as np
@@ -37,7 +37,7 @@ class ReadFormatError(Exception):
     pass
 
 
-class bamfile(object):
+class BamFileExtractor(object):
     """Class to access BAM files
 
     Attributes
@@ -62,8 +62,8 @@ class bamfile(object):
         remove_dups=False,
         remove_qcfail=True,
         offset=(0, -1),
-        is_cram=False,
         fasta_reference_filepath=None,
+        **kwargs
     ):
         """Constructor
 
@@ -93,12 +93,11 @@ class bamfile(object):
         """
 
         try:
-            if is_cram:
-                self.samfile = pysam.AlignmentFile(
-                    filepath, mode="rc", reference_filename=fasta_reference_filepath
-                )
-            else:
-                self.samfile = pysam.AlignmentFile(filepath, mode="rb")
+            self.samfile = pysam.AlignmentFile(
+                filepath,
+                reference_filename=fasta_reference_filepath
+            )
+
         except:
             raise IOError("Cannot open BAM file: %s" % filepath)
 
@@ -268,8 +267,9 @@ class bamfile(object):
         else:
             start = int(read.reference_start) + self.offset[0]
             end = start + tlen
-
-        return genome_tools.genomic_interval(read.reference_name, start, end)
+        if start > end:
+            raise ValueError(f"Fragment start > end! {start} > {end} read: {read.query_name}")
+        return GenomicInterval(read.reference_name, start, end, strand=read.is_reverse)
 
     def lookup(self, interval):
         """Lookup reads in a defined genomic region
@@ -509,9 +509,13 @@ class bamfile(object):
             Input is neither a :class:`genome_tools.genomic_interval` nor
             :class:`pysam.VariantRecord`
         """
-        if isinstance(x, genome_tools.genomic_interval):
+        if isinstance(x, GenomicInterval):
             return self.lookup(x)
         elif isinstance(x, pysam.VariantRecord):
             return self.lookup_allelic(x)
         else:
             raise TypeError(f"Query type not supported: {type(x)}")
+
+
+class bamfile(BamFileExtractor):
+    ...
