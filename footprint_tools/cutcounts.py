@@ -302,7 +302,8 @@ class BamFileExtractor(object):
             if read1:
                 self._add_read(read1, tmp_fw, tmp_rev)
                 fragment = self._get_fragment(read1)
-                reads.append(fragment)
+                if fragment is not None:
+                    reads.append(fragment)
             if read2:
                 self._add_read(read2, tmp_fw, tmp_rev)
 
