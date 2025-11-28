@@ -269,7 +269,7 @@ class BamFileExtractor(object):
             end = start + tlen
         if start > end:
             raise ValueError(f"Fragment start > end! {start} > {end} read: {read.query_name}")
-        return GenomicInterval(read.reference_name, start, end, strand=read.is_reverse)
+        return GenomicInterval(read.reference_name, start, end, is_reverse=read.is_reverse)
 
     def lookup(self, interval):
         """Lookup reads in a defined genomic region
