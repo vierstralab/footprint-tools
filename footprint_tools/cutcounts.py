@@ -261,6 +261,8 @@ class BamFileExtractor(object):
             correspond to the 5' ends of the paired reads.
         """
         tlen = read.template_length
+        if not read.is_paired:
+            return None
         if read.is_reverse:
             end = int(read.reference_end) + self.offset[1]
             start = end + tlen
@@ -299,7 +301,8 @@ class BamFileExtractor(object):
         ):
             if read1:
                 self._add_read(read1, tmp_fw, tmp_rev)
-                reads.append(self._get_fragment(read1))
+                fragment = self._get_fragment(read1)
+                reads.append(fragment)
             if read2:
                 self._add_read(read2, tmp_fw, tmp_rev)
 
