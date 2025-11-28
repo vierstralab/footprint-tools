@@ -261,16 +261,17 @@ class BamFileExtractor(object):
             correspond to the 5' ends of the paired reads.
         """
         tlen = read.template_length
-        if not read.is_paired:
-            return None
         if read.is_reverse:
             end = int(read.reference_end) + self.offset[1]
             start = end + tlen
         else:
             start = int(read.reference_start) + self.offset[0]
             end = start + tlen
+        
         if start > end:
-            raise ValueError(f"Fragment start > end! {start} > {end} read: {read.query_name}")
+            start, end = end, start
+        # if start > end:
+        #     raise ValueError(f"Fragment start > end! {start} > {end} read: {read.query_name}")
         return GenomicInterval(read.reference_name, start, end, is_reverse=read.is_reverse)
 
     def lookup(self, interval):
@@ -301,9 +302,7 @@ class BamFileExtractor(object):
         ):
             if read1:
                 self._add_read(read1, tmp_fw, tmp_rev)
-                fragment = self._get_fragment(read1)
-                if fragment is not None:
-                    reads.append(fragment)
+                reads.append(self._get_fragment(read1))
             if read2:
                 self._add_read(read2, tmp_fw, tmp_rev)
 
