@@ -63,6 +63,7 @@ class BamFileExtractor(object):
         remove_qcfail=True,
         offset=(0, -1),
         fasta_reference_filepath=None,
+        variant_5p_proximity=3,
         **kwargs
     ):
         """Constructor
@@ -105,6 +106,7 @@ class BamFileExtractor(object):
         self.min_qual = min_qual
         self.remove_dups = remove_dups
         self.remove_qcfail = remove_qcfail
+        self.variant_5p_proximity = variant_5p_proximity
 
     def close(self):
         """Closes BAM file"""
@@ -357,7 +359,7 @@ class BamFileExtractor(object):
                 if read.is_reverse
                 else pos - read.reference_start
             )
-            if offset_5p <= 3:
+            if offset_5p <= self.variant_5p_proximity:
                 raise ReadError(ReadError.ERROR_5PROXIMITY)
 
             if read.has_tag("XM"):
