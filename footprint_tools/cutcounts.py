@@ -293,7 +293,7 @@ class BamFileExtractor(object):
         chrom = interval.chrom
         start = interval.start
         end = interval.end
-        flip = True if interval.strand == "-" else False
+        flip = True if getattr(interval, "strand", "+") == "-" else False
 
         tmp_fw = {}
         tmp_rev = {}
