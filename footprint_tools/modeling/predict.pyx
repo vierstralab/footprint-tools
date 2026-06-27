@@ -44,6 +44,7 @@ cdef predict(data_type_t [:] obs, data_type_t [:] probs, int half_win_width, int
 
     return exp, win
 
+#TODO: put this in genome tools
 def reverse_complement(seq):
     """Computes reverse complement of a DNA sequence
     
@@ -60,13 +61,13 @@ def reverse_complement(seq):
     compl = { 'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'N': 'N', 'a': 't', 'c': 'g', 'g': 'c', 't': 'a', 'n': 'n'}
     return ''.join([ compl.get(base, 'N') for base in seq ])[::-1]
 
-class prediction(object):
+class ExpectedPredictor(object):
     """Class that holds a wrapper function to 
         compute the expected cleavage counts
     
     Attributes
     ----------
-    bm : :class:`bias.bias_model`
+    bm : :class:`bias.BiasModel`
         Sequence bias model to apply
     read_func : :class:`cutcounts.bamfile`
        Cut-counts reader
@@ -91,7 +92,7 @@ class prediction(object):
             Description
         fasta_func : :class:`pysam.FastaFile`
             Description
-        bm : :class:`bias.bias_model`
+        bm : :class:`bias.BiasModel`
             Description
         half_win_width : int, optional
             Description

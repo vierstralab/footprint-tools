@@ -90,7 +90,7 @@ def compute_delta_prior(obs, exp, fdr, beta_prior, cutoff=0.05):
     return delta
 
 
-def log_likelihood(obs, exp, dm, delta=1, w=3):
+def compute_log_likelihood(obs, exp, dm, delta=1, w=3):
     """Likelihood function of observed counts given the bias corrected data
     and an expected protection
 
@@ -100,7 +100,7 @@ def log_likelihood(obs, exp, dm, delta=1, w=3):
         Observed cleavage counts
     exp : ndarray
         Expected cleavage counts
-    dm : :class:`dispersion_model`
+    dm : :class:`DispersionModel`
         Dispersional model to compute cleavage statistics
     delta : array_like, optional
         Values to scale exp counts
@@ -121,7 +121,7 @@ def log_likelihood(obs, exp, dm, delta=1, w=3):
     return res
 
 
-def posterior(prior, ll_on, ll_off):
+def compute_posterior(prior, ll_on, ll_off):
     """Compute the posterior probability of a nucleotide
 
     Parameters

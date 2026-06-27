@@ -9,12 +9,17 @@ import numpy as np
 import pandas as pd
 import pysam
 
-from genome_tools import genomic_interval
-from genome_tools.data.dataset import dataset
+from genome_tools import GenomicInterval
+from genome_tools.data.dataset import Dataset
 from genome_tools.data.utils import numpy_collate_concat
 
 from footprint_tools import cutcounts
-from footprint_tools.modeling import bias, predict, dispersion
+from footprint_tools.modeling.bias import KmerModel, UniformModel
+from footprint_tools.modeling.predict import ExpectedPredictor
+from footprint_tools.modeling.dispersion import (
+    learn_dispersion_model,
+    write_dispersion_model,
+)
 
 from footprint_tools.cli.utils import (
     tuple_args,
@@ -33,7 +38,8 @@ logger = logging.getLogger(__name__)
 # kill numpy warnings
 np.seterr(all="ignore")
 
-class expected_counts(dataset):
+
+class expected_counts(Dataset):
     """Computes observed and expected cleavage counts"""
 
     def __init__(self, interval_file, bam_file, fasta_file, bm, **kwargs):
@@ -69,7 +75,7 @@ class expected_counts(dataset):
 
         self.counts_extractor = None
         self.fasta_extractor = None
-        self.count_predictor = None
+        self.expected_predictor = None
 
     def __len__(self):
         return len(self.intervals)
@@ -80,13 +86,13 @@ class expected_counts(dataset):
         # Open file handlers on first call. This avoids problems when
         # parallel processing data with non-thread safe code (i.e., pysam)
         if not self.counts_extractor:
-            self.counts_extractor = cutcounts.bamfile(
+            self.counts_extractor = cutcounts.BamFile(
                 self.bam_file, **self.counts_reader_kwargs
             )
             self.fasta_extractor = pysam.FastaFile(
                 self.fasta_file, **self.fasta_reader_kwargs
             )
-            self.count_predictor = predict.prediction(
+            self.expected_predictor = ExpectedPredictor(
                 self.counts_extractor,
                 self.fasta_extractor,
                 self.bm,
@@ -99,9 +105,9 @@ class expected_counts(dataset):
             self.intervals.iat[index, 2],
         )
 
-        interval = genomic_interval(chrom, start, end)
+        interval = GenomicInterval(chrom, start, end)
 
-        obs, exp, _ = self.count_predictor.compute(interval)
+        obs, exp, _ = self.expected_predictor.compute(interval)
 
         obs = obs["+"][1:] + obs["-"][:-1]
         exp = exp["+"][1:] + exp["-"][:-1]
@@ -249,10 +255,10 @@ def run(
         # Load bias model (if specified), otherwise use the uniform model
         if bias_model_file:
             logger.info(f"Loading bias model from file {bias_model_file}")
-            bm = bias.kmer_model(bias_model_file)
+            bm = KmerModel(bias_model_file)
         else:
             logger.info("No bias model file specified -- using uniform model")
-            bm = bias.uniform_model()
+            bm = UniformModel()
 
     except IOError as e:
         logger.critical(e)
@@ -288,13 +294,13 @@ def run(
 
     logger.info("Learning dispersion model")
 
-    model = dispersion.learn_dispersion_model(hist)
+    model = learn_dispersion_model(hist)
 
     logger.info("Writing dispersion model to {}".format(outfile))
 
     try:
         with open(outfile, "w") as output_filehandle:
-            print(dispersion.write_dispersion_model(model, extra=args), file=output_filehandle)
+            print(write_dispersion_model(model, extra=args), file=output_filehandle)
 
     except IOError as e:
         logger.critical(e)

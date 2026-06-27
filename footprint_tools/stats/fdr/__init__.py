@@ -34,8 +34,6 @@ def emperical_fdr(pvals_null, pvals):
 
 
 # Not sure if Storey FDR is best (appears to be too conservative)
-
-
 def pi0est(pvals, lamb=None):
     """
 

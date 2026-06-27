@@ -22,7 +22,7 @@ epilog = """See http://github.com/jvierstra/footprint-tools for extended documen
 
 Citation: Vierstra, J., Lazar, J., Sandstrom, R. et al. Global reference mapping of human transcription factor footprints. Nature 583, 729–736 (2020)
 
-Written by Jeff Vierstra (jvierstra@altius.org) (2015-2021). Software licensed under GNU General Public License version 3."""
+Written by Jeff Vierstra (jvierstra@altius.org) (2015-2025). Software licensed under GNU General Public License version 3."""
 
 
 @click.group(epilog=epilog)

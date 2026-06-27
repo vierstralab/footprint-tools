@@ -6,10 +6,9 @@ import itertools
 import random
 
 
-class bias_model(object):
+class BiasModel(object):
     def __init__(self):
         self.model = {}
-
         self.k = 6
         self.mid = 3
 
@@ -30,7 +29,7 @@ class bias_model(object):
         model : :class:`bias_model`
             A shuffled bias model
         """
-        ret = bias_model()
+        ret = BiasModel()
         ret.model = {
             x: y
             for (x, y) in zip(
@@ -55,9 +54,10 @@ class bias_model(object):
         return np.around(probs / np.sum(probs) * n)
 
 
-class kmer_model(bias_model):
+class KmerModel(BiasModel):
     def __init__(self, filepath):
-        bias_model.__init__(self)
+        super(KmerModel, self).__init__()
+
         self.read_model(filepath)
 
     def read_model(self, filepath):
@@ -111,9 +111,9 @@ class kmer_model(bias_model):
         )
 
 
-class uniform_model(bias_model):
+class UniformModel(BiasModel):
     def __init__(self):
-        bias_model.__init__(self)
+        super(UniformModel, self).__init__()
 
         for seq in itertools.product("ATCG", repeat=self.k):
             self.model["".join(seq)] = 1.0

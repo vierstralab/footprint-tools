@@ -56,7 +56,7 @@ cpdef data_type_t piecewise_five(x, data_type_t x0, data_type_t x1, data_type_t 
         (x>=x3) * (y4 + k4*(x))
     )
 
-cdef class dispersion_model:
+cdef class DispersionModel:
     """
     Dispersion model class
     """
@@ -77,7 +77,7 @@ cdef class dispersion_model:
         x = {}
         x['mu_params'] = self.mu_params
         x['r_params'] = self.r_params
-        return (dispersion_model, (), x)
+        return (DispersionModel, (), x)
 
     # Pickling function
     def __setstate__(self, x):
@@ -458,15 +458,15 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     res = fit_r.fit_with_breaks_force_points(x0, [1], [1.0/r[1]])
     
     # Create a dispersion model class
-    res = dispersion_model()
-    res.h = h
-    res.p = p
-    res.r = r
+    model = DispersionModel()
+    model.h = h
+    model.p = p
+    model.r = r
 
-    res.mu_params = list(fit_mu.fit_breaks[1:]) + list(fit_mu.intercepts) + list(fit_mu.slopes)
-    res.r_params = list(fit_r.fit_breaks[1:]) + list(fit_r.intercepts) + list(fit_r.slopes)
+    model.mu_params = list(fit_mu.fit_breaks[1:]) + list(fit_mu.intercepts) + list(fit_mu.slopes)
+    model.r_params = list(fit_r.fit_breaks[1:]) + list(fit_r.intercepts) + list(fit_r.slopes)
     
-    return res
+    return model
 
 import base64
 
@@ -480,6 +480,7 @@ def base64decode(x):
         return arr.reshape(x[2])
     return arr
 
+# TODO: change to static class function
 def load_dispersion_model(filename):
     """Load a dispersion model encoded in JSON format
 
@@ -505,7 +506,7 @@ def load_dispersion_model(filename):
 
     file.close()
 
-    model = dispersion_model()
+    model = DispersionModel()
     model.mu_params = base64decode(params['mu_params'])
     model.r_params = base64decode(params['r_params'])
 

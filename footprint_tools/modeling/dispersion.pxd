@@ -13,7 +13,7 @@ cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t
                                      data_type_t y0, data_type_t y1, data_type_t y2,
                                      data_type_t k0, data_type_t k1, data_type_t k2)
 
-cdef class dispersion_model:
+cdef class DispersionModel:
     
     cdef np.ndarray _h
     cdef np.ndarray _p

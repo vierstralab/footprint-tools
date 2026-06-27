@@ -11,13 +11,16 @@ from pandas.api.types import is_numeric_dtype
 
 import pysam
 
-pysam.set_verbosity(0)
+from genome_tools import GenomicInterval
+from genome_tools.data.dataset import Dataset
 
-from genome_tools import genomic_interval
-from genome_tools.data.dataset import dataset
-
-from footprint_tools.modeling import dispersion
-from footprint_tools.stats import posterior
+from footprint_tools.modeling.dispersion import load_dispersion_model
+from footprint_tools.stats.posterior import (
+    compute_delta_prior,
+    compute_prior_weighted,
+    compute_log_likelihood,
+    compute_posterior,
+)
 
 from footprint_tools.cli.utils import (
     verify_tabix_file,
@@ -34,12 +37,13 @@ logger = logging.getLogger(__name__)
 
 # kill numpy warnings
 np.seterr(all="ignore")
+pysam.set_verbosity(0)
 
 # columns required in sample data file
 required_sample_data_cols = ["id", "tabix_file", "dm_file", "beta_a", "beta_b"]
 
 
-class posterior_stats(dataset):
+class posterior_stats(Dataset):
     def __init__(self, interval_file, samples_data, fdr_cutoff):
         self.intervals = pd.read_table(interval_file, header=None, comment="#")
         self.samples_data = samples_data
@@ -47,7 +51,7 @@ class posterior_stats(dataset):
 
         self.tabix_files = []  # these get loaded on first call of __getitem__
         self.disp_models = [
-            dispersion.load_dispersion_model(fn) for fn in self.samples_data["dm_file"]
+            load_dispersion_model(fn) for fn in self.samples_data["dm_file"]
         ]
         self.betas = self.samples_data[["beta_a", "beta_b"]].to_numpy()
 
@@ -107,18 +111,16 @@ class posterior_stats(dataset):
             self.intervals.iat[index, 2],
         )
 
-        interval = genomic_interval(chrom, start, end)
+        interval = GenomicInterval(chrom, start, end)
 
         obs, exp, fdr, w = self._load_data(interval)
 
-        prior = posterior.compute_prior_weighted(fdr, w, cutoff=self.fdr_cutoff)
-        delta = posterior.compute_delta_prior(
-            obs, exp, fdr, self.betas, cutoff=self.fdr_cutoff
-        )
-        ll_on = posterior.log_likelihood(obs, exp, self.disp_models, delta=delta, w=3)
-        ll_off = posterior.log_likelihood(obs, exp, self.disp_models, w=3)
+        prior = compute_prior_weighted(fdr, w, cutoff=self.fdr_cutoff)
+        delta = compute_delta_prior(obs, exp, fdr, self.betas, cutoff=self.fdr_cutoff)
+        ll_on = compute_log_likelihood(obs, exp, self.disp_models, delta=delta, w=3)
+        ll_off = compute_log_likelihood(obs, exp, self.disp_models, w=3)
 
-        post = -posterior.posterior(prior, ll_on, ll_off)
+        post = -compute_posterior(prior, ll_on, ll_off)
         post[post <= 0] = 0.0
 
         return {
@@ -265,7 +267,8 @@ def run(
     dl_iter = dl.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     # filter function to apply when writing posteriors to file
-    filter_fn = lambda x: np.nanmax(x, axis=1) > -np.log(post_cutoff)
+    def filter_fn(x):
+        return np.nanmax(x, axis=1) > -np.log(post_cutoff)
 
     with logging_redirect_tqdm():
         for batch in tqdm(dl_iter, colour="#cc951d"):
