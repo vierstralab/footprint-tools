@@ -92,15 +92,17 @@ cpdef np.ndarray(data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(
 	cdef double theta_h = (theta_hi-theta_lo)/<double>theta_nslices
 
 	for i range(0, m): # Iterate over nucleotides
+			
+		with nogil:
 
-		for j in range(0, sig2_nslices): # Iterate over variances (sig2)
-			sig2 = sig2_lo + (i*sig2_h)
-			ll_invchi2 = invchi2.logpmf(sig2, nu_0, sig2_0)
+			for j in range(0, sig2_nslices): # Iterate over variances (sig2)
+				sig2 = sig2_lo + (i*sig2_h)
+				ll_invchi2 = invchi2.logpmf(sig2, nu_0, sig2_0)
 		
-			for k in range(0, theta_nslices): # Iterate over theta (LFCs)
-				theta = theta_lo + (j*theta_h)
-				ll_norm = norm.logpmf(theta, mu_0[i], sig2)
-				res_view[i, j, k] = ll_invchi2 + ll_norm  
+				for k in range(0, theta_nslices): # Iterate over theta (LFCs)
+					theta = theta_lo + (j*theta_h)
+					ll_norm = norm.logpmf(theta, mu_0[i], sig2)
+					res_view[i, j, k] = ll_invchi2 + ll_norm  
 
 	return res.T
 
