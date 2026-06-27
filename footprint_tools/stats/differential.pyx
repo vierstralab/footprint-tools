@@ -15,7 +15,7 @@ import scipy.optimize
 ctypedef np.float64_t data_type_t
 
 from footprint_tools.modeling cimport dispersion
-from footprint_tools.stats.distributions cimport invchi2, t
+from footprint_tools.stats.distributions cimport invchi2, t, normal
 
 ctypedef dispersion.dispersion_model dm_t
 
@@ -32,7 +32,7 @@ cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_logpmf_values(dm, np
     cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] o = np.ascontiguousarray(np.repeat(obs[:,:,np.newaxis], nslices, axis = 2))
     cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((n, m, nslices), order = 'c')
 
-    for i in range(n):
+    for i in range(0, n):
         <dm_t>(dm[i]).log_pmf_values_0(np.ravel(e[i,:,:]), np.ravel(o[i,:,:]), np.ravel(res[i,:,:]))
 
     return res.T
@@ -60,7 +60,7 @@ cpdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] compute_log_prior_t(np.ndarr
 
     cdef double h = (hi-lo)/<double>nslices
 
-    for i in range(m):
+    for i in range(0, m):
         
         mu = np.nanmean(obs_over_exp[:,i])
         ssqdev = np.nansum((obs_over_exp[:,i]-mu)**2)
@@ -71,13 +71,36 @@ cpdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] compute_log_prior_t(np.ndarr
         with nogil:
 
             for j in range(0, nslices):
-                #res_view[i, j] = scipy.stats.t.logpdf(bins[j], df = nu_1, loc = mu, scale = np.sqrt(sig2_1))
                 res_view[i, j] = t.logpmf(lo+(j*h), nu_1, mu, sig2_1)
 
         res[i, :] += np.log(h)
 
-    return res.T # - res.sum(axis = 1)[:, np.newaxis]).T
+    return res.T
 
+cpdef np.ndarray(data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(np.ndarray[data_type_t, ndim = 1, order = 'c'] mu_0, data_type_t nu_0, data_type_t sig2_0, data_type_t sig2_lo, data_type_t sig2_hi, int sig2_nslices, data_type_t theta_lo, data_type_t theta_hi, int theta_nslices):
+	
+	cdef int i, j, k
+	cdef int m = mu_0.shape[0]
+	
+	cdef data_type_t sig2, theta
+	cdef data_type_t ll_invchi2, ll_norm
 
+	cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((m, sig2_nslices, theta_nslices), dtype = np.float64, order = 'c')
+	cdef data_type_t [:,:,:] res_view = res
+	
+	cdef double sig2_h = (sig2_hi-sig2_lo)/<double>sig2_nslices
+	cdef double theta_h = (theta_hi-theta_lo)/<double>theta_nslices
 
+	for i range(0, m): # Iterate over nucleotides
+
+		for j in range(0, sig2_nslices): # Iterate over variances (sig2)
+			sig2 = sig2_lo + (i*sig2_h)
+			ll_invchi2 = invchi2.logpmf(sig2, nu_0, sig2_0)
+		
+			for k in range(0, theta_nslices): # Iterate over theta (LFCs)
+				theta = theta_lo + (j*theta_h)
+				ll_norm = norm.logpmf(theta, mu_0[i], sig2)
+				res_view[i, j, k] = ll_invchi2 + ll_norm  
+
+	return res.T
 
