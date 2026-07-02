@@ -30,7 +30,7 @@ cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_logpmf_values(dm, np
 
     cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] e = np.ascontiguousarray(exp[:,:,np.newaxis] * bins)
     cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] o = np.ascontiguousarray(np.repeat(obs[:,:,np.newaxis], nslices, axis = 2))
-    cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((n, m, nslices), order = 'c')
+    cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((n, m, nslices), mode='c')
 
     for i in range(0, n):
         <dm_t>(dm[i]).log_pmf_values_0(np.ravel(e[i,:,:]), np.ravel(o[i,:,:]), np.ravel(res[i,:,:]))
