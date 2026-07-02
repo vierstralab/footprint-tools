@@ -14,7 +14,7 @@ from genome_tools import genomic_interval
 cdef extern from "predict.h":
     struct result:
         double* exp
-        double* win	
+        double* win
     void free_result_t(result*)
     result* fast_predict(double*, double*, int, int, int, double)
 

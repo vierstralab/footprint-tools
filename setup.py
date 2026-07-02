@@ -38,7 +38,7 @@ modules = [
 ext_modules = [Extension(**opts) for opts in modules]
 
 for e in ext_modules:
-	e.cython_directives = {'language_level': "3"} #all are Python-3)
+    e.cython_directives = {'language_level': "3"} #all are Python-3)
 
 install_requires = [
     "cython",
