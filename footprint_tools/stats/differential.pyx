@@ -91,7 +91,7 @@ cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(
     cdef double sig2_h = (sig2_hi-sig2_lo)/<double>sig2_nslices
     cdef double theta_h = (theta_hi-theta_lo)/<double>theta_nslices
 
-    for i range(0, m): # Iterate over nucleotides
+    for i in range(0, m): # Iterate over nucleotides
             
         with nogil:
 
