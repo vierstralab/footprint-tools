@@ -358,7 +358,7 @@ cdef class DispersionModel:
         return sampled_vals, sampled_pvals
 
     @cython.cdivision(True)
-    cpdef data_type_t[:,:,:] sample_mu(data_type_t [:] x, data_type_t [:,:] theta_star, data_type_t[:] theta):
+    cpdef data_type_t[:,:,:] sample_mu(self, data_type_t [:] x, data_type_t [:,:] theta_star, data_type_t[:] theta):
 	    """
             x: expected counts (N)
             theta_star: resampled mus (thetas) from normal (N x number resamples from normal)
@@ -387,7 +387,7 @@ cdef class DispersionModel:
 
                     sampled_logpmf_vals[i, j, k] = nbinom.logpmf(x_star_sampled, r, r/(r+mu))
 
-        return sampled_logpmf_val    
+        return sampled_logpmf_vals
 
 def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     """Learn a dispersion model from the expected 
