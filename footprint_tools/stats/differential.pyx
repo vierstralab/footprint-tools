@@ -17,7 +17,7 @@ ctypedef np.float64_t data_type_t
 from footprint_tools.modeling cimport dispersion
 from footprint_tools.stats.distributions cimport invchi2, t, normal
 
-ctypedef dispersion.dispersion_model dm_t
+ctypedef dispersion.DispersionModel dm_t
 
 cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_logpmf_values(dm, np.ndarray[data_type_t, ndim = 2, mode = 'c'] obs, np.ndarray[data_type_t, ndim = 2, mode = 'c'] exp,  data_type_t lo, data_type_t hi, int nslices):
     """Compute log pmf
