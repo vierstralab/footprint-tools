@@ -7,6 +7,9 @@ This module contains classess and functions that implement a dispersion model.
 # cython: nonecheck=False
 # cython: embedsignature=True
 
+cdef extern from "math.h":
+    double pow(double, double) nogil
+
 cimport cython
 cimport numpy as np
 import numpy as np
@@ -353,6 +356,37 @@ cdef class DispersionModel:
                 sampled_pvals[i, j] = nbinom.cdf(<int>vals[j], r/(r+mu), r)
 
         return sampled_vals, sampled_pvals
+
+    cpdef data_type_t[:,:,:] sample_mu(data_type_t [:] x, data_type_t [:,:] theta_star, data_type_t[:] theta):
+	    """
+            x: expected counts (N)
+            theta_star: resampled mus (thetas) from normal (N x number resamples from normal)
+            thetas: grid search
+        """
+        cdef int i, j, k
+        cdef data_type_t r, mu
+
+	cdef data_type_t[:,:,:] sampled_logpmf_vals = np.zeros((x.shape[0], theta_star.shape[1], theta.shape[0]), dtype = np.float64, order = 'c')
+
+        for i in range(x.shape[0]):
+
+            for j in range(theta_star.shape[1])
+
+                x_star = x[i] * pow(2, theta_star[i, j])
+                r = self.fit_r(x_star)
+                mu = self.fit_mu(x_star)
+
+                x_star_sampled = np.random_negative_binomial(r, r/(r+mu))
+
+                for k in range(thetas.shape[0]):
+                    x_theta = x[i] * theta[k]
+
+                    r = self.fit_r(x_theta)
+                    mu = self.fit_mu(x_theta)
+
+                    sampled_logpmf_vals[i, j, k] = nbinom.logpmf(x_star_sampled, r, r/(r+mu))
+
+        return sampled_logpmf_val    
 
 def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     """Learn a dispersion model from the expected 

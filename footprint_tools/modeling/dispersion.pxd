@@ -34,4 +34,6 @@ cdef class DispersionModel:
 
     cpdef data_type_t [:] p_values(self, data_type_t [:] exp, data_type_t [:] obs)
     cpdef sample(self, data_type_t [:] x, int times)
-    
+ 
+    cpdef data_type_t[:, :, :] sample_mu(data_type_t [:] x, data_type_t [:] theta_star, data_type_t [:] theta)
+
