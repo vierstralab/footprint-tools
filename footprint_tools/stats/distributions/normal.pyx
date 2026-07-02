@@ -16,6 +16,10 @@ cdef extern from "math.h":
 cdef extern from "hcephes.h":
     double HCEPHES_PI
 
-cpdef data_type_t logpmf(data_type_t x, data_type_t mu, data_type_t sig2) nogil:
-    cdef data_type_t sig = sqrt(sig2)
-    return -0.5 * pow((x-mu)/sig, 2) - log(sig*sqrt(2*HCEPHES_PI))
+cpdef data_type_t logpdf(
+    data_type_t x,
+    data_type_t mu,
+    data_type_t sig2,
+) noexcept nogil:
+    cdef data_type_t d = x - mu
+    return -0.5 * (d * d / sig2 + log(2.0 * HCEPHES_PI * sig2))

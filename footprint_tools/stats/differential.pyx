@@ -97,11 +97,11 @@ cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(
 
             for j in range(0, sig2_nslices): # Iterate over variances (sig2)
                 sig2 = sig2_lo + (j*sig2_h)
-                ll_invchi2 = invchi2.logpmf(sig2, nu_0, sig2_0)
-        
+                ll_invchi2 = invchi2.logpdf(sig2, nu_0, sig2_0)
+
                 for k in range(0, theta_nslices): # Iterate over theta (LFCs)
                     theta = theta_lo + (k*theta_h)
-                    ll_norm = normal.logpmf(theta, mu_0[i], sig2)
+                    ll_norm = normal.logpdf(theta, mu_0[i], sig2)
                     res_view[i, j, k] = ll_invchi2 + ll_norm  
 
     return res.T

@@ -3,4 +3,4 @@ cimport numpy as np
 
 ctypedef np.float64_t data_type_t
 
-cpdef data_type_t logpmf(data_type_t x, data_type_t mu, data_type_t sig2) nogil
+cpdef data_type_t logpdf(data_type_t x, data_type_t mu, data_type_t sig2) nogil
