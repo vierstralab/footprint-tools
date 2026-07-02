@@ -371,7 +371,7 @@ cdef class DispersionModel:
 
         for i in range(x.shape[0]):
 
-            for j in range(theta_star.shape[1])
+            for j in range(theta_star.shape[1]):
 
                 x_star = x[i] * pow(2, theta_star[i, j])
                 r = self.fit_r(x_star)
