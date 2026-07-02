@@ -358,67 +358,67 @@ cdef class DispersionModel:
         return sampled_vals, sampled_pvals
 
     @cython.cdivision(True)
-cpdef data_type_t[:, :, :] sample_mu(
-    self,
-    data_type_t[:] x,
-    data_type_t[:, :] theta_star,
-    data_type_t[:] theta,
-):
-    """
-    Sample counts under resampled log2 mean effects and evaluate them over
-    a grid of log2 mean effects.
+    cpdef data_type_t[:, :, :] sample_mu(
+        self,
+        data_type_t[:] x,
+        data_type_t[:, :] theta_star,
+        data_type_t[:] theta,
+    ):
+        """
+        Sample counts under resampled log2 mean effects and evaluate them over
+        a grid of log2 mean effects.
 
-    Parameters
-    ----------
-    x
-        Baseline expected counts, shape (N,).
-    theta_star
-        Resampled log2 mean effects, shape (N, n_resamples).
-    theta
-        Grid of log2 mean effects, shape (n_theta,).
-    """
-    cdef:
-        Py_ssize_t i, j, k
-        data_type_t x_star, x_theta
-        data_type_t r, mu, p
-        long x_star_sampled
-        data_type_t[:, :, :] sampled_logpmf_vals
+        Parameters
+        ----------
+        x
+            Baseline expected counts, shape (N,).
+        theta_star
+            Resampled log2 mean effects, shape (N, n_resamples).
+        theta
+            Grid of log2 mean effects, shape (n_theta,).
+        """
+        cdef:
+            Py_ssize_t i, j, k
+            data_type_t x_star, x_theta
+            data_type_t r, mu, p
+            long x_star_sampled
+            data_type_t[:, :, :] sampled_logpmf_vals
 
-    if theta_star.shape[0] != x.shape[0]:
-        raise ValueError(
-            "theta_star.shape[0] must equal x.shape[0]"
+        if theta_star.shape[0] != x.shape[0]:
+            raise ValueError(
+                "theta_star.shape[0] must equal x.shape[0]"
+            )
+
+        sampled_logpmf_vals = np.empty(
+            (x.shape[0], theta_star.shape[1], theta.shape[0]),
+            dtype=np.float64,
+            order="C",
         )
 
-    sampled_logpmf_vals = np.empty(
-        (x.shape[0], theta_star.shape[1], theta.shape[0]),
-        dtype=np.float64,
-        order="C",
-    )
+        for i in range(x.shape[0]):
+            for j in range(theta_star.shape[1]):
+                x_star = x[i] * 2.0 ** theta_star[i, j]
 
-    for i in range(x.shape[0]):
-        for j in range(theta_star.shape[1]):
-            x_star = x[i] * 2.0 ** theta_star[i, j]
-
-            r = self.fit_r(x_star)
-            mu = self.fit_mu(x_star)
-            p = r / (r + mu)
-
-            x_star_sampled = np.random.negative_binomial(r, p)
-
-            for k in range(theta.shape[0]):
-                x_theta = x[i] * 2.0 ** theta[k]
-
-                r = self.fit_r(x_theta)
-                mu = self.fit_mu(x_theta)
+                r = self.fit_r(x_star)
+                mu = self.fit_mu(x_star)
                 p = r / (r + mu)
 
-                sampled_logpmf_vals[i, j, k] = nbinom.logpmf(
-                    x_star_sampled,
-                    r,
-                    p,
-                )
+                x_star_sampled = np.random.negative_binomial(r, p)
 
-    return sampled_logpmf_vals
+                for k in range(theta.shape[0]):
+                    x_theta = x[i] * 2.0 ** theta[k]
+
+                    r = self.fit_r(x_theta)
+                    mu = self.fit_mu(x_theta)
+                    p = r / (r + mu)
+
+                    sampled_logpmf_vals[i, j, k] = nbinom.logpmf(
+                        x_star_sampled,
+                        r,
+                        p,
+                    )
+
+        return sampled_logpmf_vals
 
 def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     """Learn a dispersion model from the expected 
