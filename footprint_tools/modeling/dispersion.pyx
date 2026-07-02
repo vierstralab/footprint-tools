@@ -357,6 +357,7 @@ cdef class DispersionModel:
 
         return sampled_vals, sampled_pvals
 
+    @cython.cdivision(True)
     cpdef data_type_t[:,:,:] sample_mu(data_type_t [:] x, data_type_t [:,:] theta_star, data_type_t[:] theta):
 	    """
             x: expected counts (N)
