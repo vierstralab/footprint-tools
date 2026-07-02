@@ -207,8 +207,8 @@ cdef class DispersionModel:
         )
 
     @cython.cdivision(True)
-    cpdef data_type_t [:] log_pdf_values(self, data_type_t [:] exp, data_type_t [:] obs):
-        """Compute the log probability density function
+    cpdef data_type_t [:] log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs):
+        """Compute the log probability mass function
 
         Parameters
         ----------
