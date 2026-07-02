@@ -18,8 +18,8 @@ from footprint_tools.modeling.dispersion import load_dispersion_model
 from footprint_tools.stats.posterior import (
     compute_delta_prior,
     compute_prior_weighted,
-    compute_log_likelihood,
-    compute_posterior,
+    log_likelihood,
+    posterior,
 )
 
 from footprint_tools.cli.utils import (
@@ -117,10 +117,10 @@ class posterior_stats(Dataset):
 
         prior = compute_prior_weighted(fdr, w, cutoff=self.fdr_cutoff)
         delta = compute_delta_prior(obs, exp, fdr, self.betas, cutoff=self.fdr_cutoff)
-        ll_on = compute_log_likelihood(obs, exp, self.disp_models, delta=delta, w=3)
-        ll_off = compute_log_likelihood(obs, exp, self.disp_models, w=3)
+        ll_on = log_likelihood(obs, exp, self.disp_models, delta=delta, w=3)
+        ll_off = log_likelihood(obs, exp, self.disp_models, w=3)
 
-        post = -compute_posterior(prior, ll_on, ll_off)
+        post = -posterior(prior, ll_on, ll_off)
         post[post <= 0] = 0.0
 
         return {
