@@ -367,7 +367,7 @@ cdef class DispersionModel:
         cdef int i, j, k
         cdef data_type_t r, mu
 
-    cdef data_type_t[:,:,:] sampled_logpmf_vals = np.zeros((x.shape[0], theta_star.shape[1], theta.shape[0]), dtype = np.float64, order = 'c')
+        cdef data_type_t[:,:,:] sampled_logpmf_vals = np.zeros((x.shape[0], theta_star.shape[1], theta.shape[0]), dtype = np.float64, order = 'c')
 
         for i in range(x.shape[0]):
 
