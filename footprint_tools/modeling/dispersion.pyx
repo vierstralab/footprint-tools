@@ -26,7 +26,7 @@ import pwlf
 import logging
 logger = logging.getLogger(__name__)
 
-cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,
+cpdef data_type_t piecewise_three(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2,
                                      data_type_t y0, data_type_t y1, data_type_t y2,
                                      data_type_t k0, data_type_t k1, data_type_t k2):
     
@@ -36,7 +36,7 @@ cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t
         (x>=x1) * (y2 + k2*(x))
     )
 
-cpdef data_type_t piecewise_four(x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, 
+cpdef data_type_t piecewise_four(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3,
                                      data_type_t y0, data_type_t y1, data_type_t y2, data_type_t y3,
                                      data_type_t k0, data_type_t k1, data_type_t k2, data_type_t k3):
     
@@ -47,7 +47,7 @@ cpdef data_type_t piecewise_four(x, data_type_t x0, data_type_t x1, data_type_t 
         (x>=x2) * (y3 + k3*(x))
     )
 
-cpdef data_type_t piecewise_five(x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, data_type_t x4, 
+cpdef data_type_t piecewise_five(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, data_type_t x4,
                                      data_type_t y0, data_type_t y1, data_type_t y2, data_type_t y3, data_type_t y4,
                                      data_type_t k0, data_type_t k1, data_type_t k2, data_type_t k3, data_type_t k4):
     
@@ -142,7 +142,12 @@ cdef class DispersionModel:
         """
 
         cdef data_type_t [:] par = self._mu_params
-        cdef data_type_t res = piecewise_three(x, *par)
+        cdef data_type_t res = piecewise_three(
+            x,
+            par[0], par[1], par[2],
+            par[3], par[4], par[5],
+            par[6], par[7], par[8],
+        )
 
         return res if res > 0.0 else 0.1
 
@@ -161,7 +166,12 @@ cdef class DispersionModel:
             r computed from the regression fit
         """
         cdef data_type_t [:] par = self._r_params
-        cdef data_type_t res = 1.0/piecewise_five(x, *par)
+        cdef data_type_t res = 1.0/piecewise_five(
+            x,
+            par[0], par[1], par[2], par[3], par[4],
+            par[5], par[6], par[7], par[8], par[9],
+            par[10], par[11], par[12], par[13], par[14],
+        )
 
         return res if res > 0.0 else 1e-6
 
