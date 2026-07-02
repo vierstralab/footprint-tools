@@ -22,7 +22,7 @@ ctypedef dispersion.dispersion_model dm_t
 cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_logpmf_values(dm, np.ndarray[data_type_t, ndim = 2, mode = 'c'] obs, np.ndarray[data_type_t, ndim = 2, mode = 'c'] exp,  data_type_t lo, data_type_t hi, int nslices):
     """Compute log pmf
     """
-    cdef int i 		
+    cdef int i         
     cdef int n = obs.shape[0]
     cdef int m = obs.shape[1]
 
@@ -77,32 +77,32 @@ cpdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] compute_log_prior_t(np.ndarr
 
     return res.T
 
-cpdef np.ndarray(data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(np.ndarray[data_type_t, ndim = 1, order = 'c'] mu_0, data_type_t nu_0, data_type_t sig2_0, data_type_t sig2_lo, data_type_t sig2_hi, int sig2_nslices, data_type_t theta_lo, data_type_t theta_hi, int theta_nslices):
-	
-	cdef int i, j, k
-	cdef int m = mu_0.shape[0]
-	
-	cdef data_type_t sig2, theta
-	cdef data_type_t ll_invchi2, ll_norm
+cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(np.ndarray[data_type_t, ndim = 1, order = 'c'] mu_0, data_type_t nu_0, data_type_t sig2_0, data_type_t sig2_lo, data_type_t sig2_hi, int sig2_nslices, data_type_t theta_lo, data_type_t theta_hi, int theta_nslices):
+    
+    cdef int i, j, k
+    cdef int m = mu_0.shape[0]
+    
+    cdef data_type_t sig2, theta
+    cdef data_type_t ll_invchi2, ll_norm
 
-	cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((m, sig2_nslices, theta_nslices), dtype = np.float64, order = 'c')
-	cdef data_type_t [:,:,:] res_view = res
-	
-	cdef double sig2_h = (sig2_hi-sig2_lo)/<double>sig2_nslices
-	cdef double theta_h = (theta_hi-theta_lo)/<double>theta_nslices
+    cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((m, sig2_nslices, theta_nslices), dtype = np.float64, order = 'c')
+    cdef data_type_t [:,:,:] res_view = res
+    
+    cdef double sig2_h = (sig2_hi-sig2_lo)/<double>sig2_nslices
+    cdef double theta_h = (theta_hi-theta_lo)/<double>theta_nslices
 
-	for i range(0, m): # Iterate over nucleotides
-			
-		with nogil:
+    for i range(0, m): # Iterate over nucleotides
+            
+        with nogil:
 
-			for j in range(0, sig2_nslices): # Iterate over variances (sig2)
-				sig2 = sig2_lo + (i*sig2_h)
-				ll_invchi2 = invchi2.logpmf(sig2, nu_0, sig2_0)
-		
-				for k in range(0, theta_nslices): # Iterate over theta (LFCs)
-					theta = theta_lo + (j*theta_h)
-					ll_norm = norm.logpmf(theta, mu_0[i], sig2)
-					res_view[i, j, k] = ll_invchi2 + ll_norm  
+            for j in range(0, sig2_nslices): # Iterate over variances (sig2)
+                sig2 = sig2_lo + (i*sig2_h)
+                ll_invchi2 = invchi2.logpmf(sig2, nu_0, sig2_0)
+        
+                for k in range(0, theta_nslices): # Iterate over theta (LFCs)
+                    theta = theta_lo + (j*theta_h)
+                    ll_norm = norm.logpmf(theta, mu_0[i], sig2)
+                    res_view[i, j, k] = ll_invchi2 + ll_norm  
 
-	return res.T
+    return res.T
 
