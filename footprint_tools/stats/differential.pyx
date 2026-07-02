@@ -30,7 +30,7 @@ cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_logpmf_values(dm, np
 
     cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] e = np.ascontiguousarray(exp[:,:,np.newaxis] * bins)
     cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] o = np.ascontiguousarray(np.repeat(obs[:,:,np.newaxis], nslices, axis = 2))
-    cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((n, m, nslices), mode='c')
+    cdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] res = np.zeros((n, m, nslices), order = 'c')
 
     for i in range(0, n):
         <dm_t>(dm[i]).log_pmf_values_0(np.ravel(e[i,:,:]), np.ravel(o[i,:,:]), np.ravel(res[i,:,:]))
@@ -77,7 +77,7 @@ cpdef np.ndarray[data_type_t, ndim = 2, mode = 'c'] compute_log_prior_t(np.ndarr
 
     return res.T
 
-cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(np.ndarray[data_type_t, ndim = 1, order = 'c'] mu_0, data_type_t nu_0, data_type_t sig2_0, data_type_t sig2_lo, data_type_t sig2_hi, int sig2_nslices, data_type_t theta_lo, data_type_t theta_hi, int theta_nslices):
+cpdef np.ndarray[data_type_t, ndim = 3, mode = 'c'] compute_variance_likelihood(np.ndarray[data_type_t, ndim = 1, mode = 'c'] mu_0, data_type_t nu_0, data_type_t sig2_0, data_type_t sig2_lo, data_type_t sig2_hi, int sig2_nslices, data_type_t theta_lo, data_type_t theta_hi, int theta_nslices):
     
     cdef int i, j, k
     cdef int m = mu_0.shape[0]
