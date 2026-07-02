@@ -31,6 +31,7 @@ modules = [
     dict(name="footprint_tools.stats.distributions.nbinom", sources=["footprint_tools/stats/distributions/nbinom.pyx"]),
     dict(name="footprint_tools.stats.distributions.invchi2", sources=["footprint_tools/stats/distributions/invchi2.pyx"]),
     dict(name="footprint_tools.stats.distributions.t", sources=["footprint_tools/stats/distributions/t.pyx"]),
+    dict(name="footprint_tools.stats.distributions.normal", sources=["footprint_tools/stats/distributions/normal.pyx"]),
     dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"]),
 ]
 
