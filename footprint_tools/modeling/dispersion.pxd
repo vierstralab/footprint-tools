@@ -26,6 +26,8 @@ cdef class DispersionModel:
     cpdef data_type_t fit_mu(self, data_type_t x)
     cpdef data_type_t fit_r(self, data_type_t x)
 
+    cpdef tuple fit_r_p(self, object x)
+
     cpdef data_type_t [:] log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs)
     cpdef data_type_t [:] pmf_values(self, data_type_t [:] exp, data_type_t [:] obs)
 

@@ -165,13 +165,50 @@ cdef class DispersionModel:
 
         return res if res > 0.0 else 1e-6
 
+cpdef tuple fit_r_p(self, object x):
+    cdef:
+        np.ndarray x_arr = np.asarray(x, dtype=np.float64, order="C")
+        tuple shape = x_arr.shape
+
+        np.ndarray[data_type_t, ndim=1, mode="c"] x_flat
+        np.ndarray[data_type_t, ndim=1, mode="c"] r_flat
+        np.ndarray[data_type_t, ndim=1, mode="c"] p_flat
+
+        data_type_t[::1] x_view
+        data_type_t[::1] r_view
+        data_type_t[::1] p_view
+
+        Py_ssize_t i, n
+        data_type_t r_i, mu_i
+
+    x_flat = x_arr.ravel()
+    n = x_flat.shape[0]
+
+    r_flat = np.empty(n, dtype=np.float64)
+    p_flat = np.empty(n, dtype=np.float64)
+
+    x_view = x_flat
+    r_view = r_flat
+    p_view = p_flat
+
+    for i in range(n):
+        r_i = self.fit_r(x_view[i])
+        mu_i = self.fit_mu(x_view[i])
+
+        r_view[i] = r_i
+        p_view[i] = r_i / (r_i + mu_i)
+
+    return r_flat.reshape(shape), p_flat.reshape(shape)
+
     def __str__(self):
         """Print model to string"""
-        raise NotImplementedError
+        return "DispersionModel(mu_params={}, r_params={}, metadata={!r})".format(
+            self._mu_params, self._r_params, self._metadata
+        )
 
     @cython.cdivision(True)
-    cpdef data_type_t [:] log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs):
-        """Compute the log probability mass function
+    cpdef data_type_t [:] log_pdf_values(self, data_type_t [:] exp, data_type_t [:] obs):
+        """Compute the log probability density function
 
         Parameters
         ----------
