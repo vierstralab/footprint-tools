@@ -359,7 +359,7 @@ cdef class DispersionModel:
 
     @cython.cdivision(True)
     cpdef data_type_t[:,:,:] sample_mu(self, data_type_t [:] x, data_type_t [:,:] theta_star, data_type_t[:] theta):
-	    """
+        """
             x: expected counts (N)
             theta_star: resampled mus (thetas) from normal (N x number resamples from normal)
             thetas: grid search
@@ -367,7 +367,7 @@ cdef class DispersionModel:
         cdef int i, j, k
         cdef data_type_t r, mu
 
-	cdef data_type_t[:,:,:] sampled_logpmf_vals = np.zeros((x.shape[0], theta_star.shape[1], theta.shape[0]), dtype = np.float64, order = 'c')
+    cdef data_type_t[:,:,:] sampled_logpmf_vals = np.zeros((x.shape[0], theta_star.shape[1], theta.shape[0]), dtype = np.float64, order = 'c')
 
         for i in range(x.shape[0]):
 
@@ -439,7 +439,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
             x = np.random.choice(x, size=int(1e5))
             x = np.sort(x)
 
-        if len(x) >= cutoff:		
+        if len(x) >= cutoff:        
             # Find data points to trim
             lower = int(np.floor(x.shape[0]*(trim[0]/100.0)))
             upper = int(np.ceil(x.shape[0]*(trim[1]/100.0)))
