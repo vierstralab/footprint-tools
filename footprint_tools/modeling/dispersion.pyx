@@ -167,8 +167,8 @@ cdef class DispersionModel:
 
     cpdef tuple fit_r_p(self, object x):
         cdef:
-            np.ndarray x_arr = np.asarray(x, dtype=np.float64, order="C")
-            tuple shape = x_arr.shape
+            object x_arr
+            tuple shape
 
             np.ndarray[data_type_t, ndim=1, mode="c"] x_flat
             np.ndarray[data_type_t, ndim=1, mode="c"] r_flat
@@ -181,9 +181,11 @@ cdef class DispersionModel:
             Py_ssize_t i, n
             data_type_t r_i, mu_i
 
+        x_arr = np.asarray(x, dtype=np.float64, order="C")
+        shape = x_arr.shape
         x_flat = x_arr.ravel()
-        n = x_flat.shape[0]
 
+        n = x_flat.shape[0]
         r_flat = np.empty(n, dtype=np.float64)
         p_flat = np.empty(n, dtype=np.float64)
 
