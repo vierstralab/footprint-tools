@@ -463,8 +463,8 @@ cdef class DispersionModel:
 
                     sampled_logpmf_vals[i, j, k] = nbinom.logpmf(
                         x_star_sampled,
-                        r,
                         p,
+                        r,
                     )
 
         return sampled_logpmf_vals
