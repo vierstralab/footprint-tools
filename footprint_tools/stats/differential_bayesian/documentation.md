@@ -2,7 +2,7 @@ Auto-generated
 
 # Differential-footprint model documentation
 
-This document describes the statistical model implemented in `differential_footprint` v0.15.0.
+This document describes the statistical model implemented in `differential_bayesian` v0.15.0.
 
 ```text
 posterior.py        Generic finite-grid posterior utilities.
@@ -581,7 +581,7 @@ $$
 The loader is:
 
 ```python
-ZeroFootprintCountLoader().apply(
+ZeroFootprintCountLoader()._load(
     data,
     threshold=1.0,
     source="segmented",   # or "pointwise"
@@ -611,7 +611,7 @@ and the same Poisson-binomial recursion gives the posterior over $0,\ldots,G$.
 The loader is:
 
 ```python
-DeviantFootprintCountLoader().apply(
+DeviantFootprintCountLoader()._load(
     data,
     threshold=1.0,
     source="segmented",   # or "pointwise"
@@ -914,26 +914,26 @@ from differential_footprint.api import (
 )
 
 # 1. Group-level likelihood
-data = DifferentialLoader().apply(data)
+data = DifferentialLoader()._load(data)
 
 # 2. Optional group mean segmentation
-data = GroupMeanSegmentationLoader().apply(data, length_prior=length_prior)
+data = GroupMeanSegmentationLoader()._load(data, length_prior=length_prior)
 
 # 3. Common mean / variance-ratio hierarchy
-data = VarianceRatioLoader().apply(data)
-data = EtaSegmentationLoader().apply(data, length_prior=length_prior)
-data = Mu0SegmentationLoader().apply(data, length_prior=length_prior)
+data = VarianceRatioLoader()._load(data)
+data = EtaSegmentationLoader()._load(data, length_prior=length_prior)
+data = Mu0SegmentationLoader()._load(data, length_prior=length_prior)
 
 # 4. Coefficients
-data = CommonCoefficientLikelihoodLoader().apply(data)
-data = CommonCoefficientSegmentationLoader().apply(data, length_prior=length_prior)
+data = CommonCoefficientLikelihoodLoader()._load(data)
+data = CommonCoefficientSegmentationLoader()._load(data, length_prior=length_prior)
 
-data = ZeroCoefficientLikelihoodLoader().apply(data)
-data = ZeroCoefficientSegmentationLoader().apply(data, length_prior=length_prior)
+data = ZeroCoefficientLikelihoodLoader()._load(data)
+data = ZeroCoefficientSegmentationLoader()._load(data, length_prior=length_prior)
 
 # 5. Coefficient-derived counts
-data = ZeroFootprintCountLoader().apply(data, threshold=1.0, source="segmented")
-data = DeviantFootprintCountLoader().apply(data, threshold=1.0, source="segmented")
+data = ZeroFootprintCountLoader()._load(data, threshold=1.0, source="segmented")
+data = DeviantFootprintCountLoader()._load(data, threshold=1.0, source="segmented")
 ```
 
 ---
