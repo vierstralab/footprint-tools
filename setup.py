@@ -14,7 +14,7 @@ from Cython.Distutils import build_ext
 import numpy as np
 
 if sys.version_info[0] != 3 or sys.version_info[1] < 6:
-    print("Package requires Python version 3.6+")
+    print("Package requires Python version 3.10+")
     sys.exit(1)
 
 hcephes_include = "hcephes/include"
@@ -32,7 +32,7 @@ modules = [
     dict(name="footprint_tools.stats.distributions.invchi2", sources=["footprint_tools/stats/distributions/invchi2.pyx"]),
     dict(name="footprint_tools.stats.distributions.t", sources=["footprint_tools/stats/distributions/t.pyx"]),
     dict(name="footprint_tools.stats.distributions.normal", sources=["footprint_tools/stats/distributions/normal.pyx"]),
-    dict(name="footprint_tools.stats.differential", sources=["footprint_tools/stats/differential.pyx"]),
+    dict(name="footprint_tools.stats.differential_lrt", sources=["footprint_tools/stats/differential_lrt.pyx"]),
 ]
 
 ext_modules = [Extension(**opts) for opts in modules]
@@ -47,7 +47,7 @@ install_requires = [
     "pandas",
     "pysam>=0.15",
     "statsmodels",
-    "genome-tools>=1.0.4",
+    "genome-tools>=2.0",
     "pwlf",
     "simplejson",
     "tqdm",
@@ -58,7 +58,7 @@ install_requires = [
     "colorlog",
 ]
 
-__version__ = "1.3.7"
+__version__ = "1.4.0"
 
 setup(
     name = "footprint_tools",
@@ -88,10 +88,6 @@ setup(
         'Intended Audience :: Science/Research', 
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
     ],
