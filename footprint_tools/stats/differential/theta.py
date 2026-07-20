@@ -1,6 +1,7 @@
 """Sample-level latent-signal likelihoods and segmentation."""
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 import pandas as pd
@@ -16,12 +17,13 @@ from .config import (
     ThetaSegmentationConfig,
 )
 from .differential import Differential
+from .io import Serializable, tuple_str
 from .posterior import GridPosterior, normalize_log_mass
 from .segmentation import LengthPrior, Segmentation, segment
 
 
 @dataclass(frozen=True, slots=True)
-class ThetaLikelihood:
+class ThetaLikelihood(Serializable):
     """Per-base evidence over latent sample signals.
 
     ``loglik`` has shape ``sample x position x theta``.  In ``sample_only``
@@ -31,6 +33,11 @@ class ThetaLikelihood:
     stored ``log_theta_prior`` is therefore applied once for pointwise
     inference and once per segment during segmentation.
     """
+
+    save_attrs: ClassVar[tuple[str, ...]] = (
+        "sample_names", "sample_groups", "group_names", "theta_x",
+        "loglik", "log_theta_prior", "mode"
+    )
 
     sample_names: tuple[str, ...]
     sample_groups: tuple[str, ...]
@@ -72,30 +79,25 @@ class ThetaLikelihood:
             self.loglik + prior[:, None, :],
         )
 
-    def to_npz(self, path) -> None:
-        np.savez_compressed(
-            path,
-            sample_names=np.asarray(self.sample_names, dtype=str),
-            sample_groups=np.asarray(self.sample_groups, dtype=str),
-            group_names=np.asarray(self.group_names, dtype=str),
-            theta_x=self.theta_x,
-            loglik=self.loglik,
-            log_theta_prior=self.log_theta_prior,
-            mode=np.asarray(self.mode),
-        )
+    def to_dict(self) -> dict[str, object]:
+        out = Serializable.to_dict(self)
+        out["sample_names"] = np.asarray(self.sample_names, dtype=str)
+        out["sample_groups"] = np.asarray(self.sample_groups, dtype=str)
+        out["group_names"] = np.asarray(self.group_names, dtype=str)
+        out["mode"] = np.asarray(self.mode)
+        return out
 
     @classmethod
-    def from_npz(cls, path) -> "ThetaLikelihood":
-        with np.load(path, allow_pickle=False) as x:
-            return cls(
-                tuple(x["sample_names"].tolist()),
-                tuple(x["sample_groups"].tolist()),
-                tuple(x["group_names"].tolist()),
-                x["theta_x"],
-                x["loglik"],
-                x["log_theta_prior"],
-                str(x["mode"].item()),
-            )
+    def from_dict(cls, data: dict[str, object]) -> "ThetaLikelihood":
+        return cls(
+            tuple_str(data["sample_names"]),
+            tuple_str(data["sample_groups"]),
+            tuple_str(data["group_names"]),
+            data["theta_x"],
+            data["loglik"],
+            data["log_theta_prior"],
+            str(np.asarray(data["mode"]).item()),
+        )
 
 
 class ThetaModel:

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 from scipy.special import logsumexp
@@ -11,13 +12,18 @@ from .config import (
 )
 from .differential import Differential
 from .integration import coefficient_target_terms, variance_ratio_group_terms
+from .io import Serializable, tuple_str
 from .posterior import GridPosterior, normal_grid_log_mass, normalize_log_mass
 from .segmentation import LengthPrior, Segmentation, segment
 from .variance_ratio import VarianceRatioLikelihood
 
 
 @dataclass(frozen=True, slots=True)
-class CoefficientLikelihood:
+class CoefficientLikelihood(Serializable):
+    save_attrs: ClassVar[tuple[str, ...]] = (
+        "group_names", "z_x", "loglik", "log_z_prior", "reference"
+    )
+
     group_names: tuple[str, ...]
     z_x: np.ndarray
     loglik: np.ndarray
@@ -27,34 +33,31 @@ class CoefficientLikelihood:
     def posterior(self) -> GridPosterior:
         return GridPosterior(self.z_x, self.loglik + self.log_z_prior[None, None])
 
-    def to_npz(self, path) -> None:
-        np.savez_compressed(
-            path,
-            group_names=self.group_names,
-            z_x=self.z_x,
-            loglik=self.loglik,
-            log_z_prior=self.log_z_prior,
-            reference=np.array(self.reference),
-        )
+    def to_dict(self) -> dict[str, object]:
+        out = Serializable.to_dict(self)
+        out["group_names"] = np.asarray(self.group_names, dtype=str)
+        out["reference"] = np.asarray(self.reference)
+        return out
 
     @classmethod
-    def from_npz(cls, path) -> "CoefficientLikelihood":
-        with np.load(path, allow_pickle=False) as x:
-            if "reference" not in x.files:
-                reference = "mu0"
-            elif x["reference"].dtype.kind in "fiu":
-                reference = "zero" if float(x["reference"]) == 0 else "unknown"
+    def from_dict(cls, data: dict[str, object]) -> "CoefficientLikelihood":
+        if "reference" not in data:
+            reference = "mu0"
+        else:
+            value = np.asarray(data["reference"])
+            if value.dtype.kind in "fiu":
+                reference = "zero" if float(value) == 0 else "unknown"
             else:
-                reference = str(x["reference"])
-            if reference not in ("mu0", "zero"):
-                raise ValueError("unknown coefficient reference")
-            return cls(
-                tuple(x["group_names"].tolist()),
-                x["z_x"],
-                x["loglik"],
-                x["log_z_prior"],
-                reference,
-            )
+                reference = str(value.item())
+        if reference not in ("mu0", "zero"):
+            raise ValueError("unknown coefficient reference")
+        return cls(
+            tuple_str(data["group_names"]),
+            data["z_x"],
+            data["loglik"],
+            data["log_z_prior"],
+            reference,
+        )
 
 
 class CommonCoefficientModel:
@@ -218,3 +221,66 @@ def fit_coefficient_segmentation(
         config.transition_sd,
         config.forbid_same_state,
     )
+
+
+def binary_count_log_evidence(
+    log_evidence_0: np.ndarray,
+    log_evidence_1: np.ndarray,
+) -> np.ndarray:
+    """Combine independent binary evidence into evidence over event count."""
+    log_evidence_0 = np.asarray(log_evidence_0, dtype=float)
+    log_evidence_1 = np.asarray(log_evidence_1, dtype=float)
+    if log_evidence_0.shape != log_evidence_1.shape:
+        raise ValueError("binary evidence arrays must have identical shapes")
+    if log_evidence_0.ndim < 1 or log_evidence_0.shape[0] < 1:
+        raise ValueError("the first axis must contain at least one group")
+
+    n_group = log_evidence_0.shape[0]
+    out = np.full(log_evidence_0.shape[1:] + (n_group + 1,), -np.inf)
+    out[..., 0] = 0.0
+    for group in range(n_group):
+        old = out.copy()
+        out.fill(-np.inf)
+        log0 = log_evidence_0[group][..., None]
+        log1 = log_evidence_1[group][..., None]
+        out[..., : group + 1] = old[..., : group + 1] + log0
+        out[..., 1 : group + 2] = np.logaddexp(
+            out[..., 1 : group + 2],
+            old[..., : group + 1] + log1,
+        )
+    return out
+
+
+def _count_posterior(probability: np.ndarray) -> GridPosterior:
+    probability = np.clip(np.asarray(probability, dtype=float), 0.0, 1.0)
+    with np.errstate(divide="ignore"):
+        log_event = np.log(probability)
+        log_no_event = np.log1p(-probability)
+    return GridPosterior(
+        np.arange(probability.shape[0] + 1, dtype=float),
+        binary_count_log_evidence(log_no_event, log_event),
+    )
+
+
+def infer_kfp_zero(
+    zero_z_posterior: GridPosterior,
+    threshold: float = 1.0,
+) -> GridPosterior:
+    """Count groups with zero-reference depletion: ``mu / sigma < -threshold``."""
+    if threshold < 0:
+        raise ValueError("threshold must be nonnegative")
+    if zero_z_posterior.log_mass.ndim != 3:
+        raise ValueError("zero_z_posterior must have shape group x position x z")
+    return _count_posterior(zero_z_posterior.prob_lt(-threshold))
+
+
+def infer_kfp_dev(
+    common_z_posterior: GridPosterior,
+    threshold: float = 1.0,
+) -> GridPosterior:
+    """Count groups with common-reference deviations: ``abs((mu-mu0)/sigma) > threshold``."""
+    if threshold < 0:
+        raise ValueError("threshold must be nonnegative")
+    if common_z_posterior.log_mass.ndim != 3:
+        raise ValueError("common_z_posterior must have shape group x position x z")
+    return _count_posterior(common_z_posterior.prob_abs_gt(threshold))

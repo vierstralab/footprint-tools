@@ -2,7 +2,10 @@ from .coefficients import (
     CoefficientLikelihood,
     CommonCoefficientModel,
     ZeroCoefficientModel,
+    binary_count_log_evidence,
     fit_coefficient_segmentation,
+    infer_kfp_dev,
+    infer_kfp_zero,
 )
 from .config import *
 from .differential import (
@@ -12,13 +15,6 @@ from .differential import (
     make_group_mean_log_prior,
 )
 from .eta import EtaSegmentation, fit_eta_segmentation
-from .group_counts import (
-    SoftFootprintCount,
-    infer_kdev,
-    infer_kfp,
-    infer_kfp_zero,
-    infer_ksoft,
-)
 from .posterior import GridPosterior
 from .segmentation import LengthPrior, Segmentation, SegmentationPath, segment
 from .theta import (
@@ -34,7 +30,6 @@ from .variance_ratio import (
     fit_mu0_segmentation,
     make_eta_log_prior,
 )
-
 
 __all__ = [
     "GridPosterior",
@@ -57,13 +52,11 @@ __all__ = [
     "fit_mu0_segmentation",
     "EtaSegmentation",
     "fit_eta_segmentation",
-    "SoftFootprintCount",
-    "infer_kfp",
-    "infer_kfp_zero",
-    "infer_ksoft",
-    "infer_kdev",
     "CoefficientLikelihood",
     "CommonCoefficientModel",
     "ZeroCoefficientModel",
     "fit_coefficient_segmentation",
+    "binary_count_log_evidence",
+    "infer_kfp_zero",
+    "infer_kfp_dev",
 ]

@@ -1,16 +1,23 @@
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 import numpy as np
 from scipy.special import logsumexp
 
 from .config import DEFAULT_ETA_SEGMENTATION, EtaSegmentationConfig
+from .io import Serializable, tuple_str
 from .posterior import GridPosterior, normalize_log_mass
 from .segmentation import LengthPrior, Segmentation, segment
 from .variance_ratio import VarianceRatioLikelihood
 
 
 @dataclass(frozen=True, slots=True)
-class EtaSegmentation:
+class EtaSegmentation(Serializable):
+    save_attrs: ClassVar[tuple[str, ...]] = (
+        "group_names", "eta_x", "mu0_x", "log_mu0", "icc_x",
+        "log_icc", "boundary", "log_partition"
+    )
+
     group_names: tuple[str, ...]
     eta_x: np.ndarray
     mu0: GridPosterior
@@ -33,30 +40,28 @@ class EtaSegmentation:
             )
         return self._base.sample_prior(n_draws, rng)
 
-    def to_npz(self, path) -> None:
-        np.savez_compressed(
-            path,
-            group_names=self.group_names,
-            eta_x=self.eta_x,
-            mu0_x=self.mu0.x,
-            log_mu0=self.mu0.log_mass,
-            icc_x=self.icc.x,
-            log_icc=self.icc.log_mass,
-            boundary=self.boundary,
-            log_partition=self.log_partition,
-        )
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "group_names": np.asarray(self.group_names, dtype=str),
+            "eta_x": self.eta_x,
+            "mu0_x": self.mu0.x,
+            "log_mu0": self.mu0.log_mass,
+            "icc_x": self.icc.x,
+            "log_icc": self.icc.log_mass,
+            "boundary": self.boundary,
+            "log_partition": np.asarray(self.log_partition),
+        }
 
     @classmethod
-    def from_npz(cls, path) -> "EtaSegmentation":
-        with np.load(path, allow_pickle=False) as x:
-            return cls(
-                tuple(x["group_names"].tolist()),
-                x["eta_x"],
-                GridPosterior(x["mu0_x"], x["log_mu0"]),
-                GridPosterior(x["icc_x"], x["log_icc"]),
-                x["boundary"],
-                float(x["log_partition"]),
-            )
+    def from_dict(cls, data: dict[str, object]) -> "EtaSegmentation":
+        return cls(
+            tuple_str(data["group_names"]),
+            data["eta_x"],
+            GridPosterior(data["mu0_x"], data["log_mu0"]),
+            GridPosterior(data["icc_x"], data["log_icc"]),
+            data["boundary"],
+            float(np.asarray(data["log_partition"]).item()),
+        )
 
 
 def fit_eta_segmentation(

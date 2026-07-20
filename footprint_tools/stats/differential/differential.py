@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 import pandas as pd
@@ -15,12 +16,19 @@ from .config import (
     DifferentialConfig,
     MeanSegmentationConfig,
 )
+from .io import Serializable, tuple_str
 from .posterior import GridPosterior, normal_grid_log_mass, normalize_log_mass
 from .segmentation import LengthPrior, Segmentation, segment
 
 
 @dataclass(frozen=True, slots=True)
-class Differential:
+class Differential(Serializable):
+    save_attrs: ClassVar[tuple[str, ...]] = (
+        "group_names", "mu_x", "sig2_x", "loglik_mu", "loglik_mu_sig2",
+        "log_sig2_prior", "log_mu_prior"
+    )
+    optional_save_attrs: ClassVar[tuple[str, ...]] = ("theta_x",)
+
     group_names: tuple[str, ...]
     mu_x: np.ndarray
     sig2_x: np.ndarray
@@ -45,32 +53,23 @@ class Differential:
         )
         return GridPosterior(self.mu_x, self.loglik_mu + prior[None, None, :])
 
-    def to_npz(self, path) -> None:
-        np.savez_compressed(
-            path,
-            group_names=self.group_names,
-            mu_x=self.mu_x,
-            sig2_x=self.sig2_x,
-            loglik_mu=self.loglik_mu,
-            loglik_mu_sig2=self.loglik_mu_sig2,
-            log_sig2_prior=self.log_sig2_prior,
-            log_mu_prior=self.log_mu_prior,
-            **({"theta_x": self.theta_x} if self.theta_x is not None else {}),
-        )
+    def to_dict(self) -> dict[str, object]:
+        out = Serializable.to_dict(self)
+        out["group_names"] = np.asarray(self.group_names, dtype=str)
+        return out
 
     @classmethod
-    def from_npz(cls, path) -> "Differential":
-        with np.load(path, allow_pickle=False) as x:
-            return cls(
-                tuple(x["group_names"].tolist()),
-                x["mu_x"],
-                x["sig2_x"],
-                x["loglik_mu"],
-                x["loglik_mu_sig2"],
-                x["log_sig2_prior"],
-                x["log_mu_prior"],
-                x["theta_x"] if "theta_x" in x.files else None,
-            )
+    def from_dict(cls, data: dict[str, object]) -> "Differential":
+        return cls(
+            tuple_str(data["group_names"]),
+            data["mu_x"],
+            data["sig2_x"],
+            data["loglik_mu"],
+            data["loglik_mu_sig2"],
+            data["log_sig2_prior"],
+            data["log_mu_prior"],
+            data.get("theta_x"),
+        )
 
 
 class DifferentialModel:

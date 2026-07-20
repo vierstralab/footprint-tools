@@ -1,12 +1,17 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 from scipy.special import logsumexp, ndtr
 
+from .io import Serializable
+
 
 @dataclass(frozen=True, slots=True)
-class GridPosterior:
+class GridPosterior(Serializable):
     """Normalized posterior on a one-dimensional grid; state is the last axis."""
+
+    save_attrs: ClassVar[tuple[str, ...]] = ("x", "log_mass")
 
     x: np.ndarray
     log_mass: np.ndarray

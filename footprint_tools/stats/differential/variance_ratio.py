@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 import numpy as np
 from scipy.special import logsumexp
@@ -11,6 +12,7 @@ from .config import (
 )
 from .differential import Differential
 from .integration import variance_ratio_group_terms
+from .io import Serializable, optional_float, tuple_str
 from .posterior import (
     GridPosterior,
     normal_grid_log_mass,
@@ -27,7 +29,12 @@ class VarianceRatioPosterior:
 
 
 @dataclass(frozen=True, slots=True)
-class VarianceRatioLikelihood:
+class VarianceRatioLikelihood(Serializable):
+    save_attrs: ClassVar[tuple[str, ...]] = (
+        "group_names", "mu0_x", "eta_x", "loglik", "log_mu0_prior",
+        "log_eta_prior", "method", "variance_floor"
+    )
+
     group_names: tuple[str, ...]
     mu0_x: np.ndarray
     eta_x: np.ndarray
@@ -87,38 +94,27 @@ class VarianceRatioLikelihood:
             GridPosterior(self.icc_x, logsumexp(joint, axis=1)),
         )
 
-    def to_npz(self, path) -> None:
-        np.savez_compressed(
-            path,
-            group_names=self.group_names,
-            mu0_x=self.mu0_x,
-            eta_x=self.eta_x,
-            loglik=self.loglik,
-            log_mu0_prior=self.log_mu0_prior,
-            log_eta_prior=self.log_eta_prior,
-            method=self.method,
-            variance_floor=(
-                np.nan if self.variance_floor is None else self.variance_floor
-            ),
+    def to_dict(self) -> dict[str, object]:
+        out = Serializable.to_dict(self)
+        out["group_names"] = np.asarray(self.group_names, dtype=str)
+        out["method"] = np.asarray(self.method)
+        out["variance_floor"] = np.asarray(
+            np.nan if self.variance_floor is None else self.variance_floor
         )
+        return out
 
     @classmethod
-    def from_npz(cls, path) -> "VarianceRatioLikelihood":
-        with np.load(path, allow_pickle=False) as x:
-            return cls(
-                tuple(x["group_names"].tolist()),
-                x["mu0_x"],
-                x["eta_x"],
-                x["loglik"],
-                x["log_mu0_prior"],
-                x["log_eta_prior"],
-                str(x["method"].item()) if "method" in x else "gaussian",
-                (
-                    None
-                    if "variance_floor" not in x or np.isnan(x["variance_floor"].item())
-                    else float(x["variance_floor"].item())
-                ),
-            )
+    def from_dict(cls, data: dict[str, object]) -> "VarianceRatioLikelihood":
+        return cls(
+            tuple_str(data["group_names"]),
+            data["mu0_x"],
+            data["eta_x"],
+            data["loglik"],
+            data["log_mu0_prior"],
+            data["log_eta_prior"],
+            str(np.asarray(data.get("method", "gaussian")).item()),
+            optional_float(data.get("variance_floor")),
+        )
 
 
 class VarianceRatioModel:
