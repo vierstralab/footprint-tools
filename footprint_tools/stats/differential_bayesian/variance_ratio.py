@@ -10,7 +10,7 @@ from .config import (
     MeanSegmentationConfig,
     VarianceRatioConfig,
 )
-from .differential import Differential
+from .base_differential import Differential
 from .integration import variance_ratio_group_terms
 from .io import Serializable, optional_float, tuple_str
 from .posterior import (

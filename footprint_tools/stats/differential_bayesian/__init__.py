@@ -8,7 +8,7 @@ from .coefficients import (
     infer_kfp_zero,
 )
 from .config import *
-from .differential import (
+from .base_differential import (
     Differential,
     DifferentialModel,
     fit_group_means_segmentation,

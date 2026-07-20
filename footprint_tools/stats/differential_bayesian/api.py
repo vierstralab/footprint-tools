@@ -21,7 +21,7 @@ from .config import (
     DEFAULT_THETA_SEGMENTATION,
     DEFAULT_VARIANCE_RATIO,
 )
-from .differential import Differential, DifferentialModel, fit_group_means_segmentation
+from .base_differential import Differential, DifferentialModel, fit_group_means_segmentation
 from .eta import EtaSegmentation, fit_eta_segmentation
 from .posterior import GridPosterior
 from .segmentation import Segmentation

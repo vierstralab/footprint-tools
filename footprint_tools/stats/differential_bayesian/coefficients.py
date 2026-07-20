@@ -10,7 +10,7 @@ from .config import (
     CoefficientConfig,
     CoefficientSegmentationConfig,
 )
-from .differential import Differential
+from .base_differential import Differential
 from .integration import coefficient_target_terms, variance_ratio_group_terms
 from .io import Serializable, tuple_str
 from .posterior import GridPosterior, normal_grid_log_mass, normalize_log_mass

@@ -5,7 +5,7 @@ import numpy as np
 from numba import njit, prange
 from scipy.special import logsumexp, ndtr
 
-from .differential import Differential, _quadrature_weights
+from .base_differential import Differential, _quadrature_weights
 
 
 @dataclass(frozen=True, slots=True)

@@ -16,7 +16,7 @@ from .config import (
     ThetaMode,
     ThetaSegmentationConfig,
 )
-from .differential import Differential
+from .base_differential import Differential
 from .io import Serializable, tuple_str
 from .posterior import GridPosterior, normalize_log_mass
 from .segmentation import LengthPrior, Segmentation, segment
