@@ -7,7 +7,7 @@ import pandas as pd
 import scipy.optimize
 from scipy.special import logsumexp, ndtr
 
-from footprint_tools.stats import differential as differential_core
+from footprint_tools.stats import differential_lrt as differential_core
 from footprint_tools.stats.distributions import invchi2
 
 from .config import (
