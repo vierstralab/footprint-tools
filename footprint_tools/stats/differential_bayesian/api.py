@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import numpy as np
 from genome_tools.plotting.modular_plot.api import PlotDataLoader
+from genome_tools.data.utils import realign_matrix
 
 from .coefficients import (
     CoefficientLikelihood,
@@ -83,22 +84,45 @@ def save_data_results(data, path, fields=None):
     np.savez_compressed(path, **payload)
 
 
-def load_data_results(path, data=None, fields=None):
+def load_data_results(path, data=None, fields=None, interval=None):
     """Load an NPZ written by ``save_data_results`` into ``data`` and return it."""
+    if interval is not None and data is None:
+        raise ValueError("data is required when interval is passed")
+
+    source_interval = None if interval is None else data.interval
+    source_width = None if interval is None else len(source_interval)
+
+    def _slice_if_genomic(x):
+        if interval is None:
+            return x
+        x = np.asarray(x)
+        if x.ndim and x.shape[-1] == source_width:
+            return realign_matrix(x, source_interval, interval)
+        return x
+
     with np.load(path, allow_pickle=False) as handle:
         saved = tuple(str(x) for x in handle["__fields__"].tolist())
         selected = set(saved) if fields is None else set(_selected_result_fields(fields))
-        values = {}
-        for name in saved:
-            if name not in selected:
-                continue
-            prefix = f"{name}."
-            values[name] = {
-                key[len(prefix):]: handle[key]
+
+        values = {
+            name: {
+                key[len(f"{name}."):]: _slice_if_genomic(handle[key])
                 for key in handle.files
-                if key.startswith(prefix) and not key.endswith(".__class__")
+                if (
+                    key.startswith(f"{name}.")
+                    and not key.endswith(".__class__")
+                )
             }
-    return data_results_from_dict(values, data)
+            for name in saved
+            if name in selected
+        }
+
+    out = data_results_from_dict(values, data)
+
+    if interval is not None:
+        out.interval = interval
+
+    return out
 
 
 def _selected_result_fields(fields):
