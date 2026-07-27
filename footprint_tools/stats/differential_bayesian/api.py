@@ -1,8 +1,9 @@
 from types import SimpleNamespace
 
 import numpy as np
-from genome_tools.plotting.modular_plot.api import PlotDataLoader
+from genome_tools.plotting.modular_plot.api import PlotDataLoader, DataBundle
 from genome_tools.data.utils import realign_matrix
+from genome_tools import GenomicInterval
 
 from .coefficients import (
     CoefficientLikelihood,
@@ -55,7 +56,8 @@ def data_results_to_dict(data, fields=None):
     classes retain ownership of their serialization.
     """
     selected = _selected_result_fields(fields)
-    out = {}
+    out = {"__interval__": data.interval.to_ucsc()}
+
     for name in selected:
         obj = getattr(data, name, None)
         if obj is not None:
@@ -65,64 +67,62 @@ def data_results_to_dict(data, fields=None):
 
 def data_results_from_dict(values, data=None, fields=None):
     """Attach serialized loader-produced fields to ``data`` and return it."""
-    data = SimpleNamespace() if data is None else data
+    data = DataBundle(interval=GenomicInterval.from_ucsc(values["__interval__"])) if data is None else data
     selected = set(values) if fields is None else set(_selected_result_fields(fields))
+
     for name in _DATA_RESULT_CLASSES:
         if name in selected and name in values:
             setattr(data, name, _DATA_RESULT_CLASSES[name].from_dict(values[name]))
+
     return data
 
 
 def save_data_results(data, path, fields=None):
     """Save all present loader-produced result fields from ``data`` to one NPZ."""
     values = data_results_to_dict(data, fields)
-    payload = {"__fields__": np.asarray(tuple(values), dtype=str)}
-    for name, item in values.items():
+
+    result_fields = tuple(k for k in values if k != "__interval__")
+    payload = {
+        "__fields__": np.asarray(result_fields, dtype=str),
+        "__interval__": values["__interval__"]
+    }
+
+    for name, item in result_fields.items():
         payload[f"{name}.__class__"] = np.asarray(_DATA_RESULT_CLASSES[name].__name__)
         for key, value in item.items():
             payload[f"{name}.{key}"] = value
+
     np.savez_compressed(path, **payload)
 
 
-def load_data_results(path, data=None, fields=None, interval=None):
-    """Load an NPZ written by ``save_data_results`` into ``data`` and return it."""
-    if interval is not None and data is None:
-        raise ValueError("data is required when interval is passed")
-
-    source_interval = None if interval is None else data.interval
-    source_width = None if interval is None else len(source_interval)
-
-    def _slice_if_genomic(x):
-        if interval is None:
-            return x
-        x = np.asarray(x)
-        if x.ndim and x.shape[-1] == source_width:
-            return realign_matrix(x, source_interval, interval)
+def _slice_if_genomic(x, data, interval):
+    if data is None:
         return x
 
+    x = np.asarray(x)
+    if x.ndim and x.shape[-1] == len(data.interval):
+        return realign_matrix(x, data.interval, interval)
+    return x
+
+
+def load_data_results(path, data=None, fields=None):
+    """Load an NPZ written by `save_data_results` into `data` and return it."""
     with np.load(path, allow_pickle=False) as handle:
+        interval = GenomicInterval.from_ucsc(handle["__interval__"].item())
+
         saved = tuple(str(x) for x in handle["__fields__"].tolist())
         selected = set(saved) if fields is None else set(_selected_result_fields(fields))
-
-        values = {
-            name: {
-                key[len(f"{name}."):]: _slice_if_genomic(handle[key])
+        values = {"__interval__": interval}
+        for name in saved:
+            if name not in selected:
+                continue
+            prefix = f"{name}."
+            values[name] = {
+                key[len(prefix):]: _slice_if_genomic(handle[key], data, interval)
                 for key in handle.files
-                if (
-                    key.startswith(f"{name}.")
-                    and not key.endswith(".__class__")
-                )
+                if key.startswith(prefix) and not key.endswith(".__class__")
             }
-            for name in saved
-            if name in selected
-        }
-
-    out = data_results_from_dict(values, data)
-
-    if interval is not None:
-        out.interval = interval
-
-    return out
+        return data_results_from_dict(values, data)
 
 
 def _selected_result_fields(fields):
