@@ -87,7 +87,7 @@ def save_data_results(data, path, fields=None):
         "__interval__": values["__interval__"]
     }
 
-    for name, in result_fields:
+    for name in result_fields:
         payload[f"{name}.__class__"] = np.asarray(_DATA_RESULT_CLASSES[name].__name__)
         for key, value in values[name].items():
             payload[f"{name}.{key}"] = value
