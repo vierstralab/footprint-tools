@@ -95,14 +95,48 @@ def save_data_results(data, path, fields=None):
     np.savez_compressed(path, **payload)
 
 
-def _slice_if_genomic(x, interval, data):
+_GENOMIC_AXES = {
+    "differential": {"loglik_mu": 1, "loglik_mu_sig2": 1},
+    "segmentation": {"log_posterior": 1, "boundary": 1},
+    "variance_ratio": {"loglik": 0},
+    "eta_segmentation": {"log_mu0": 0, "log_icc": 0, "boundary": 0},
+    "mu0_segmentation": {"log_posterior": 1, "boundary": 1},
+    "common_coefficient_likelihood": {"loglik": 1},
+    "common_coefficient_segmentation": {"log_posterior": 1, "boundary": 1},
+    "zero_coefficient_likelihood": {"loglik": 1},
+    "zero_coefficient_segmentation": {"log_posterior": 1, "boundary": 1},
+    "kfp_zero": {"log_mass": 0},
+    "kfp_dev": {"log_mass": 0},
+    "theta": {"loglik": 1},
+    "theta_segmentation": {"log_posterior": 1, "boundary": 1},
+}
+
+
+def _slice_if_genomic(x, result_name, key, source_interval, data):
     if data is None:
         return x
 
+    axis = _GENOMIC_AXES.get(result_name, {}).get(key)
+    if axis is None:
+        return x
+
     x = np.asarray(x)
-    if x.ndim and x.shape[-1] == len(interval):
-        return realign_matrix(x, interval, data.interval)
-    return x
+    axis %= x.ndim
+
+    if key == "boundary":
+        source_interval = source_interval.widen(left=0, right=-1)
+        target_interval = data.interval.widen(left=0, right=-1)
+    else:
+        target_interval = data.interval
+
+    assert x.shape[axis] == len(source_interval), (
+        f"{result_name}.{key}: axis {axis} has length {x.shape[axis]}, "
+        f"expected {len(source_interval)} for {source_interval}"
+    )
+
+    x = np.moveaxis(x, axis, -1)
+    x = realign_matrix(x, source_interval, target_interval)
+    return np.moveaxis(x, -1, axis)
 
 
 def load_data_results(path, data=None, fields=None):
@@ -118,7 +152,13 @@ def load_data_results(path, data=None, fields=None):
                 continue
             prefix = f"{name}."
             values[name] = {
-                key[len(prefix):]: _slice_if_genomic(handle[key], interval, data)
+                key[len(prefix):]: _slice_if_genomic(
+                    handle[key],
+                    name,
+                    key[len(prefix):],
+                    interval,
+                    data,
+                )
                 for key in handle.files
                 if key.startswith(prefix) and not key.endswith(".__class__")
             }
