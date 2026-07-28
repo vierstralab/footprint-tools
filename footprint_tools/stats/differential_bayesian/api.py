@@ -67,7 +67,7 @@ def data_results_to_dict(data, fields=None):
 
 def data_results_from_dict(values, data=None, fields=None):
     """Attach serialized loader-produced fields to ``data`` and return it."""
-    data = DataBundle(interval=GenomicInterval.from_ucsc(values["__interval__"])) if data is None else data
+    data = DataBundle(interval=values["__interval__"]) if data is None else data
     selected = set(values) if fields is None else set(_selected_result_fields(fields))
 
     for name in _DATA_RESULT_CLASSES:
