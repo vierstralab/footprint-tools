@@ -95,13 +95,13 @@ def save_data_results(data, path, fields=None):
     np.savez_compressed(path, **payload)
 
 
-def _slice_if_genomic(x, data, interval):
+def _slice_if_genomic(x, interval, data):
     if data is None:
         return x
 
     x = np.asarray(x)
-    if x.ndim and x.shape[-1] == len(data.interval):
-        return realign_matrix(x, data.interval, interval)
+    if x.ndim and x.shape[-1] == len(interval):
+        return realign_matrix(x, interval, data.interval)
     return x
 
 
@@ -118,7 +118,7 @@ def load_data_results(path, data=None, fields=None):
                 continue
             prefix = f"{name}."
             values[name] = {
-                key[len(prefix):]: _slice_if_genomic(handle[key], data, interval)
+                key[len(prefix):]: _slice_if_genomic(handle[key], interval, data)
                 for key in handle.files
                 if key.startswith(prefix) and not key.endswith(".__class__")
             }
