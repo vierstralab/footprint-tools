@@ -10,32 +10,29 @@ from scipy.special import logsumexp, ndtr
 from footprint_tools.stats import differential as differential_core
 from footprint_tools.stats.distributions import invchi2
 
-from .config import (
-    DEFAULT_DIFFERENTIAL,
-    DEFAULT_MEAN_SEGMENTATION,
-    DifferentialConfig,
-    MeanSegmentationConfig,
-)
+from .config import DEFAULT_DIFFERENTIAL, DifferentialConfig
 from .io import Serializable, tuple_str
 from .posterior import GridPosterior, normal_grid_log_mass, normalize_log_mass
-from .segmentation import LengthPrior, Segmentation, segment
 
 
 @dataclass(frozen=True, slots=True)
 class Differential(Serializable):
+    """Per-group likelihood of the group mean mu (log2) on a grid, plus its moments."""
+
     save_attrs: ClassVar[tuple[str, ...]] = (
-        "group_names", "mu_x", "sig2_x", "loglik_mu", "loglik_mu_sig2",
-        "log_sig2_prior", "log_mu_prior"
+        "group_names", "mu_x", "sig2_x", "loglik_mu", "log_sig2_prior",
+        "log_mu_prior", "mu_mean", "mu_var",
     )
     optional_save_attrs: ClassVar[tuple[str, ...]] = ("theta_x",)
 
     group_names: tuple[str, ...]
     mu_x: np.ndarray
     sig2_x: np.ndarray
-    loglik_mu: np.ndarray
-    loglik_mu_sig2: np.ndarray
-    log_sig2_prior: np.ndarray
-    log_mu_prior: np.ndarray
+    loglik_mu: np.ndarray          # group x position x mu, float32
+    log_sig2_prior: np.ndarray     # group x sig2
+    log_mu_prior: np.ndarray       # mu
+    mu_mean: np.ndarray            # group x position, flat-prior posterior mean
+    mu_var: np.ndarray             # group x position, flat-prior posterior variance
     theta_x: np.ndarray | None = None
 
     @property
@@ -53,6 +50,10 @@ class Differential(Serializable):
         )
         return GridPosterior(self.mu_x, self.loglik_mu + prior[None, None, :])
 
+    def moments(self) -> tuple[np.ndarray, np.ndarray]:
+        """Summaries consumed by the nested model: posterior mean and variance of mu."""
+        return self.mu_mean, self.mu_var
+
     def to_dict(self) -> dict[str, object]:
         out = Serializable.to_dict(self)
         out["group_names"] = np.asarray(self.group_names, dtype=str)
@@ -60,14 +61,20 @@ class Differential(Serializable):
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> "Differential":
+        loglik = np.asarray(data["loglik_mu"])
+        if "mu_mean" in data:
+            mean, var = data["mu_mean"], data["mu_var"]
+        else:
+            mean, var = _flat_moments(np.asarray(data["mu_x"]), loglik)
         return cls(
             tuple_str(data["group_names"]),
             data["mu_x"],
             data["sig2_x"],
-            data["loglik_mu"],
-            data["loglik_mu_sig2"],
+            loglik,
             data["log_sig2_prior"],
             data["log_mu_prior"],
+            mean,
+            var,
             data.get("theta_x"),
         )
 
@@ -103,32 +110,29 @@ class DifferentialModel:
 
         g, n, m, s = len(names), obs.shape[1], mu_x.size, sig2_x.size
         loglik_mu = np.empty((g, n, m))
-        loglik_mu_sig2 = np.empty((g, n, m, s))
         log_sig2_prior = np.empty((g, s))
-        log_ratio = np.log1p(obs) - np.log1p(exp)
+        log2_ratio = (np.log1p(obs) - np.log1p(exp)) / np.log(2)
 
         for i, sample_index in enumerate(indices):
-            nu, prior_sig2 = _fit_invchi2(log_ratio[sample_index])
+            nu, prior_sig2 = _fit_invchi2(log2_ratio[sample_index])
             prior = _sig2_prior(sig2_x, sig2_weights, nu, prior_sig2)
-            collapsed, raw = self._integrate_group(
-                theta_kernel, prior, nb, sample_index
-            )
-            loglik_mu[i] = collapsed
-            loglik_mu_sig2[i] = raw
+            loglik_mu[i] = self._integrate_group(theta_kernel, prior, nb, sample_index)
             log_sig2_prior[i] = prior
 
         common_mu = mu_x[np.argmax(loglik_mu.sum(axis=0), axis=1)]
         log_mu_prior = make_group_mean_log_prior(
             mu_x, common_mu, self.config.mu_prior_sd_floor
         )
+        mean, var = _flat_moments(mu_x, loglik_mu)
         return Differential(
             names,
             mu_x,
             sig2_x,
-            loglik_mu,
-            loglik_mu_sig2,
+            loglik_mu.astype(np.float32),
             log_sig2_prior,
             log_mu_prior,
+            mean,
+            var,
             theta_x,
         )
 
@@ -153,26 +157,21 @@ class DifferentialModel:
         return names, indices, obs, exp, models
 
     def _integrate_group(self, kernel, prior, nb, sample_index):
+        """log p(counts of the group | mu) per position, sig2 integrated out chunk by chunk."""
         s, m, t = kernel.shape
         kernel = kernel.reshape(s * m, t)
         n = nb.shape[1]
         collapsed = np.empty((n, m))
-        raw_out = np.empty((n, m, s))
         for lo in range(0, n, self.config.base_chunk_size):
             hi = min(lo + self.config.base_chunk_size, n)
             x = np.take(nb[:, lo:hi], sample_index, axis=2)
             shift = np.max(x, axis=0)
             scaled = np.exp(x - shift[None]).reshape(t, -1)
             with np.errstate(divide="ignore"):
-                raw = np.log(kernel @ scaled).reshape(
-                    s, m, hi - lo, sample_index.size
-                )
+                raw = np.log(kernel @ scaled).reshape(s, m, hi - lo, sample_index.size)
             raw = raw.sum(axis=-1) + shift.sum(axis=-1)[None, None]
-            raw_out[lo:hi] = raw.transpose(2, 1, 0)
-            collapsed[lo:hi] = logsumexp(
-                raw + prior[:, None, None], axis=0
-            ).T
-        return collapsed, raw_out
+            collapsed[lo:hi] = logsumexp(raw + prior[:, None, None], axis=0).T
+        return collapsed
 
     @staticmethod
     def _theta_kernel(mu_x, sig2_x, theta_x):
@@ -189,7 +188,7 @@ def make_group_mean_log_prior(
     common_mu: np.ndarray,
     sd_floor: float | None = None,
 ) -> np.ndarray:
-    """Empirical normal prior for pointwise and segmented group means."""
+    """Empirical normal prior on mu, used by the sample-level theta model."""
     floor = np.median(np.diff(mu_x)) if sd_floor is None else sd_floor
     return normal_grid_log_mass(
         mu_x,
@@ -198,26 +197,12 @@ def make_group_mean_log_prior(
     )
 
 
-def fit_group_means_segmentation(
-    differential: Differential,
-    length_prior: LengthPrior,
-    config: MeanSegmentationConfig = DEFAULT_MEAN_SEGMENTATION,
-    log_mu_prior: np.ndarray | None = None,
-) -> Segmentation:
-    prior = (
-        differential.log_mu_prior
-        if log_mu_prior is None
-        else normalize_log_mass(log_mu_prior, differential.mu_x.size)
-    )
-    return segment(
-        differential.loglik_mu,
-        differential.mu_x,
-        differential.group_names,
-        length_prior,
-        prior,
-        config.transition_sd,
-        config.forbid_same_state,
-    )
+def _flat_moments(mu_x, loglik_mu):
+    log_p = loglik_mu - logsumexp(loglik_mu, axis=-1, keepdims=True)
+    p = np.exp(log_p)
+    mean = p @ mu_x
+    var = np.maximum(p @ mu_x ** 2 - mean ** 2, np.diff(mu_x).mean() ** 2 / 12)
+    return mean.astype(np.float32), var.astype(np.float32)
 
 
 def _quadrature_weights(x):

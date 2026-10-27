@@ -1,9 +1,8 @@
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass, fields, replace
 from typing import Literal
 
 import numpy as np
-
-IntegrationMethod = Literal["gaussian", "exact"]
 
 
 ThetaMode = Literal["sample_only", "group_informed"]
@@ -59,82 +58,72 @@ class DifferentialConfig:
 
 
 @dataclass(frozen=True, slots=True)
-class VarianceRatioConfig:
-    eta_min: float = -4.0
-    eta_max: float = 4.0
-    eta_step: float = 0.25
-    include_zero: bool = True
-    method: IntegrationMethod = "gaussian"
-    variance_floor: float | None = None
-    consistent_mass: float | None = 0.30
-    eta_prior_mean: float = -1.0
-    eta_prior_sd: float = 2.0
-
-    def eta_x(self) -> np.ndarray:
-        finite = np.arange(
-            self.eta_min,
-            self.eta_max + self.eta_step / 2,
-            self.eta_step,
-        )
-        if self.include_zero and self.consistent_mass is not None:
-            return np.r_[-np.inf, finite]
-        return finite
-
-
-@dataclass(frozen=True, slots=True)
-class CoefficientConfig:
-    z_min: float = -4.0
-    z_max: float = 4.0
-    z_step: float = 0.25
-    z_prior_sd: float = 2.0
-    method: IntegrationMethod = "exact"
-    variance_floor: float | None = None
-
-    def __post_init__(self) -> None:
-        if self.z_prior_sd <= 0:
-            raise ValueError("z_prior_sd must be positive")
-        if self.method not in ("gaussian", "exact"):
-            raise ValueError("method must be 'gaussian' or 'exact'")
-
-    def z_x(self) -> np.ndarray:
-        x = np.arange(
-            self.z_min,
-            self.z_max + self.z_step / 2,
-            self.z_step,
-        )
-        x[np.argmin(np.abs(x))] = 0.0
-        return x
-
-
-@dataclass(frozen=True, slots=True)
 class ThetaSegmentationConfig:
     transition_sd: float | None = None
     forbid_same_state: bool = False
 
 
 @dataclass(frozen=True, slots=True)
-class EtaSegmentationConfig:
-    transition_sd: float | None = None
-    forbid_same_state: bool = True
+class NestedConfig:
+    """Global constants of the nested segmentation model (log2 units)."""
 
+    tau2: float = 0.4
+    kappa: float = 2.2
+    tau2_contrast: float = 0.0
+    omega_scale: float = 0.15
+    n_omega: int = 25
+    omega2_min: float = 1e-4
+    omega2_max: float = 4.0
+    b_var: float = 0.5
+    inner_mean: float = 20.0
+    outer_mean: float = 70.0
+    len_shape: float = 3.0
+    len_min: int = 2
+    l_max: int = 150
+    sigma2_bar: float = 0.14
+    n_draws: int = 1000
+    seed: int = 0
+    prob: float = 0.95
+    delta: float = 0.5
+    store_draws: bool = False
 
-@dataclass(frozen=True, slots=True)
-class CoefficientSegmentationConfig:
-    transition_sd: float | None = None
-    forbid_same_state: bool = True
+    def __post_init__(self) -> None:
+        positive = ("tau2", "kappa", "omega_scale", "b_var", "inner_mean", "outer_mean", "len_shape", "sigma2_bar")
+        for name in positive:
+            if getattr(self, name) <= 0:
+                raise ValueError(f"{name} must be positive")
+        if self.tau2_contrast < 0:
+            raise ValueError("tau2_contrast must be non-negative")
+        if not 1 <= self.len_min <= self.l_max:
+            raise ValueError("require 1 <= len_min <= l_max")
+        if not 0 < self.prob < 1:
+            raise ValueError("prob must lie in (0, 1)")
 
+    def omega2(self) -> np.ndarray:
+        return np.geomspace(self.omega2_min, self.omega2_max, self.n_omega)
 
-@dataclass(frozen=True, slots=True)
-class MeanSegmentationConfig:
-    transition_sd: float | None = None
-    forbid_same_state: bool = False
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, values: dict) -> "NestedConfig":
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in values.items() if k in known})
+
+    @classmethod
+    def from_json(cls, path) -> "NestedConfig":
+        with open(path) as handle:
+            return cls.from_dict(json.load(handle))
+
+    def to_json(self, path) -> None:
+        with open(path, "w") as handle:
+            json.dump(self.to_dict(), handle, indent=2)
+
+    def with_(self, **changes) -> "NestedConfig":
+        return replace(self, **changes)
 
 
 DEFAULT_DIFFERENTIAL = DifferentialConfig()
 DEFAULT_THETA = ThetaConfig()
-DEFAULT_VARIANCE_RATIO = VarianceRatioConfig()
-DEFAULT_COEFFICIENT = CoefficientConfig()
 DEFAULT_THETA_SEGMENTATION = ThetaSegmentationConfig()
-DEFAULT_ETA_SEGMENTATION = EtaSegmentationConfig()
-DEFAULT_COEFFICIENT_SEGMENTATION = CoefficientSegmentationConfig()
-DEFAULT_MEAN_SEGMENTATION = MeanSegmentationConfig()
+DEFAULT_NESTED = NestedConfig()
