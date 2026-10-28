@@ -1,207 +1,167 @@
-"""Nested product-partition model for group footprint summaries.
+"""Nested product-partition model for group summaries x, v (groups x positions, log2).
 
-Outer blocks hold the group contrasts constant; inner blocks, nested inside them,
-hold the consensus level constant. Block evidences are closed-form, the sum over
-all nested segmentations is exact, and posterior draws are exact.
+Outer blocks hold the group contrasts constant; inner blocks, nested inside them, hold
+the consensus level constant. Block evidences are closed-form, the sum over all nested
+segmentations is exact, and posterior draws are exact.
 """
-
-from dataclasses import dataclass
 
 import numpy as np
 from scipy.special import logsumexp
 
 from .config import DEFAULT_NESTED, NestedConfig
-from .priors import gamma_length_log_mass, half_cauchy_log_mass, outer_length_log_weight
+
+OMEGA2 = np.geomspace(1e-4, 4.0, 25)
 
 
-def _cum(a: np.ndarray) -> np.ndarray:
+def gamma_lengths(l_max, mean, shape, l_min):
+    """Log mass of a discretized gamma on lengths 0..l_max (index = length)."""
+    L = np.arange(l_max + 1.0)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        lq = np.where(L >= l_min, (shape - 1) * np.log(L) - L * shape / mean, -np.inf)
+    return lq - logsumexp(lq)
+
+
+def half_cauchy(omega2, scale):
+    """Log half-Cauchy mass of the grid cells around sqrt(omega2)."""
+    om = np.sqrt(omega2)
+    mass = np.diff(np.arctan(np.r_[0, np.sqrt(om[:-1] * om[1:]), np.inf] / scale))
+    return np.log(mass / mass.sum())
+
+
+def outer_weights(lq, lq_out):
+    """q_out(L) / u(L), u(L) = prior weight of all inner tilings of L: the inner prior is normalized per outer block."""
+    lu = np.zeros(lq.size)
+    for d in range(1, lq.size):
+        lu[d] = logsumexp(lu[:d] + lq[d:0:-1])
+    with np.errstate(invalid="ignore"):
+        return np.where(np.isfinite(lq_out), lq_out - lu, -np.inf)
+
+
+def _cum(a):
     return np.concatenate([np.zeros((1,) + a.shape[1:]), np.cumsum(a, axis=0)])
 
 
-@dataclass(frozen=True)
-class Draws:
-    depth: np.ndarray          # draws x n x G
-    p_outer: np.ndarray        # n - 1, boundary before base j + 1
-    p_inner: np.ndarray        # n - 1, inner-only boundary
-    icc: np.ndarray            # n
-
-
 class NestedModel:
-    def __init__(
-        self,
-        x: np.ndarray,
-        v: np.ndarray,
-        config: NestedConfig = DEFAULT_NESTED,
-        omega2: np.ndarray | None = None,
-        log_omega_prior: np.ndarray | None = None,
-    ):
-        x, v = np.asarray(x, float), np.asarray(v, float)
-        if x.shape != v.shape or x.ndim != 2:
-            raise ValueError("x and v must both be groups x positions")
-        if not np.all(np.isfinite(x)) or np.any(~(v > 0)):
-            raise ValueError("x must be finite and v positive")
-        self.config = config
+    def __init__(self, x, v, config: NestedConfig = DEFAULT_NESTED, omega2=OMEGA2, log_omega_prior=None):
+        x, ve = np.asarray(x, float), config.kappa * np.asarray(v, float)
         self.G, self.n = G, n = x.shape
-        self.l_max = Lm = min(config.l_max, n)
-        self.omega2 = config.omega2() if omega2 is None else np.asarray(omega2, float)
-        self.log_omega_prior = (
-            half_cauchy_log_mass(self.omega2, config.omega_scale)
-            if log_omega_prior is None else np.asarray(log_omega_prior, float)
-        )
-        self.lq = gamma_length_log_mass(Lm, config.inner_mean, config.len_shape, config.len_min)
-        lq_out = gamma_length_log_mass(Lm, config.outer_mean, config.len_shape, config.len_min)
-        self.lo = outer_length_log_weight(self.lq, lq_out)
+        if G < 2:
+            raise ValueError("at least two groups are required")
+        self.Lm = Lm = min(config.l_max, n)
+        self.omega2 = omega2
+        self.log_omega_prior = half_cauchy(omega2, config.omega_scale) if log_omega_prior is None else log_omega_prior
+        self.lq = gamma_lengths(Lm, config.inner_mean, config.len_shape, config.len_min)
+        self.lo = outer_weights(self.lq, gamma_lengths(Lm, config.outer_mean, config.len_shape, config.len_min))
+        self.icc_grid = omega2 / (omega2 + config.sigma2_bar)
+        self.b_var = config.b_var
 
-        ve = config.kappa * v + config.tau2_contrast
         w = 1 / ve.mean(axis=1)
         self.w = w = w / w.sum()
         P = np.eye(G) - np.outer(np.ones(G), w)
-        self._consensus(w @ x, config.tau2 + (w ** 2) @ ve, config.b_var)
-        if G > 1:
-            self._contrasts(P, (P @ x)[:-1], ve)
-        else:
-            self.mdp = np.zeros((Lm + 1, n + 1))
-            self.const_c = 0.0
-        self.icc_grid = self.omega2 / (self.omega2 + config.sigma2_bar)
-        T = np.vstack([w, P[:-1]])
-        self.const = self.const_m + self.const_c + n * np.log(abs(np.linalg.det(T)))
 
-    def _consensus(self, m, V, b_var):
-        n, Lm = self.n, self.l_max
-        self.Pa, self.Ph = _cum(1 / V), _cum(m / V)
-        Pq = _cum(m ** 2 / V)
-        self.b_var = b_var
+        # consensus layer: m_j ~ N(b', V_j)
+        m, V = w @ x, config.tau2 + (w ** 2) @ ve
+        self.Pa, self.Ph, Pq = _cum(1 / V), _cum(m / V), _cum(m ** 2 / V)
         self.mb = np.full((Lm + 1, n + Lm + 1), -np.inf)
         for L in range(1, Lm + 1):
             a = np.arange(n - L + 1)
-            A, h, q = self.Pa[a + L] - self.Pa[a], self.Ph[a + L] - self.Ph[a], Pq[a + L] - Pq[a]
-            prec = A + 1 / b_var
-            self.mb[L, : n - L + 1] = -0.5 * q + 0.5 * h ** 2 / prec - 0.5 * np.log(b_var * prec)
-        self.const_m = -0.5 * np.log(2 * np.pi * V).sum()
+            A, h, q = (S[a + L] - S[a] for S in (self.Pa, self.Ph, Pq))
+            prec = A + 1 / self.b_var
+            self.mb[L, a] = -0.5 * q + 0.5 * h ** 2 / prec - 0.5 * np.log(self.b_var * prec)
 
-    def _contrasts(self, P, c, ve):
-        n, Lm, G = self.n, self.l_max, self.G
+        # contrast layer: c_j ~ N(delta, C_j), delta ~ N(0, omega^2 K)
+        c = (P @ x)[:-1]
         C = np.einsum("gh,hj,lh->jgl", P, ve, P)[:, :-1, :-1]
         Ci = np.linalg.inv(C)
-        self.PA = _cum(Ci)
-        self.PH = _cum(np.einsum("jgh,hj->jg", Ci, c))
+        self.PA, self.PH = _cum(Ci), _cum(np.einsum("jgh,hj->jg", Ci, c))
         self.PQ = _cum(np.einsum("gj,jgh,hj->j", c, Ci, c))
-        K = (P @ P.T)[:-1, :-1]
-        self.Linv = np.linalg.inv(np.linalg.cholesky(np.linalg.inv(K)))
-        self.Q = np.vstack([np.eye(G - 1), -self.w[:-1] / self.w[-1]])
+        self.Linv = np.linalg.inv(np.linalg.cholesky(np.linalg.inv((P @ P.T)[:-1, :-1])))
+        self.Q = np.vstack([np.eye(G - 1), -w[:-1] / w[-1]])
         self.mdp = np.full((Lm + 1, n + 1), -np.inf)
         for L in range(1, Lm + 1):
             a = np.arange(n - L + 1)
-            self.mdp[L, : n - L + 1] = logsumexp(self._outer_terms(a, np.full(a.size, L))[3], axis=1)
-        self.const_c = -0.5 * np.linalg.slogdet(2 * np.pi * C)[1].sum()
+            self.mdp[L, a] = logsumexp(self._outer(a, L)[3], axis=1)
 
-    def _outer_terms(self, a, L):
-        """Eigen-quantities and per-omega log evidence (incl. prior) of outer blocks [a, a+L)."""
-        A = self.PA[a + L] - self.PA[a]
-        h = self.PH[a + L] - self.PH[a]
-        q = self.PQ[a + L] - self.PQ[a]
+        self.const = (-0.5 * np.log(2 * np.pi * V).sum() - 0.5 * np.linalg.slogdet(2 * np.pi * C)[1].sum()
+                      + n * np.log(abs(np.linalg.det(np.vstack([w, P[:-1]])))))
+        self._forward()
+
+    def _outer(self, a, L):
+        """Eigen-quantities and per-omega log evidence (incl. prior) of outer blocks [a, a + L)."""
+        A, h, q = (S[a + L] - S[a] for S in (self.PA, self.PH, self.PQ))
         lam, vec = np.linalg.eigh(self.Linv @ A @ self.Linv.T)
         lam = np.maximum(lam, 0.0)
         U = np.einsum("ij,sjk->sik", self.Linv.T, vec)
         g = np.einsum("sik,si->sk", U, h)
-        w2 = self.omega2[None, :, None]
-        lm = (-0.5 * q[:, None]
-              + 0.5 * np.sum(g[:, None] ** 2 / (lam[:, None] + 1 / w2), axis=2)
-              - 0.5 * np.sum(np.log1p(lam[:, None] * w2), axis=2)
-              + self.log_omega_prior[None])
+        w2 = self.omega2[:, None]
+        lm = (-0.5 * q[:, None] + 0.5 * np.sum(g[:, None] ** 2 / (lam[:, None] + 1 / w2), axis=2)
+              - 0.5 * np.sum(np.log1p(lam[:, None] * w2), axis=2) + self.log_omega_prior)
         return lam, U, g, lm
 
-    def partition(self):
-        """Inner tiling weights f(a, d) and outer forward sums F(c), in log space (cached)."""
-        if getattr(self, "_part", None) is None:
-            self._part = self._forward()
-        return self._part
-
     def _forward(self):
-        n, Lm = self.n, self.l_max
+        """f(a, d): all inner tilings of [a, a + d); F(c): all nested segmentations of [0, c)."""
+        n, Lm = self.n, self.Lm
         f = np.full((n + 1, Lm + 1), -np.inf)
         f[:, 0] = 0.0
-        idx = np.arange(n + 1)[:, None]
+        a = np.arange(n + 1)[:, None]
         for d in range(1, Lm + 1):
-            dp = np.arange(d)[None]
-            f[:, d] = logsumexp(f[:, :d] + self.lq[d - dp] + self.mb[d - dp, idx + dp], axis=1)
+            dp = np.arange(d)
+            f[:, d] = logsumexp(f[:, :d] + self.lq[d - dp] + self.mb[d - dp, a + dp], axis=1)
         F = np.full(n + 1, -np.inf)
         F[0] = 0.0
         for c in range(1, n + 1):
             L = np.arange(1, min(Lm, c) + 1)
             F[c] = logsumexp(F[c - L] + self.lo[L] + self.mdp[L, c - L] + f[c - L, L])
-        return f, F
+        self.f, self.F = f, F
+        self.log_evidence = float(F[n] + self.const)
 
-    def log_evidence(self) -> float:
-        return float(self.partition()[1][-1] + self.const)
+    def sample(self, n_draws=1000, seed=0):
+        """Exact backward sampling, vectorized over draws.
 
-    def sample(self, n_draws: int = 1000, rng=None) -> Draws:
-        rng = np.random.default_rng(rng)
-        n, Lm, G = self.n, self.l_max, self.G
-        f, F = self.partition()
-        T = np.arange(n_draws)
-        inner_val = np.zeros((n_draws, n))
-        inner_mark = np.zeros((n_draws, n), bool)
-        outer_val = np.zeros((n_draws, n, G), np.float32)
-        outer_icc = np.full((n_draws, n), np.nan)
-        outer_mark = np.zeros((n_draws, n), bool)
-        Ls = np.arange(1, Lm + 1)
-
+        Returns depth (draws x n x G), P(outer boundary) and P(inner-only boundary) between
+        bases j and j + 1, and the posterior mean ICC per base.
+        """
+        rng = np.random.default_rng(seed)
+        n, G, f = self.n, self.G, self.f
+        b, delta = np.zeros((n_draws, n)), np.zeros((n_draws, n, G))
+        icc = np.zeros((n_draws, n))
+        inner, outer = np.zeros((n_draws, n), bool), np.zeros((n_draws, n), bool)
+        Ls = np.arange(1, self.Lm + 1)
         c = np.full(n_draws, n)
         while np.any(c > 0):
-            t = T[c > 0]
-            ct = c[t, None]
-            a_ = np.maximum(ct - Ls, 0)
-            W = F[a_] + self.lo[Ls] + self.mdp[Ls, a_] + f[a_, Ls]
-            W[Ls > ct] = -np.inf
-            L = Ls[np.argmax(W + rng.gumbel(size=W.shape), axis=1)]
-            a = c[t] - L
-            outer_mark[t, a] = True
-            if G > 1:
-                outer_val[t, a], outer_icc[t, a] = self._draw_contrasts(a, L, rng)
-            self._draw_inner(t, a, c[t].copy(), f, inner_val, inner_mark, rng)
+            t = np.flatnonzero(c > 0)
+            a_ = np.maximum(c[t, None] - Ls, 0)
+            W = np.where(Ls <= c[t, None], self.F[a_] + self.lo[Ls] + self.mdp[Ls, a_] + f[a_, Ls], -np.inf)
+            a = c[t] - Ls[_pick(W, rng)]
+            outer[t, a] = True
+            delta[t, a], icc[t, a] = self._draw_contrasts(a, c[t] - a, rng)
+            e = c[t].copy()
+            while np.any(e > a):
+                k = e > a
+                tk, ak, ek = t[k], a[k], e[k]
+                s = np.maximum(ek[:, None] - Ls, ak[:, None])
+                W = np.where(ek[:, None] - Ls >= ak[:, None], f[ak[:, None], s - ak[:, None]] + self.lq[Ls] + self.mb[Ls, s], -np.inf)
+                s = s[np.arange(tk.size), _pick(W, rng)]
+                prec = self.Pa[ek] - self.Pa[s] + 1 / self.b_var
+                b[tk, s] = (self.Ph[ek] - self.Ph[s]) / prec + rng.standard_normal(s.size) / np.sqrt(prec)
+                inner[tk, s] = True
+                e[k] = s
             c[t] = a
-
-        fill_in = np.maximum.accumulate(np.where(inner_mark, np.arange(n), 0), axis=1)
-        fill_out = np.maximum.accumulate(np.where(outer_mark, np.arange(n), 0), axis=1)
-        b = np.take_along_axis(inner_val, fill_in, axis=1)
-        delta = np.take_along_axis(outer_val, fill_out[..., None], axis=1)
-        depth = (b[..., None] + delta).astype(np.float32)
-        icc = np.take_along_axis(outer_icc, fill_out, axis=1).mean(axis=0)
-        return Draws(
-            depth=depth,
-            p_outer=outer_mark[:, 1:].mean(axis=0),
-            p_inner=(inner_mark & ~outer_mark)[:, 1:].mean(axis=0),
-            icc=icc,
-        )
+        fill_in = np.maximum.accumulate(np.where(inner, np.arange(n), 0), axis=1)
+        fill_out = np.maximum.accumulate(np.where(outer, np.arange(n), 0), axis=1)
+        depth = np.take_along_axis(b, fill_in, 1)[..., None] + np.take_along_axis(delta, fill_out[..., None], 1)
+        return (depth.astype(np.float32), outer[:, 1:].mean(0), (inner & ~outer)[:, 1:].mean(0),
+                np.take_along_axis(icc, fill_out, 1).mean(0))
 
     def _draw_contrasts(self, a, L, rng):
-        blocks, inverse = np.unique(np.stack([a, L], 1), axis=0, return_inverse=True)
-        inverse = inverse.ravel()
-        lam, U, g, lm = self._outer_terms(blocks[:, 0], blocks[:, 1])
+        blocks, inv = np.unique(np.stack([a, L], 1), axis=0, return_inverse=True)
+        lam, U, g, lm = (z[inv.ravel()] for z in self._outer(blocks[:, 0], blocks[:, 1]))
         r = np.exp(lm - logsumexp(lm, axis=1, keepdims=True))
-        icc = (r @ self.icc_grid)[inverse]
-        cdf = np.cumsum(r[inverse], axis=1)
-        k = np.minimum((cdf < rng.random((a.size, 1)) * cdf[:, -1:]).sum(axis=1), self.omega2.size - 1)
-        dd = 1 / (lam[inverse] + 1 / self.omega2[k, None])
-        z = g[inverse] * dd + rng.standard_normal(dd.shape) * np.sqrt(dd)
-        delta = np.einsum("gi,sik,sk->sg", self.Q, U[inverse], z)
-        return delta, icc
+        dd = 1 / (lam + 1 / self.omega2[_pick(lm, rng), None])
+        z = g * dd + rng.standard_normal(dd.shape) * np.sqrt(dd)
+        return np.einsum("gi,sik,sk->sg", self.Q, U, z), r @ self.icc_grid
 
-    def _draw_inner(self, t, a, e, f, inner_val, inner_mark, rng):
-        Lm = self.l_max
-        ds = np.arange(1, Lm + 1)
-        while np.any(e > a):
-            act = e > a
-            tt, aa, ee = t[act], a[act], e[act]
-            s = ee[:, None] - ds
-            ok = s >= aa[:, None]
-            sc = np.where(ok, s, aa[:, None])
-            W = f[aa[:, None], sc - aa[:, None]] + self.lq[ds] + self.mb[ds, sc]
-            W[~ok] = -np.inf
-            s = sc[np.arange(tt.size), np.argmax(W + rng.gumbel(size=W.shape), axis=1)]
-            prec = self.Pa[ee] - self.Pa[s] + 1 / self.b_var
-            mean = (self.Ph[ee] - self.Ph[s]) / prec
-            inner_val[tt, s] = mean + rng.standard_normal(s.size) / np.sqrt(prec)
-            inner_mark[tt, s] = True
-            e[act] = s
+
+def _pick(log_w, rng):
+    """One categorical draw per row (Gumbel-max)."""
+    return np.argmax(log_w + rng.gumbel(size=log_w.shape), axis=1)
