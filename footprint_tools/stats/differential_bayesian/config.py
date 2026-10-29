@@ -25,25 +25,25 @@ class SummaryConfig:
 
 
 @dataclass(frozen=True)
-class NestedConfig:
-    """Global constants of the nested segmentation model (log2 units)."""
+class ModelConfig:
+    """Global constants of the two-layer segmentation model (log2 units)."""
 
-    tau2: float = 0.4
-    kappa: float = 2.2
-    omega_scale: float = 0.15
-    b_var: float = 0.5
-    inner_mean: float = 20.0
-    outer_mean: float = 70.0
-    len_shape: float = 3.0
-    len_min: int = 2
+    tau2: float = 0.4               # nugget: base-level shape shared by all groups
+    b_var: float = 1.0              # prior variance of the consensus level
+    omega_scale: float = 0.2        # half-Cauchy scale of group deviations
+    cons_mean: float = 12.0         # consensus block lengths: discretized gamma (resolution choice)
+    cons_shape: float = 3.0
+    cons_min: int = 2
+    pattern_mean: float = 20.0      # group-pattern block lengths (resolution choice)
+    pattern_shape: float = 3.0
+    pattern_min: int = 2
     l_max: int = 150
-    sigma2_bar: float = 0.14
     n_draws: int = 1000
     seed: int = 0
-    prob: float = 0.95
-    delta: float = 0.5
+    prob: float = 0.95              # call cutoff
+    delta: float = 0.5              # |Delta| cutoff for differential calls
 
-    def with_(self, **changes) -> "NestedConfig":
+    def with_(self, **changes) -> "ModelConfig":
         return replace(self, **changes)
 
     def to_json(self, path=None):
@@ -54,10 +54,10 @@ class NestedConfig:
             handle.write(text)
 
     @classmethod
-    def from_json(cls, text_or_path: str) -> "NestedConfig":
+    def from_json(cls, text_or_path: str) -> "ModelConfig":
         text = text_or_path if text_or_path.lstrip().startswith("{") else open(text_or_path).read()
         return cls(**json.loads(text))
 
 
 DEFAULT_SUMMARY = SummaryConfig()
-DEFAULT_NESTED = NestedConfig()
+DEFAULT_MODEL = ModelConfig()

@@ -1,79 +1,67 @@
-"""Offline fit of the global constants, once per data release.
+"""Global constants by summed log evidence over DHSs.
 
-kappa: split-half calibration on counts. Each group's samples are split in two halves;
-kappa is chosen so that (Delta_A - Delta_B) / sqrt(sd_A^2 + sd_B^2) has SD 1.
-tau2, omega_scale: maximum of the log evidence summed over DHSs. Block-length means are
-resolution choices (the evidence favours blocks of a few bp) and are not fitted.
+The evidence factorizes into a consensus part (tau2, b_var, consensus lengths) and a group-pattern
+part (omega_scale, group-pattern lengths), so each part is maximized on its own grid.
 
-python -m footprint_tools.stats.differential_bayesian.hyper \
-    --summaries results/*.npz --counts counts/*.npz --out nested.json
+Per DHS (inside the pipeline):  evidence_tables(x, v, config), stored as evidence.consensus / evidence.pattern
+Once, over all DHSs:            python -m footprint_tools.stats.differential_bayesian.hyper stats/*.npz --out model.json
 """
 
 import argparse
-import itertools
 
 import numpy as np
 
-from .config import DEFAULT_NESTED, NestedConfig
-from .nested import NestedModel
-from .results import delta_from_others
+from .config import DEFAULT_MODEL, ModelConfig
+from .model import FootprintModel, _forward, gamma_lengths, half_cauchy
+
+# Block lengths are resolution choices (the evidence prefers blocks of a few bp in both layers), so the
+# default grids hold them at the config's values; add cons_* / pattern_* keys to explore them.
+GRID_CONSENSUS = dict(tau2=[0.2, 0.3, 0.4, 0.5, 0.7], b_var=[0.25, 0.5, 1.0, 2.0])
+GRID_PATTERN = dict(omega_scale=[0.05, 0.1, 0.15, 0.2, 0.3, 0.5])
+REBUILD = ("tau2", "b_var")   # the other constants only change the forward pass
 
 
-def summed_log_evidence(summaries, config: NestedConfig, grid: dict) -> dict:
-    """{grid point: log evidence summed over (x, v) pairs}; grid maps NestedConfig fields to values."""
-    return {point: sum(NestedModel(x, v, config.with_(**dict(zip(grid, point)))).log_evidence for x, v in summaries)
-            for point in itertools.product(*grid.values())}
+def evidence_tables(x, v, base: ModelConfig = DEFAULT_MODEL, grid_b=GRID_CONSENSUS, grid_d=GRID_PATTERN):
+    """Log evidence of one DHS at every grid point: (consensus array, group-pattern array), shaped like the grids."""
+    lb, ld = list(grid_b), list(grid_d)
+    z_b = np.empty([len(grid_b[k]) for k in lb])
+    model = None
+    for ib in np.ndindex(z_b.shape):
+        cfg = base.with_(**{k: grid_b[k][i] for k, i in zip(lb, ib)})
+        if model is None or any(getattr(model.config, k) != getattr(cfg, k) for k in REBUILD):
+            model = FootprintModel(x, v, np.ones_like(x), cfg)
+        z_b[ib] = _forward(model.E_b, gamma_lengths(model.Lm, cfg.cons_mean, cfg.cons_shape, cfg.cons_min))[-1] + model.const
+    z_d = np.empty([len(grid_d[k]) for k in ld])
+    E_d = {}
+    for idd in np.ndindex(z_d.shape):
+        cfg = base.with_(**{k: grid_d[k][i] for k, i in zip(ld, idd)})
+        if cfg.omega_scale not in E_d:
+            E_d = {cfg.omega_scale: np.logaddexp.reduce(model.E_d_omega + half_cauchy(model.omega2, cfg.omega_scale), axis=2)}
+        z_d[idd] = _forward(E_d[cfg.omega_scale], gamma_lengths(model.Lm, cfg.pattern_mean, cfg.pattern_shape, cfg.pattern_min))[-1]
+    return z_b, z_d
 
 
-def split_half_sd(obs, exp, sample_groups, config: NestedConfig, n_draws=500, seed=0):
-    """SD of the standardized disagreement in Delta between two random halves of each group."""
-    rng = np.random.default_rng(seed)
-    halves = [[], []]
-    for g in np.unique(sample_groups):
-        idx = rng.permutation(np.flatnonzero(sample_groups == g))
-        if idx.size < 4:
-            raise ValueError(f"group {g} needs at least 4 samples")
-        halves[0] += idx[: idx.size // 2].tolist()
-        halves[1] += idx[idx.size // 2: 2 * (idx.size // 2)].tolist()
-    r = np.log2((obs + 0.5) / (exp + 0.5))
-    stats = []
-    for half in map(np.array, halves):
-        grp = sample_groups[half]
-        x = np.stack([r[half][grp == g].mean(0) for g in np.unique(grp)])
-        v = np.stack([r[half][grp == g].var(0, ddof=1) / (grp == g).sum() for g in np.unique(grp)])
-        dl = delta_from_others(NestedModel(x, np.maximum(v, 0.25 * np.median(v)), config).sample(n_draws, seed)[0])
-        stats.append((dl.mean(0), dl.std(0)))
-    (ma, sa), (mb, sb) = stats
-    return float(np.std((ma - mb) / np.hypot(sa, sb)))
-
-
-def calibrate_kappa(counts, config: NestedConfig, kappas=(1.0, 1.5, 2.0, 2.5, 3.0, 3.5)):
-    """kappa at which the median split-half SD over DHSs crosses 1 (interpolated in log kappa)."""
-    sd = [np.median([split_half_sd(*c, config.with_(kappa=k)) for c in counts]) for k in kappas]
-    return float(np.exp(np.interp(0.0, np.log(sd[::-1]), np.log(kappas[::-1])))), dict(zip(kappas, sd))
+def fit(tables, base: ModelConfig = DEFAULT_MODEL, grid_b=GRID_CONSENSUS, grid_d=GRID_PATTERN):
+    """Arg-max of the summed tables; returns the fitted config and the summed tables."""
+    z_b, z_d = sum(t[0] for t in tables), sum(t[1] for t in tables)
+    best = {**{k: grid_b[k][i] for k, i in zip(grid_b, np.unravel_index(z_b.argmax(), z_b.shape))},
+            **{k: grid_d[k][i] for k, i in zip(grid_d, np.unravel_index(z_d.argmax(), z_d.shape))}}
+    return base.with_(**best), z_b, z_d
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description="Fit global constants of the nested model.")
-    p.add_argument("--summaries", nargs="+", required=True, help="NPZ files from save_data_results")
-    p.add_argument("--counts", nargs="*", default=[], help="NPZ files with obs, exp, sample_groups")
-    p.add_argument("--tau2", type=float, nargs="+", default=[0.3, 0.35, 0.4, 0.5])
-    p.add_argument("--omega-scale", type=float, nargs="+", default=[0.1, 0.15, 0.2, 0.3])
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("stats", nargs="+")
     p.add_argument("--out", required=True)
+    p.add_argument("--config", default="", help="ModelConfig JSON the tables were computed with (default: package defaults)")
     a = p.parse_args(argv)
-
-    config = DEFAULT_NESTED
-    if a.counts:
-        counts = [tuple(np.load(f)[k] for k in ("obs", "exp", "sample_groups")) for f in a.counts]
-        kappa, curve = calibrate_kappa(counts, config)
-        config = config.with_(kappa=round(kappa, 2))
-        print("split-half SD by kappa:", curve)
-    summaries = [(np.load(f)["summaries.x"], np.load(f)["summaries.v"]) for f in a.summaries]
-    evidence = summed_log_evidence(summaries, config, {"tau2": a.tau2, "omega_scale": a.omega_scale})
-    best = max(evidence, key=evidence.get)
-    for point, z in sorted(evidence.items(), key=lambda kv: -kv[1])[:5]:
-        print(dict(tau2=point[0], omega_scale=point[1]), round(z - evidence[best], 1))
-    config.with_(tau2=best[0], omega_scale=best[1]).to_json(a.out)
+    tables = []
+    for f in a.stats:
+        with np.load(f) as h:
+            tables.append((h["evidence.consensus"], h["evidence.pattern"]))
+    config, _, _ = fit(tables, ModelConfig.from_json(a.config) if a.config else DEFAULT_MODEL)
+    config.to_json(a.out)
+    print(config)
 
 
 if __name__ == "__main__":

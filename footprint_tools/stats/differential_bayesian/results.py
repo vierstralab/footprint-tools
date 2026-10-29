@@ -1,16 +1,16 @@
-"""Per-base tracks and calls of one DHS, computed from nested-model posterior draws."""
+"""Per-base tracks and calls of one DHS, computed from posterior draws."""
 
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
-from .config import DEFAULT_NESTED, NestedConfig
-from .nested import NestedModel
+from .config import DEFAULT_MODEL, ModelConfig
+from .model import FootprintModel
 
 
 @dataclass(frozen=True)
-class NestedFit:
+class FootprintFit:
     group_names: tuple[str, ...]
     depth_mean: np.ndarray     # n x G, log2
     depth_lo: np.ndarray       # n x G, 5% quantile
@@ -19,19 +19,19 @@ class NestedFit:
     delta_mean: np.ndarray     # n x G, E[depth_g - median of the other groups]
     p_more: np.ndarray         # n x G, P(Delta < -delta)
     p_less: np.ndarray         # n x G, P(Delta > +delta)
-    p_outer: np.ndarray        # n - 1, P(outer boundary between j and j + 1)
-    p_inner: np.ndarray        # n - 1, P(inner-only boundary between j and j + 1)
-    icc: np.ndarray            # n, E[omega^2 / (omega^2 + sigma2_bar)]
+    p_pattern: np.ndarray      # n - 1, P(group-pattern boundary between j and j + 1)
+    p_consensus: np.ndarray    # n - 1, P(consensus boundary between j and j + 1)
+    icc: np.ndarray            # n, E[omega^2 / (omega^2 + within-group variance)]
     log_evidence: float
-    config: str                # NestedConfig as JSON
+    config: str                # ModelConfig as JSON
 
     @property
     def footprints(self):
-        return runs(self.p_any >= NestedConfig.from_json(self.config).prob)
+        return runs(self.p_any >= ModelConfig.from_json(self.config).prob)
 
     @property
     def calls(self):
-        prob = NestedConfig.from_json(self.config).prob
+        prob = ModelConfig.from_json(self.config).prob
         return [(name, kind, s, e)
                 for g, name in enumerate(self.group_names)
                 for kind, p in (("more", self.p_more), ("less", self.p_less))
@@ -39,7 +39,7 @@ class NestedFit:
 
     def region_table(self) -> pd.DataFrame:
         """One row per run of footprinted / non-footprinted bases, with differential base counts."""
-        prob = NestedConfig.from_json(self.config).prob
+        prob = ModelConfig.from_json(self.config).prob
         fp, more, less = self.p_any >= prob, self.p_more >= prob, self.p_less >= prob
         cuts = np.r_[0, np.flatnonzero(np.diff(fp)) + 1, fp.size]
         rows = []
@@ -56,18 +56,19 @@ class NestedFit:
         return pd.DataFrame(rows)
 
 
-def fit_nested(x, v, group_names, config: NestedConfig = DEFAULT_NESTED) -> NestedFit:
-    """Fit one DHS from group summaries x, v (groups x positions, log2)."""
-    model = NestedModel(x, v, config)
-    depth, p_outer, p_inner, icc = model.sample(config.n_draws, config.seed)
+def fit_footprints(x, v, sigma2, group_names, config: ModelConfig = DEFAULT_MODEL) -> FootprintFit:
+    """Fit one DHS from group summaries: x, v, sigma2 (groups x positions, log2)."""
+    model = FootprintModel(x, v, sigma2, config)
+    depth, p_pattern, p_consensus, icc = model.sample(config.n_draws, config.seed)
     delta = delta_from_others(depth)
     lo, hi = np.quantile(depth, [0.05, 0.95], axis=0)
     f32 = lambda a: np.asarray(a, np.float32)
-    return NestedFit(
+    return FootprintFit(
         tuple(map(str, group_names)), f32(depth.mean(0)), f32(lo), f32(hi),
         f32((depth.min(2) < 0).mean(0)), f32(delta.mean(0)),
         f32((delta < -config.delta).mean(0)), f32((delta > config.delta).mean(0)),
-        f32(p_outer), f32(p_inner), f32(icc), model.log_evidence, config.to_json(),
+        f32(p_pattern), f32(p_consensus), f32(icc),
+        float(sum(model.log_evidence()) + model.const), config.to_json(),
     )
 
 

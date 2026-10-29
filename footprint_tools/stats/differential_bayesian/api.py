@@ -7,14 +7,15 @@ from genome_tools import GenomicInterval
 from genome_tools.data.utils import realign_matrix
 from genome_tools.plotting.modular_plot.api import DataBundle, PlotDataLoader
 
-from .config import DEFAULT_NESTED, DEFAULT_SUMMARY
-from .results import NestedFit, fit_nested
+from .config import DEFAULT_MODEL, DEFAULT_SUMMARY
+from .results import FootprintFit, fit_footprints
 from .summaries import Summaries, fit_summaries
 
-RESULTS = {"summaries": Summaries, "nested": NestedFit}
-POSITION_AXIS = {"x": 1, "v": 1, "theta_mean": 1, "theta_sd": 1, "p_outer": 0, "p_inner": 0,
-                 **{k: 0 for k in ("depth_mean", "depth_lo", "depth_hi", "p_any", "delta_mean", "p_more", "p_less", "icc")}}
-BOUNDARY = {"p_outer", "p_inner"}
+RESULTS = {"summaries": Summaries, "footprints": FootprintFit}
+POSITION_AXIS = {**{k: 1 for k in ("x", "v", "sigma2", "theta_mean", "theta_sd")},
+                 **{k: 0 for k in ("depth_mean", "depth_lo", "depth_hi", "p_any", "delta_mean", "p_more", "p_less", "icc",
+                                   "p_pattern", "p_consensus")}}
+BOUNDARY = {"p_pattern", "p_consensus"}
 
 
 class SummaryLoader(PlotDataLoader):
@@ -25,10 +26,10 @@ class SummaryLoader(PlotDataLoader):
         return data
 
 
-class NestedLoader(PlotDataLoader):
-    def _load(self, data, config=DEFAULT_NESTED):
+class FootprintLoader(PlotDataLoader):
+    def _load(self, data, config=DEFAULT_MODEL):
         s = data.summaries
-        data.nested = fit_nested(s.x, s.v, s.group_names, config)
+        data.footprints = fit_footprints(s.x, s.v, s.sigma2, s.group_names, config)
         return data
 
 
