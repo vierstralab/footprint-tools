@@ -31,8 +31,8 @@ class ModelConfig:
     tau2: float = 0.4               # nugget: base-level shape shared by all groups
     b_var: float = 1.0              # prior variance of the consensus level
     omega_scale: float = 0.2        # half-Cauchy scale of group deviations
-    cons_mean: float = 12.0         # consensus block lengths: discretized gamma (resolution choice)
-    cons_shape: float = 3.0
+    cons_mean: float = 24.8         # consensus block lengths: discretized gamma (resolution choice)
+    cons_shape: float = 1.9
     cons_min: int = 2
     pattern_mean: float = 20.0      # group-pattern block lengths (resolution choice)
     pattern_shape: float = 3.0
