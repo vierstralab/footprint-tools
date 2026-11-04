@@ -5,15 +5,15 @@ Each base splits into a consensus value (depends on the consensus level b') and 
 delta constant. Block evidences are closed-form, sums over all partitions are exact, draws are exact.
 """
 
+from collections.abc import Iterator
+
 import numpy as np
 from scipy.special import logsumexp
 
-from .config import DEFAULT_MODEL, ModelConfig
-
-OMEGA2 = np.geomspace(1e-4, 4.0, 25)
+from .config import DEFAULT_DF_MODEL, DifferentialFootprintModelConfig
 
 
-def gamma_lengths(l_max, mean, shape, l_min):
+def gamma_lengths(l_max: int, mean: float, shape: float, l_min: int) -> np.ndarray:
     """Log mass of a discretized gamma on lengths 0..l_max (index = length)."""
     L = np.arange(l_max + 1.0)
     with np.errstate(divide="ignore", invalid="ignore"):
@@ -21,23 +21,26 @@ def gamma_lengths(l_max, mean, shape, l_min):
     return lq - logsumexp(lq)
 
 
-def half_cauchy(omega2, scale):
+def half_cauchy(omega2: np.ndarray, scale: float) -> np.ndarray:
     """Log half-Cauchy mass of the grid cells around sqrt(omega2)."""
     om = np.sqrt(omega2)
     mass = np.diff(np.arctan(np.r_[0, np.sqrt(om[:-1] * om[1:]), np.inf] / scale))
     return np.log(mass / mass.sum())
 
 
-def _cum(a):
+def _cum(a: np.ndarray) -> np.ndarray:
     return np.concatenate([np.zeros((1,) + a.shape[1:]), np.cumsum(a, axis=0)])
 
 
-class FootprintModel:
-    def __init__(self, x, v, sigma2, config: ModelConfig = DEFAULT_MODEL, omega2=OMEGA2):
+class DifferentialFootprintModel:
+    def __init__(self, x: np.ndarray, v: np.ndarray, sigma2: np.ndarray, config: DifferentialFootprintModelConfig = DEFAULT_DF_MODEL,
+                 omega2: np.ndarray = None) -> None:
         x, v = np.asarray(x, float), np.asarray(v, float)
         self.G, self.n = G, n = x.shape
         if G < 2:
             raise ValueError("at least two groups are required")
+        if omega2 is None:
+            omega2 = np.geomspace(1e-4, 4.0, 25)
         self.config, self.omega2 = config, omega2
         self.Lm = Lm = min(config.l_max, n)
         w = 1 / v.mean(axis=1)
@@ -71,7 +74,7 @@ class FootprintModel:
         self.const = (-0.5 * np.log(2 * np.pi * V).sum() - 0.5 * np.linalg.slogdet(2 * np.pi * C)[1].sum()
                       + n * np.log(abs(np.linalg.det(np.vstack([w, P[:-1]])))))
 
-    def _pattern(self, a, L):
+    def _pattern(self, a: np.ndarray, L: int | np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Eigen-quantities and per-omega log evidence of group-pattern blocks [a, a + L)."""
         A, h, q = (S[a + L] - S[a] for S in (self.PA, self.PH, self.PQ))
         lam, vec = np.linalg.eigh(self.Linv @ A @ self.Linv.T)
@@ -83,7 +86,8 @@ class FootprintModel:
               - 0.5 * np.sum(np.log1p(lam[:, None] * w2), axis=2))
         return lam, U, g, lm
 
-    def layers(self, config: ModelConfig | None = None):
+    def layers(self, config: DifferentialFootprintModelConfig | None = None
+               ) -> tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray], np.ndarray]:
         """Evidence tables and length priors of both layers for the given constants (lengths, omega_scale)."""
         cfg = config or self.config
         lq_b = gamma_lengths(self.Lm, cfg.cons_mean, cfg.cons_shape, cfg.cons_min)
@@ -91,12 +95,12 @@ class FootprintModel:
         lw = half_cauchy(self.omega2, cfg.omega_scale)
         return (self.E_b, lq_b), (logsumexp(self.E_d_omega + lw, axis=2), lq_d), lw
 
-    def log_evidence(self, config: ModelConfig | None = None):
+    def log_evidence(self, config: DifferentialFootprintModelConfig | None = None) -> tuple[float, float]:
         """(consensus, group-pattern) log evidence; their sum plus self.const is log p(x)."""
         (E_b, lq_b), (E_d, lq_d), _ = self.layers(config)
         return _forward(E_b, lq_b)[-1], _forward(E_d, lq_d)[-1]
 
-    def sample(self, n_draws=1000, seed=0):
+    def sample(self, n_draws: int = 1000, seed: int = 0) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Exact draws. Returns depth (draws x n x G), P(group-pattern boundary) and P(consensus boundary)
         between bases j and j + 1, and the posterior mean ICC per base (block-averaged within-group variance)."""
         rng = np.random.default_rng(seed)
@@ -116,7 +120,8 @@ class FootprintModel:
         return (depth.astype(np.float32), marks_d[:, 1:].mean(0), marks_b[:, 1:].mean(0),
                 np.take_along_axis(icc, fd, 1).mean(0))
 
-    def _draw_pattern(self, a, L, lw, rng):
+    def _draw_pattern(self, a: np.ndarray, L: np.ndarray, lw: np.ndarray,
+                      rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
         blocks, inv = np.unique(np.stack([a, L], 1), axis=0, return_inverse=True)
         lam, U, g, lm = (z[inv.ravel()] for z in self._pattern(blocks[:, 0], blocks[:, 1]))
         k = _pick(lm + lw, rng)
@@ -126,7 +131,7 @@ class FootprintModel:
         return np.einsum("gi,sik,sk->sg", self.Q, U, z), om2 / (om2 + (self.S2[a + L] - self.S2[a]) / L)
 
 
-def _forward(E, lq):
+def _forward(E: np.ndarray, lq: np.ndarray) -> np.ndarray:
     """Tool B: log Z(e) summed over all partitions of [0, e)."""
     n, Ls = E.shape[1] - 1, np.arange(1, E.shape[0])
     Z = np.full(n + 1, -np.inf)
@@ -137,7 +142,8 @@ def _forward(E, lq):
     return Z
 
 
-def _backward(E, lq, Z, n_draws, rng):
+def _backward(E: np.ndarray, lq: np.ndarray, Z: np.ndarray, n_draws: int,
+              rng: np.random.Generator) -> Iterator[tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Exact partition draws, vectorized over draws; yields (draw indices, block starts, block lengths)."""
     Ls, c = np.arange(1, E.shape[0]), np.full(n_draws, E.shape[1] - 1)
     while np.any(c > 0):
@@ -149,10 +155,10 @@ def _backward(E, lq, Z, n_draws, rng):
         c[t] -= L
 
 
-def _fill_index(marks):
+def _fill_index(marks: np.ndarray) -> np.ndarray:
     return np.maximum.accumulate(np.where(marks, np.arange(marks.shape[1]), 0), axis=1)
 
 
-def _pick(log_w, rng):
+def _pick(log_w: np.ndarray, rng: np.random.Generator) -> np.ndarray:
     """One categorical draw per row (Gumbel-max)."""
     return np.argmax(log_w + rng.gumbel(size=log_w.shape), axis=1)

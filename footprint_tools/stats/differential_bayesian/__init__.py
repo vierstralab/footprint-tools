@@ -1,4 +1,5 @@
-from .config import DEFAULT_MODEL, DEFAULT_SUMMARY, ModelConfig, SummaryConfig
-from .model import FootprintModel
-from .results import FootprintFit, fit_footprints
+from .config import DEFAULT_DF_MODEL, DEFAULT_DF_SUMMARY, DifferentialFootprintModelConfig, DifferentialFootprintSummaryConfig
+from .model import DifferentialFootprintModel
+from .results import DifferentialFootprintFit, fit_differential_footprints
 from .summaries import Summaries, fit_summaries
+from .samples import load_maps, profile_stats
