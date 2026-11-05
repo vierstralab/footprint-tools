@@ -1,100 +1,88 @@
-"""Per-base tracks and calls of one DHS, computed from posterior draws."""
+"""One DHS: stage-1 posteriors per sample, stage-2 tracks per group, and the calls derived from them."""
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 
-from .config import DEFAULT_DF_MODEL, DifferentialFootprintModelConfig
-from .model import DifferentialFootprintModel
+from .calls import discriminability, group_tracks, p_footprint, runs
+from .config import DEFAULT_DF_CONFIG, DifferentialFootprintConfig
+from .segmentation import segment_samples
 
 
 @dataclass(frozen=True)
 class DifferentialFootprintFit:
     group_names: tuple[str, ...]
-    depth_mean: np.ndarray     # n x G, log2
-    depth_lo: np.ndarray       # n x G, 5% quantile
-    depth_hi: np.ndarray       # n x G, 95% quantile
-    p_any: np.ndarray          # n, P(min_g depth < 0)
-    delta_mean: np.ndarray     # n x G, E[Delta_g], Delta_g = u_g - median of the other groups' u, u = observable(depth)
-    p_more: np.ndarray         # n x G, P(Delta < -delta)
-    p_less: np.ndarray         # n x G, P(Delta > +delta)
-    p_pattern: np.ndarray      # n - 1, P(group-pattern boundary between j and j + 1)
-    p_consensus: np.ndarray    # n - 1, P(consensus boundary between j and j + 1)
-    icc: np.ndarray            # n, E[omega^2 / (omega^2 + within-group variance)]
-    log_evidence: float
-    config: str                # ModelConfig as JSON
+    sample_names: tuple[str, ...]
+    sample_groups: tuple[str, ...]
+    theta_mean: np.ndarray     # S x n, stage-1 posterior mean depth (log2)
+    theta_var: np.ndarray      # S x n, stage-1 posterior variance
+    mean: np.ndarray           # G x n, group mean depth
+    se: np.ndarray             # G x n, its standard error
+    delta: np.ndarray          # G x n, mean - median of the other groups' means
+    a_more: np.ndarray         # G x n, discriminability, more depleted than the other groups
+    a_less: np.ndarray         # G x n, less depleted
+    lo_more: np.ndarray        # G x n, 95% lower bounds
+    lo_less: np.ndarray
+    p_any: np.ndarray          # n, P(some group's mean depth < -fold)
+    config: str                # DifferentialFootprintConfig as JSON
 
     @property
-    def footprints(self) -> list[tuple[int, int]]:
-        return runs(self.p_any >= DifferentialFootprintModelConfig.from_json(self.config).prob)
+    def cfg(self) -> DifferentialFootprintConfig:
+        return DifferentialFootprintConfig.from_json(self.config)
 
     def called(self, kind: str) -> np.ndarray:
-        """n x G mask of "more" or "less" calls: runs with probability >= prob and at least min_len bases."""
-        cfg = DifferentialFootprintModelConfig.from_json(self.config)
-        p = self.p_more if kind == "more" else self.p_less
-        return np.stack([long_runs(p[:, g] >= cfg.prob, cfg.min_len) for g in range(p.shape[1])], axis=1)
+        """G x n mask of "more" or "less" calls: lower bound of A >= a_min and |Delta| > fold, runs >= min_len."""
+        cfg, sign = self.cfg, -1 if kind == "more" else 1
+        ok = (getattr(self, f"lo_{kind}") >= cfg.a_min) & (sign * self.delta > cfg.fold)
+        out = np.zeros(ok.shape, bool)
+        for g, row in enumerate(ok):
+            for s, e in runs(row, cfg.min_len):
+                out[g, s:e] = True
+        return out
 
     @property
-    def calls(self) -> list[tuple[str, str, int, int]]:
-        return [(name, kind, s, e) for kind in ("more", "less")
-                for name, col in zip(self.group_names, self.called(kind).T) for s, e in runs(col)]
+    def calls(self) -> pd.DataFrame:
+        """One row per call, ranked by the mean lower bound of A."""
+        rows = [dict(group=name, kind=kind, start=s, end=e, effect=abs(self.delta[g, s:e].mean()),
+                     a=getattr(self, f"a_{kind}")[g, s:e].mean(), a_lo=getattr(self, f"lo_{kind}")[g, s:e].mean())
+                for kind in ("more", "less") for g, name in enumerate(self.group_names) for s, e in runs(self.called(kind)[g])]
+        return pd.DataFrame(rows, columns=["group", "kind", "start", "end", "effect", "a", "a_lo"]).sort_values("a_lo", ascending=False)
+
+    @property
+    def footprinted(self) -> np.ndarray:
+        cfg = self.cfg; out = np.zeros(self.p_any.shape, bool)
+        for s, e in runs(self.p_any >= cfg.p_footprint, cfg.min_len):
+            out[s:e] = True
+        return out
 
     def region_table(self) -> pd.DataFrame:
         """One row per run of footprinted / non-footprinted bases, with differential base counts."""
-        fp, more, less = self.p_any >= DifferentialFootprintModelConfig.from_json(self.config).prob, self.called("more"), self.called("less")
+        fp, more, less = self.footprinted, self.called("more"), self.called("less")
         cuts = np.r_[0, np.flatnonzero(np.diff(fp)) + 1, fp.size]
         rows = []
         for i, (s, e) in enumerate(zip(cuts[:-1], cuts[1:])):
-            m, l = more[s:e], less[s:e]
-            row = dict(region_id=i, start=s, end=e, width=e - s,
-                       status="footprinted" if fp[s] else "not_footprinted",
-                       p_any_mean=self.p_any[s:e].mean(), icc_mean=self.icc[s:e].mean(),
-                       diff_more_n_bases=m.any(1).sum(), diff_less_n_bases=l.any(1).sum(),
-                       diff_n_bases=(m | l).any(1).sum())
+            m, l = more[:, s:e], less[:, s:e]
+            row = dict(region_id=i, start=s, end=e, width=e - s, status="footprinted" if fp[s] else "not_footprinted",
+                       p_any_mean=self.p_any[s:e].mean(), diff_more_n_bases=m.any(0).sum(), diff_less_n_bases=l.any(0).sum(),
+                       diff_n_bases=(m | l).any(0).sum())
             for g, name in enumerate(self.group_names):
-                row[f"{name}__more_n_bases"], row[f"{name}__less_n_bases"] = m[:, g].sum(), l[:, g].sum()
+                row[f"{name}__more_n_bases"], row[f"{name}__less_n_bases"] = m[g].sum(), l[g].sum()
             rows.append(row)
         return pd.DataFrame(rows)
 
 
-def fit_differential_footprints(x: np.ndarray, v: np.ndarray, sigma2: np.ndarray, group_names: Sequence[str],
-                   config: DifferentialFootprintModelConfig = DEFAULT_DF_MODEL) -> DifferentialFootprintFit:
-    """Fit one DHS from group summaries: x, v, sigma2 (groups x positions, log2); v is widened by the group nugget."""
-    model = DifferentialFootprintModel(x, np.asarray(v) + config.nugget(group_names)[:, None], sigma2, config)
-    depth, p_pattern, p_consensus, icc = model.sample(config.n_draws, config.seed)
-    delta = delta_from_others(observable(depth, config.call_floor))
-    lo, hi = np.quantile(depth, [0.05, 0.95], axis=0)
+def fit_differential_footprints(groups: pd.Series, obs: pd.DataFrame, exp: pd.DataFrame, disp_models: pd.Series,
+                                config: DifferentialFootprintConfig = DEFAULT_DF_CONFIG) -> DifferentialFootprintFit:
+    """groups: sample -> group label; obs, exp: samples x positions; disp_models: sample -> dispersion model."""
+    samples, labels = groups.index, groups.to_numpy().astype(str)
+    names = tuple(pd.unique(labels)); idx = [np.flatnonzero(labels == g) for g in names]
+    if min(map(len, idx)) < 2:
+        raise ValueError("every group needs at least two samples")
+    m, v = segment_samples(obs.loc[samples].to_numpy(float), exp.loc[samples].to_numpy(float), disp_models.loc[samples].to_numpy(), config)
+    mean, se, delta = group_tracks(m, v, idx)
+    disc = discriminability(m, v, idx, config.n_boot, config.seed)
     f32 = lambda a: np.asarray(a, np.float32)
-    return DifferentialFootprintFit(
-        tuple(map(str, group_names)), f32(depth.mean(0)), f32(lo), f32(hi),
-        f32((depth.min(2) < 0).mean(0)), f32(delta.mean(0)),
-        f32((delta < -config.delta).mean(0)), f32((delta > config.delta).mean(0)),
-        f32(p_pattern), f32(p_consensus), f32(icc),
-        float(sum(model.log_evidence()) + model.const), config.to_json(),
-    )
-
-
-def observable(depth: np.ndarray, c: float) -> np.ndarray:
-    """Depth as a sample with floor c sees it: groups are compared where the counts can tell them apart."""
-    return np.log2(c + (1 - c) * np.exp2(depth))
-
-
-def delta_from_others(depth: np.ndarray) -> np.ndarray:
-    """Delta_g = depth_g - median depth of the other groups; depth is draws x n x G."""
-    G = depth.shape[2]
-    return depth - np.stack([np.median(np.delete(depth, g, axis=2), axis=2) for g in range(G)], axis=2)
-
-
-def long_runs(mask: np.ndarray, min_len: int) -> np.ndarray:
-    out = np.zeros(len(mask), bool)
-    for s, e in runs(mask):
-        out[s:e] = e - s >= min_len
-    return out
-
-
-def runs(mask: np.ndarray) -> list[tuple[int, int]]:
-    """Half-open (start, end) runs of True in a 1-D boolean array."""
-    edges = np.flatnonzero(np.diff(np.r_[0, np.asarray(mask, int), 0]))
-    return list(zip(edges[::2].tolist(), edges[1::2].tolist()))
+    return DifferentialFootprintFit(names, tuple(map(str, samples)), tuple(labels), f32(m), f32(v), f32(mean), f32(se), f32(delta),
+                                    *(f32(disc[k]) for k in ("a_more", "a_less", "lo_more", "lo_less")),
+                                    f32(p_footprint(mean, se, config.fold)), config.to_json())
