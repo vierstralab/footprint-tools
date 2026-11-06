@@ -21,7 +21,7 @@ class DifferentialFootprintConfig:
     fold: float = float(np.log2(1.5))   # call: |Delta| > fold; footprint: some group mean depth < -fold
     p_footprint: float = 0.95       # footprint: P(min_g mean depth < -fold)
     min_len: int = 5                # shortest call or footprint, bp
-    n_boot: int = 500
+    n_boot: int = 2000
     seed: int = 0
 
     def grid(self) -> np.ndarray:

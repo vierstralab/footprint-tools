@@ -22,20 +22,16 @@ def discriminability(m: np.ndarray, v: np.ndarray, idx: list[np.ndarray], n_boot
     """A for "more" and "less" depleted, and their 95% bootstrap lower bounds (groups x positions)."""
     G, n = len(idx), m.shape[1]; rng = np.random.default_rng(seed)
     w = [rng.multinomial(len(i), np.full(len(i), 1 / len(i)), n_boot) / len(i) for i in idx]   # resampling weights
-    pi, boot = np.full((G, G, n), .5), np.full((G, G, n_boot, n), .5)
+    a, boot = np.zeros((G, n)), np.zeros((G, n_boot, n))       # sums of pi_gh over the other groups, and per replicate
     for g in range(G):
         for h in range(g + 1, G):
             ig, ih = idx[g], idx[h]
             P = ndtr((m[ih][None] - m[ig][:, None]) / np.sqrt(v[ig][:, None] + v[ih][None]))      # n_g x n_h x n
-            pi[g, h] = P.mean((0, 1)); pi[h, g] = 1 - pi[g, h]
-            boot[g, h] = np.einsum('rtj,rt->rj', (w[g] @ P.reshape(len(ig), -1)).reshape(n_boot, len(ih), n), w[h])
-            boot[h, g] = 1 - boot[g, h]
-    others = lambda x, g: np.delete(x[g], g, 0).mean(0)
-    out = {}
-    for kind, x, b in (("more", pi, boot), ("less", 1 - pi, 1 - boot)):
-        out[f"a_{kind}"] = np.stack([others(x, g) for g in range(G)])
-        out[f"lo_{kind}"] = np.stack([np.quantile(others(b, g), .05, axis=0) for g in range(G)])
-    return out
+            p = P.mean((0, 1))
+            b = np.einsum('rtj,rt->rj', (w[g] @ P.reshape(len(ig), -1)).reshape(n_boot, len(ih), n), w[h])
+            a[g] += p; a[h] += 1 - p; boot[g] += b; boot[h] += 1 - b
+    a, boot = a / (G - 1), boot / (G - 1)
+    return dict(a_more=a, a_less=1 - a, lo_more=np.quantile(boot, .05, axis=1), lo_less=np.quantile(1 - boot, .05, axis=1))
 
 
 def p_footprint(mean: np.ndarray, se: np.ndarray, fold: float) -> np.ndarray:
