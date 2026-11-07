@@ -25,16 +25,19 @@ def save_data_results(data: DataBundle, path: str | Path) -> None:
     np.savez_compressed(path, __interval__=np.asarray(data.interval.to_ucsc()), **payload)
 
 
+def load_fit(path: str | Path) -> tuple[GenomicInterval, DifferentialFootprintFit]:
+    with np.load(path, allow_pickle=False) as h:
+        interval = GenomicInterval.from_ucsc(h["__interval__"].item())
+        values = {f.name: h[f.name] for f in fields(DifferentialFootprintFit)}
+    text = lambda x: str(x) if x.ndim == 0 else tuple(x.tolist())
+    return interval, DifferentialFootprintFit(**{k: text(x) if x.dtype.kind == "U" else x for k, x in values.items()})
+
+
 def load_data_results(path: str | Path, data: DataBundle | None = None) -> DataBundle:
     """Load results saved by `save_data_results`; per-position arrays are realigned to data.interval when given."""
-    with np.load(path, allow_pickle=False) as h:
-        source = GenomicInterval.from_ucsc(h["__interval__"].item())
-        data = DataBundle(interval=source) if data is None else data
-        data.footprints = DifferentialFootprintFit(**{f.name: _value(h[f.name], source, data.interval) for f in fields(DifferentialFootprintFit)})
+    source, fit = load_fit(path)
+    data = DataBundle(interval=source) if data is None else data
+    n = len(source)
+    realign = lambda x: realign_matrix(x, source, data.interval) if isinstance(x, np.ndarray) and x.ndim and x.shape[-1] == n else x
+    data.footprints = DifferentialFootprintFit(**{f.name: realign(getattr(fit, f.name)) for f in fields(DifferentialFootprintFit)})
     return data
-
-
-def _value(x: np.ndarray, source: GenomicInterval, target: GenomicInterval) -> np.ndarray | str | tuple:
-    if x.dtype.kind == "U":
-        return str(x) if x.ndim == 0 else tuple(x.tolist())
-    return realign_matrix(x, source, target)       # positions are the last axis
