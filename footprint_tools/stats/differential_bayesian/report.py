@@ -1,7 +1,8 @@
 """Genome-wide report from per-DHS results: Benjamini-Hochberg over all positions and over DHSs, Storey's pi0, calls,
 tables and a summary page.  python -m footprint_tools.stats.differential_bayesian.report FILES_OR_FOLDERS... --prefix diff
 Writes <prefix>.calls.tsv (one row per call), <prefix>.regions.tsv (one row per footprinted / not footprinted run of a
-DHS), <prefix>.dhs.tsv, <prefix>.cutoffs.tsv, <prefix>.summary.pdf."""
+DHS), <prefix>.region_groups.tsv (long: region x group x direction with called bases), <prefix>.dhs.tsv,
+<prefix>.cutoffs.tsv, <prefix>.summary.pdf."""
 
 import argparse
 from pathlib import Path
@@ -34,19 +35,22 @@ def report(paths: list[Path], prefix: str) -> None:
         raise ValueError("d_min must be one of report_d")
     lp = np.concatenate(lp, 1); dhs = pd.DataFrame(rows)
     cut = {e: bh_cutoff(lp[i], cfg.fdr) for i, e in enumerate(E)}
-    calls, regions = [], []
+    calls, regions, region_groups = [], [], []
     for p in paths:                                                    # pass 2: calls at the genome-wide cutoff
         interval, f = load_fit(p)
-        for out, t in ((calls, f.calls(cut[cfg.d_min])), (regions, f.region_table(cut[cfg.d_min]))):
-            t.insert(0, "interval", interval.to_ucsc()); t.insert(0, "dhs_id", dhs_id(p)); out.append(t)
-    calls, regions = pd.concat(calls, ignore_index=True), pd.concat(regions, ignore_index=True)
+        c, (r, rg) = f.calls(cut[cfg.d_min]), f.region_table(cut[cfg.d_min])
+        for t in (c, r):
+            t.insert(0, "interval", interval.to_ucsc())
+        for out, t in ((calls, c), (regions, r), (region_groups, rg)):
+            t.insert(0, "dhs_id", dhs_id(p)); out.append(t)
+    calls, regions, region_groups = (pd.concat(x, ignore_index=True) for x in (calls, regions, region_groups))
     for e in E:
         dhs[f"log10q_d{e}"] = bh_q(dhs[f"log10p_d{e}"].to_numpy())
     dhs["n_calls"] = dhs.dhs_id.map(calls.dhs_id.value_counts()).fillna(0).astype(int)
     cutoffs = pd.DataFrame([dict(d=e, base_log10p_cutoff=cut[e], base_frac=(lp[i] <= cut[e]).mean(), base_pi0=storey_pi0(lp[i]),
                                  dhs_frac=(dhs[f"log10q_d{e}"] <= np.log10(cfg.fdr)).mean(), dhs_pi0=storey_pi0(dhs[f"log10p_d{e}"].to_numpy()))
                             for i, e in enumerate(E)])
-    for name, t in (("calls", calls), ("regions", regions), ("dhs", dhs), ("cutoffs", cutoffs)):
+    for name, t in (("calls", calls), ("regions", regions), ("region_groups", region_groups), ("dhs", dhs), ("cutoffs", cutoffs)):
         t.to_csv(f"{prefix}.{name}.tsv", sep="\t", index=False, float_format="%.4g")
     summary_page(cfg, lp, dhs, calls, cutoffs, np.concatenate(xi), np.concatenate(c95), f.group_names, f"{prefix}.summary.pdf")
 

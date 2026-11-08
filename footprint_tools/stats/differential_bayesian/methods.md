@@ -10,7 +10,7 @@ set of groups is more or less depleted than the other groups). Depths are log2 o
 | Footprints, calls, multiple testing | `calls.py` | runs, BH, Storey's $\pi_0$ |
 | Container, calls at a cutoff | `results.py` | `DifferentialFootprintFit` |
 | DataBundle loader, NPZ storage | `api.py` | `DifferentialFootprintLoader`, `save_data_results`, `load_fit` |
-| Genome-wide pooling | `report.py` | call, region (footprinted / not), DHS and cutoff tables, summary page |
+| Genome-wide pooling | `report.py` | call, region (footprinted / not; groups per region in long format), DHS and cutoff tables, summary page |
 
 **Stage 1.** $y_{sj} \sim \mathrm{NB}(m_s(\lambda_{sj}2^{\theta_{sj}}), r_s(\lambda_{sj}2^{\theta_{sj}}))$ with each
 sample's dispersion model. $\theta_s$ is piecewise constant: block lengths ~ discretized gamma (mean 24.8, shape 1.9,

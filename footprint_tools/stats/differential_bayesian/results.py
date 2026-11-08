@@ -61,9 +61,10 @@ class DifferentialFootprintFit:
                 for c in C]
         return pd.DataFrame(rows, columns=['kind', 'start', 'end', 'groups', 'partial', 'd', 'min_log10p', 'in_footprint'])
 
-    def region_table(self, cutoff: float) -> pd.DataFrame:
-        """One row per run of footprinted / not footprinted positions: called bases and calls overlapping it, per
-        direction, and per group the bases where the group is in a call's set."""
+    def region_table(self, cutoff: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+        """Runs of footprinted / not footprinted positions. Regions: one row each, with called bases and overlapping
+        calls per direction. Groups (long): one row per region, group and direction with bases where the group is in a
+        call's set, only where there are any."""
         C, fp, G, n = self._calls(cutoff), self.footprinted, len(self.group_names), self.p_any.size
         called = {k: np.zeros(n, bool) for k in ('more', 'less')}
         member = {k: np.zeros((G, n), bool) for k in called}
@@ -73,18 +74,17 @@ class DifferentialFootprintFit:
                 for a, b in spans:
                     member[c['kind']][k, a:b] = True
         cuts = np.r_[0, np.flatnonzero(np.diff(fp)) + 1, n]
-        rows = []
+        rows, group_rows = [], []
         for i, (s, e) in enumerate(zip(cuts[:-1].tolist(), cuts[1:].tolist())):
             row = dict(region_id=i, start=s, end=e, width=e - s, status='footprinted' if fp[s] else 'not_footprinted',
                        p_any_mean=round(float(self.p_any[s:e].mean()), 3),
                        more_n_bases=int(called['more'][s:e].sum()), less_n_bases=int(called['less'][s:e].sum()),
                        diff_n_bases=int((called['more'] | called['less'])[s:e].sum()),
                        **{f'n_calls_{k}': sum(c['kind'] == k and c['start'] < e and c['end'] > s for c in C) for k in called})
-            for k, name in enumerate(self.group_names):
-                row[f'{name}__more_n_bases'] = int(member['more'][k, s:e].sum())
-                row[f'{name}__less_n_bases'] = int(member['less'][k, s:e].sum())
             rows.append(row)
-        return pd.DataFrame(rows)
+            group_rows += [dict(region_id=i, group=name, kind=kind, n_bases=int(nb)) for kind in called
+                           for name, nb in zip(self.group_names, member[kind][:, s:e].sum(1)) if nb]
+        return pd.DataFrame(rows), pd.DataFrame(group_rows, columns=['region_id', 'group', 'kind', 'n_bases'])
 
 
 def fit_differential_footprints(groups: pd.Series, obs: pd.DataFrame, exp: pd.DataFrame, disp_models: pd.Series,
