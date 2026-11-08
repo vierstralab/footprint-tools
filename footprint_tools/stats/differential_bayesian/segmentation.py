@@ -58,7 +58,8 @@ def gamma_lengths(l_max: int, mean: float, shape: float, l_min: int) -> np.ndarr
 
 def forward_backward(ll: np.ndarray, grid: np.ndarray, level: np.ndarray, lengths: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Exact posterior moments of a piecewise-constant theta. ll: samples x positions x grid (log-likelihoods);
-    level: log prior mass of a block level on the grid; lengths: log prior of block lengths (index = length)."""
+    level: log prior mass of a block level on the grid; lengths: log prior of block lengths (index = length).
+    Standard forward-backward recursion for product partition models (Barry & Hartigan 1992)"""
     S, n, T = ll.shape
     Ls = np.arange(1, len(lengths))
     C = np.concatenate([np.zeros((S, 1, T)), np.cumsum(ll, 1)], 1)

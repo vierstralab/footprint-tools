@@ -17,8 +17,8 @@ class DifferentialFootprintConfig:
     length_min: int = 2
     length_max: int = 150
     chunk: int = 40                 # samples segmented at once
-    w_min: float = 0.8              # call: W of the set on the called side at least this
-    report_w: tuple = (0.5, 0.6, 0.7, 0.75, 0.8)    # thresholds with p-values kept for the genome-wide report
+    d_min: float = 0.6              # call: effect d of the set on the called side at least this (d = 2W - 1)
+    report_d: tuple = (0.0, 0.2, 0.4, 0.5, 0.6)     # thresholds with p-values kept for the genome-wide report
     k_max: int = 5                  # sets of up to k_max groups
     n_perm: int = 1000              # label permutations
     perm_batch: int = 40            # permutations per matrix product
@@ -39,7 +39,10 @@ class DifferentialFootprintConfig:
     @classmethod
     def from_json(cls, text: str) -> "DifferentialFootprintConfig":
         d = json.loads(text)
-        return cls(**{**d, 'report_w': tuple(d['report_w'])})
+        if 'w_min' in d:                                    # saved before W was replaced by d = 2W - 1
+            d['d_min'] = round(2 * d.pop('w_min') - 1, 6)
+            d['report_d'] = [round(2 * w - 1, 6) for w in d.pop('report_w')]
+        return cls(**{**d, 'report_d': tuple(d['report_d'])})
 
 
 DEFAULT_DF_CONFIG = DifferentialFootprintConfig()

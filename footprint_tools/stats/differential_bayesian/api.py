@@ -28,7 +28,8 @@ def save_data_results(data: DataBundle, path: str | Path) -> None:
 def load_fit(path: str | Path) -> tuple[GenomicInterval, DifferentialFootprintFit]:
     with np.load(path, allow_pickle=False) as h:
         interval = GenomicInterval.from_ucsc(h["__interval__"].item())
-        values = {f.name: h[f.name] for f in fields(DifferentialFootprintFit)}
+        values = {f.name: h[f.name] if f.name in h else 2 * h['w' + f.name[1:]] - 1      # older files: W, d = 2W - 1
+                  for f in fields(DifferentialFootprintFit)}
     text = lambda x: str(x) if x.ndim == 0 else tuple(x.tolist())
     return interval, DifferentialFootprintFit(**{k: text(x) if x.dtype.kind == "U" else x for k, x in values.items()})
 

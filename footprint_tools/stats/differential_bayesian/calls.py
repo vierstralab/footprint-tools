@@ -35,19 +35,19 @@ def storey_pi0(lp: np.ndarray, lam: float = .5) -> float:
     return min(1., float((lp > np.log10(lam)).mean() / (1 - lam)))
 
 
-def differential_calls(lp: dict, sets: dict, w: dict, set_list: list[tuple[int, ...]], cutoff: float, min_len: int) -> list[dict]:
+def differential_calls(lp: dict, sets: dict, d: dict, set_list: list[tuple[int, ...]], cutoff: float, min_len: int) -> list[dict]:
     """Calls from the best set per direction ('more', 'less') at every position: runs of >= min_len positions passing
     the cutoff. A group belongs to a call where it is in the best set for >= min_len consecutive positions. Where both
     directions pass and their sets share a group, the weaker direction gives way."""
-    ok = {d: lp[d] <= cutoff for d in lp}
+    ok = {k: lp[k] <= cutoff for k in lp}
     clash = ok['more'] & ok['less'] & np.array([bool(set(set_list[a]) & set(set_list[b])) for a, b in zip(sets['more'], sets['less'])])
     weaker_more = lp['more'] > lp['less']
     ok['more'] &= ~(clash & weaker_more); ok['less'] &= ~(clash & ~weaker_more)
     out = []
-    for d in ('more', 'less'):
-        for s, e in runs(ok[d], min_len):
-            members = [set_list[i] for i in sets[d][s:e]]
+    for kind in ('more', 'less'):
+        for s, e in runs(ok[kind], min_len):
+            members = [set_list[i] for i in sets[kind][s:e]]
             spans = {k: [(s + a, s + b) for a, b in runs([k in x for x in members], min_len)] for k in sorted(set().union(*members))}
-            spans = {k: v for k, v in spans.items() if v} or {k: [(s, e)] for k in set_list[np.bincount(sets[d][s:e]).argmax()]}
-            out.append(dict(kind=d, start=s, end=e, spans=spans, w=float(w[d][s:e].mean()), min_log10p=float(lp[d][s:e].min())))
+            spans = {k: v for k, v in spans.items() if v} or {k: [(s, e)] for k in set_list[np.bincount(sets[kind][s:e]).argmax()]}
+            out.append(dict(kind=kind, start=s, end=e, spans=spans, d=float(d[kind][s:e].mean()), min_log10p=float(lp[kind][s:e].min())))
     return sorted(out, key=lambda c: c['start'])

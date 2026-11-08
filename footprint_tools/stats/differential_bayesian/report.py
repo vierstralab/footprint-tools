@@ -1,6 +1,7 @@
 """Genome-wide report from per-DHS results: Benjamini-Hochberg over all positions and over DHSs, Storey's pi0, calls,
 tables and a summary page.  python -m footprint_tools.stats.differential_bayesian.report FILES_OR_FOLDERS... --prefix diff
-Writes <prefix>.calls.tsv, <prefix>.dhs.tsv, <prefix>.cutoffs.tsv, <prefix>.summary.pdf."""
+Writes <prefix>.calls.tsv (one row per call), <prefix>.regions.tsv (one row per footprinted / not footprinted run of a
+DHS), <prefix>.dhs.tsv, <prefix>.cutoffs.tsv, <prefix>.summary.pdf."""
 
 import argparse
 from pathlib import Path
@@ -26,46 +27,47 @@ def report(paths: list[Path], prefix: str) -> None:
     for p in paths:                                                    # pass 1: everything except the calls
         interval, f = load_fit(p)
         rows.append(dict(dhs_id=dhs_id(p), interval=interval.to_ucsc(), width=f.p_any.size, footprint_bases=int(f.footprinted.sum()),
-                         **{f"log10p_w{w}": float(x) for w, x in zip(f.cfg.report_w, f.lp_dhs)}))
+                         **{f"log10p_d{e}": float(x) for e, x in zip(f.cfg.report_d, f.lp_dhs)}))
         lp.append(f.lp); xi.append(f.xi); c95.append(f.c95)
-    cfg = f.cfg; W = cfg.report_w
-    if cfg.w_min not in W:
-        raise ValueError("w_min must be one of report_w")
+    cfg = f.cfg; E = cfg.report_d
+    if cfg.d_min not in E:
+        raise ValueError("d_min must be one of report_d")
     lp = np.concatenate(lp, 1); dhs = pd.DataFrame(rows)
-    cut = {w: bh_cutoff(lp[i], cfg.fdr) for i, w in enumerate(W)}
-    calls = []
+    cut = {e: bh_cutoff(lp[i], cfg.fdr) for i, e in enumerate(E)}
+    calls, regions = [], []
     for p in paths:                                                    # pass 2: calls at the genome-wide cutoff
         interval, f = load_fit(p)
-        c = f.calls(cut[cfg.w_min]); c.insert(0, "interval", interval.to_ucsc()); c.insert(0, "dhs_id", dhs_id(p)); calls.append(c)
-    calls = pd.concat(calls, ignore_index=True)
-    for i, w in enumerate(W):
-        dhs[f"log10q_w{w}"] = bh_q(dhs[f"log10p_w{w}"].to_numpy())
+        for out, t in ((calls, f.calls(cut[cfg.d_min])), (regions, f.region_table(cut[cfg.d_min]))):
+            t.insert(0, "interval", interval.to_ucsc()); t.insert(0, "dhs_id", dhs_id(p)); out.append(t)
+    calls, regions = pd.concat(calls, ignore_index=True), pd.concat(regions, ignore_index=True)
+    for e in E:
+        dhs[f"log10q_d{e}"] = bh_q(dhs[f"log10p_d{e}"].to_numpy())
     dhs["n_calls"] = dhs.dhs_id.map(calls.dhs_id.value_counts()).fillna(0).astype(int)
-    cutoffs = pd.DataFrame([dict(w=w, base_log10p_cutoff=cut[w], base_frac=(lp[i] <= cut[w]).mean(), base_pi0=storey_pi0(lp[i]),
-                                 dhs_frac=(dhs[f"log10q_w{w}"] <= np.log10(cfg.fdr)).mean(), dhs_pi0=storey_pi0(dhs[f"log10p_w{w}"].to_numpy()))
-                            for i, w in enumerate(W)])
-    for name, t in (("calls", calls), ("dhs", dhs), ("cutoffs", cutoffs)):
+    cutoffs = pd.DataFrame([dict(d=e, base_log10p_cutoff=cut[e], base_frac=(lp[i] <= cut[e]).mean(), base_pi0=storey_pi0(lp[i]),
+                                 dhs_frac=(dhs[f"log10q_d{e}"] <= np.log10(cfg.fdr)).mean(), dhs_pi0=storey_pi0(dhs[f"log10p_d{e}"].to_numpy()))
+                            for i, e in enumerate(E)])
+    for name, t in (("calls", calls), ("regions", regions), ("dhs", dhs), ("cutoffs", cutoffs)):
         t.to_csv(f"{prefix}.{name}.tsv", sep="\t", index=False, float_format="%.4g")
     summary_page(cfg, lp, dhs, calls, cutoffs, np.concatenate(xi), np.concatenate(c95), f.group_names, f"{prefix}.summary.pdf")
 
 
 def summary_page(cfg, lp, dhs, calls, cutoffs, xi, c95, groups, path):
     plt.rcParams.update({"font.size": 8.5, "axes.titlelocation": "left", "axes.spines.top": False, "axes.spines.right": False, "pdf.fonttype": 42})
-    W, i_min = cfg.report_w, cfg.report_w.index(cfg.w_min)
+    E, i_min = cfg.report_d, cfg.report_d.index(cfg.d_min)
     fig, axs = plt.subplots(3, 3, figsize=(15, 13), gridspec_kw=dict(hspace=.55, wspace=.3, left=.06, right=.97, top=.92, bottom=.06))
-    fig.suptitle(f"Differential footprints: {len(dhs):,} DHSs, {lp.shape[1]:,} positions; calls at W ≥ {cfg.w_min}, BH {cfg.fdr:g} over all positions "
+    fig.suptitle(f"Differential footprints: {len(dhs):,} DHSs, {lp.shape[1]:,} positions; calls at d ≥ {cfg.d_min}, BH {cfg.fdr:g} over all positions "
                  f"(p ≤ 1e{cutoffs.base_log10p_cutoff[i_min]:.2f})", x=.06, ha="left", fontsize=12, weight="bold")
-    ax = axs[0, 0]; lab = ["any" if w == .5 else f"W ≥ {w}" for w in W]
+    ax = axs[0, 0]; lab = ["any" if e == 0 else f"d ≥ {e}" for e in E]
     ax.plot(lab, cutoffs.dhs_frac, "o-", c="k", label="DHSs: BH discoveries"); ax.plot(lab, 1 - cutoffs.dhs_pi0, "o:", c="k", label="DHSs: 1 − π0")
     ax.plot(lab, cutoffs.base_frac, "s-", c="0.55", label="positions: BH discoveries"); ax.plot(lab, 1 - cutoffs.base_pi0, "s:", c="0.55", label="positions: 1 − π0")
     ax.set_ylim(0, 1.03); ax.legend(fontsize=7, frameon=False); ax.set_title("Fraction differential by the effect required\n(above 'any', 1 − π0 is a lower bound)")
     bins = np.linspace(0, 1, 21)
-    for ax, i, t in ((axs[0, 1], 0, "any difference"), (axs[0, 2], i_min, f"W ≥ {cfg.w_min}")):
+    for ax, i, t in ((axs[0, 1], 0, "any difference"), (axs[0, 2], i_min, f"d ≥ {cfg.d_min}")):
         ax.hist(10 ** lp[i], bins=bins, density=True, color="0.6"); ax.axhline(cutoffs.base_pi0[i], c="k", ls="--", lw=1)
         ax.set_xlabel("p"); ax.set_title(f"Per-position p, null: {t} not reached\nπ0 = {cutoffs.base_pi0[i]:.2f}")
     ax = axs[1, 0]
-    for w, col in ((W[0], "0.5"), (cfg.w_min, MORE)):
-        ax.hist(10 ** dhs[f"log10p_w{w}"], bins=bins, density=True, histtype="step", lw=1.6, color=col, label="any" if w == .5 else f"W ≥ {w}")
+    for e, col in ((E[0], "0.5"), (cfg.d_min, MORE)):
+        ax.hist(10 ** dhs[f"log10p_d{e}"], bins=bins, density=True, histtype="step", lw=1.6, color=col, label="any" if e == 0 else f"d ≥ {e}")
     ax.legend(fontsize=7.5, frameon=False); ax.set_xlabel("p"); ax.set_title("Per-DHS p (best 5-bp window)")
     ax = axs[1, 1]; n = np.minimum(dhs.n_calls, 10); ax.bar(*np.unique(n, return_counts=True), color="0.6")
     ax.set_xlabel("calls per DHS (10 = 10+)"); ax.set_title(f"{(dhs.n_calls > 0).sum():,} DHSs with ≥ 1 call; {len(calls):,} calls")
