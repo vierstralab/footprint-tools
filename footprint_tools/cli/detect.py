@@ -11,7 +11,7 @@ import pandas as pd
 import pysam
 
 from genome_tools import GenomicInterval
-from genome_tools.data.dataset import Dataset
+from genome_tools.data.footprints import Dataset
 
 from footprint_tools import cutcounts
 from footprint_tools.modeling.bias import KmerModel, UniformModel

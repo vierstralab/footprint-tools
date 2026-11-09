@@ -10,7 +10,7 @@ import pandas as pd
 import pysam
 
 from genome_tools import GenomicInterval
-from genome_tools.data.dataset import Dataset
+from genome_tools.data.footprints import Dataset
 from genome_tools.data.utils import numpy_collate_concat
 
 from footprint_tools import cutcounts

@@ -1,0 +1,4 @@
+[build-system]
+# setup.py imports Cython and numpy to build the extensions
+requires = ["setuptools", "wheel", "cython", "numpy"]
+build-backend = "setuptools.build_meta"

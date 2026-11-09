@@ -12,7 +12,7 @@ from pandas.api.types import is_numeric_dtype
 import pysam
 
 from genome_tools import GenomicInterval
-from genome_tools.data.dataset import Dataset
+from genome_tools.data.footprints import Dataset
 
 from footprint_tools.modeling.dispersion import load_dispersion_model
 from footprint_tools.stats.posterior import (
