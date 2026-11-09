@@ -8,8 +8,8 @@ import numpy as np
 class DifferentialFootprintConfig:
     """Stage-1 segmentation prior, stage-2 test and call rule (depths in log2)."""
 
-    theta_min: float = -6.0         # depth grid
-    theta_max: float = 6.0
+    theta_min: float = -9.0         # depth grid
+    theta_max: float = 9.0
     theta_step: float = 0.2
     level_sd: float = 3.0           # block level ~ N(0, level_sd^2), wide on purpose
     length_mean: float = 24.8       # block lengths ~ discretized gamma
