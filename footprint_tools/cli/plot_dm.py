@@ -7,7 +7,7 @@ from matplotlib.pylab import rcParams
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as mgridspec
 
-from footprint_tools.modeling import dispersion
+from footprint_tools.modeling.dispersion import load_dispersion_model
 from footprint_tools.plotting import plot_model_fit, plot_model_histogram
 
 from footprint_tools.cli.utils import list_args
@@ -42,7 +42,7 @@ def run(dispersion_model_file, histograms=[15, 25, 50, 75], outfile="dm.pdf"):
     Outputs a PDF with plots
     """
     try:
-        dm = dispersion.load_dispersion_model(dispersion_model_file)
+        dm = load_dispersion_model(dispersion_model_file)
     except IOError as e:
         logger.critical(e)
         return 1

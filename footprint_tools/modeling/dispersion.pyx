@@ -7,6 +7,9 @@ This module contains classess and functions that implement a dispersion model.
 # cython: nonecheck=False
 # cython: embedsignature=True
 
+cdef extern from "math.h":
+    double pow(double, double) nogil
+
 cimport cython
 cimport numpy as np
 import numpy as np
@@ -23,7 +26,7 @@ import pwlf
 import logging
 logger = logging.getLogger(__name__)
 
-cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,
+cpdef data_type_t piecewise_three(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2,
                                      data_type_t y0, data_type_t y1, data_type_t y2,
                                      data_type_t k0, data_type_t k1, data_type_t k2):
     
@@ -33,7 +36,7 @@ cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t
         (x>=x1) * (y2 + k2*(x))
     )
 
-cpdef data_type_t piecewise_four(x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, 
+cpdef data_type_t piecewise_four(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3,
                                      data_type_t y0, data_type_t y1, data_type_t y2, data_type_t y3,
                                      data_type_t k0, data_type_t k1, data_type_t k2, data_type_t k3):
     
@@ -44,7 +47,7 @@ cpdef data_type_t piecewise_four(x, data_type_t x0, data_type_t x1, data_type_t 
         (x>=x2) * (y3 + k3*(x))
     )
 
-cpdef data_type_t piecewise_five(x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, data_type_t x4, 
+cpdef data_type_t piecewise_five(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, data_type_t x4,
                                      data_type_t y0, data_type_t y1, data_type_t y2, data_type_t y3, data_type_t y4,
                                      data_type_t k0, data_type_t k1, data_type_t k2, data_type_t k3, data_type_t k4):
     
@@ -56,7 +59,7 @@ cpdef data_type_t piecewise_five(x, data_type_t x0, data_type_t x1, data_type_t 
         (x>=x3) * (y4 + k4*(x))
     )
 
-cdef class dispersion_model:
+cdef class DispersionModel:
     """
     Dispersion model class
     """
@@ -77,7 +80,7 @@ cdef class dispersion_model:
         x = {}
         x['mu_params'] = self.mu_params
         x['r_params'] = self.r_params
-        return (dispersion_model, (), x)
+        return (DispersionModel, (), x)
 
     # Pickling function
     def __setstate__(self, x):
@@ -139,7 +142,12 @@ cdef class dispersion_model:
         """
 
         cdef data_type_t [:] par = self._mu_params
-        cdef data_type_t res = piecewise_three(x, *par)
+        cdef data_type_t res = piecewise_three(
+            x,
+            par[0], par[1], par[2],
+            par[3], par[4], par[5],
+            par[6], par[7], par[8],
+        )
 
         return res if res > 0.0 else 0.1
 
@@ -158,13 +166,57 @@ cdef class dispersion_model:
             r computed from the regression fit
         """
         cdef data_type_t [:] par = self._r_params
-        cdef data_type_t res = 1.0/piecewise_five(x, *par)
+        cdef data_type_t res = 1.0/piecewise_five(
+            x,
+            par[0], par[1], par[2], par[3], par[4],
+            par[5], par[6], par[7], par[8], par[9],
+            par[10], par[11], par[12], par[13], par[14],
+        )
 
         return res if res > 0.0 else 1e-6
 
+    cpdef tuple fit_r_p(self, object x):
+        cdef:
+            object x_arr
+            tuple shape
+
+            np.ndarray[data_type_t, ndim=1, mode="c"] x_flat
+            np.ndarray[data_type_t, ndim=1, mode="c"] r_flat
+            np.ndarray[data_type_t, ndim=1, mode="c"] p_flat
+
+            data_type_t[::1] x_view
+            data_type_t[::1] r_view
+            data_type_t[::1] p_view
+
+            Py_ssize_t i, n
+            data_type_t r_i, mu_i
+
+        x_arr = np.asarray(x, dtype=np.float64, order="C")
+        shape = x_arr.shape
+        x_flat = x_arr.ravel()
+
+        n = x_flat.shape[0]
+        r_flat = np.empty(n, dtype=np.float64)
+        p_flat = np.empty(n, dtype=np.float64)
+
+        x_view = x_flat
+        r_view = r_flat
+        p_view = p_flat
+
+        for i in range(n):
+            r_i = self.fit_r(x_view[i])
+            mu_i = self.fit_mu(x_view[i])
+
+            r_view[i] = r_i
+            p_view[i] = r_i / (r_i + mu_i)
+
+        return r_flat.reshape(shape), p_flat.reshape(shape)
+
     def __str__(self):
         """Print model to string"""
-        raise NotImplementedError
+        return "DispersionModel(mu_params={}, r_params={}, metadata={!r})".format(
+            self._mu_params, self._r_params, self._metadata
+        )
 
     @cython.cdivision(True)
     cpdef data_type_t [:] log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs):
@@ -354,6 +406,69 @@ cdef class dispersion_model:
 
         return sampled_vals, sampled_pvals
 
+    @cython.cdivision(True)
+    cpdef data_type_t[:, :, :] sample_mu(
+        self,
+        data_type_t[:] x,
+        data_type_t[:, :] theta_star,
+        data_type_t[:] theta,
+    ):
+        """
+        Sample counts under resampled log2 mean effects and evaluate them over
+        a grid of log2 mean effects.
+
+        Parameters
+        ----------
+        x
+            Baseline expected counts, shape (N,).
+        theta_star
+            Resampled log2 mean effects, shape (N, n_resamples).
+        theta
+            Grid of log2 mean effects, shape (n_theta,).
+        """
+        cdef:
+            Py_ssize_t i, j, k
+            data_type_t x_star, x_theta
+            data_type_t r, mu, p
+            long x_star_sampled
+            data_type_t[:, :, :] sampled_logpmf_vals
+
+        if theta_star.shape[0] != x.shape[0]:
+            raise ValueError(
+                "theta_star.shape[0] must equal x.shape[0]"
+            )
+
+        sampled_logpmf_vals = np.empty(
+            (x.shape[0], theta_star.shape[1], theta.shape[0]),
+            dtype=np.float64,
+            order="C",
+        )
+
+        for i in range(x.shape[0]):
+            for j in range(theta_star.shape[1]):
+                x_star = x[i] * 2.0 ** theta_star[i, j]
+
+                r = self.fit_r(x_star)
+                mu = self.fit_mu(x_star)
+                p = r / (r + mu)
+
+                x_star_sampled = np.random.negative_binomial(r, p)
+
+                for k in range(theta.shape[0]):
+                    x_theta = x[i] * 2.0 ** theta[k]
+
+                    r = self.fit_r(x_theta)
+                    mu = self.fit_mu(x_theta)
+                    p = r / (r + mu)
+
+                    sampled_logpmf_vals[i, j, k] = nbinom.logpmf(
+                        x_star_sampled,
+                        p,
+                        r,
+                    )
+
+        return sampled_logpmf_vals
+
 def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     """Learn a dispersion model from the expected 
     vs. observed histogram
@@ -404,7 +519,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
             x = np.random.choice(x, size=int(1e5))
             x = np.sort(x)
 
-        if len(x) >= cutoff:		
+        if len(x) >= cutoff:        
             # Find data points to trim
             lower = int(np.floor(x.shape[0]*(trim[0]/100.0)))
             upper = int(np.ceil(x.shape[0]*(trim[1]/100.0)))
@@ -458,15 +573,15 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     res = fit_r.fit_with_breaks_force_points(x0, [1], [1.0/r[1]])
     
     # Create a dispersion model class
-    res = dispersion_model()
-    res.h = h
-    res.p = p
-    res.r = r
+    model = DispersionModel()
+    model.h = h
+    model.p = p
+    model.r = r
 
-    res.mu_params = list(fit_mu.fit_breaks[1:]) + list(fit_mu.intercepts) + list(fit_mu.slopes)
-    res.r_params = list(fit_r.fit_breaks[1:]) + list(fit_r.intercepts) + list(fit_r.slopes)
+    model.mu_params = list(fit_mu.fit_breaks[1:]) + list(fit_mu.intercepts) + list(fit_mu.slopes)
+    model.r_params = list(fit_r.fit_breaks[1:]) + list(fit_r.intercepts) + list(fit_r.slopes)
     
-    return res
+    return model
 
 import base64
 
@@ -480,6 +595,7 @@ def base64decode(x):
         return arr.reshape(x[2])
     return arr
 
+# TODO: change to static class function
 def load_dispersion_model(filename):
     """Load a dispersion model encoded in JSON format
 
@@ -505,7 +621,7 @@ def load_dispersion_model(filename):
 
     file.close()
 
-    model = dispersion_model()
+    model = DispersionModel()
     model.mu_params = base64decode(params['mu_params'])
     model.r_params = base64decode(params['r_params'])
 

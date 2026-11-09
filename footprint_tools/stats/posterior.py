@@ -100,7 +100,7 @@ def log_likelihood(obs, exp, dm, delta=1, w=3):
         Observed cleavage counts
     exp : ndarray
         Expected cleavage counts
-    dm : :class:`dispersion_model`
+    dm : :class:`DispersionModel`
         Dispersional model to compute cleavage statistics
     delta : array_like, optional
         Values to scale exp counts

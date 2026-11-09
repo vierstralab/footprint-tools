@@ -37,7 +37,7 @@ class ReadFormatError(Exception):
     pass
 
 
-class bamfile(object):
+class BamFile(object):
     """Class to access BAM files
 
     Attributes
@@ -45,7 +45,7 @@ class bamfile(object):
     min_qual : int
         Filter reads by minimim mapping quality (MAPQ)
     offset : tuple
-        Position offsets to apply to the `+` and `-` strands,. DNase I data (0, -1).
+        Position offsets to apply to the `+` and `-` strands. DNase I data (0, -1).
         Tn5-derived data would use (4,-5). (default = (0, -1))
     remove_dups : bool
         Remove reads with duplicate flag (512) set
@@ -99,7 +99,7 @@ class bamfile(object):
                 )
             else:
                 self.samfile = pysam.AlignmentFile(filepath, mode="rb")
-        except:
+        except Exception:
             raise IOError("Cannot open BAM file: %s" % filepath)
 
         self.offset = offset  # -1 # a hack for the mis-aligned data from 2010
@@ -219,7 +219,7 @@ class bamfile(object):
                             yield read_dict[qname][0], read
                         del read_dict[qname]
 
-            except ReadError as e:
+            except ReadError:
                 continue
 
         """Flush out the rest of dictionary. (for example if one the 
@@ -489,11 +489,11 @@ class bamfile(object):
 
     def __getitem__(self, x):
         """General function to retrieve cutcounts. Currently supports
-        only genomic_intervals and pysam.VariantRecord as input.
+        only genome_tools.GenomicInterval and pysam.VariantRecord as input.
 
         Parameters
         ----------
-        x : :class:`genome_tools.genomic_interval` or :class:`pysam.VariantRecord`
+        x : :class:`genome_tools.GenomicInterval` or :class:`pysam.VariantRecord`
             Retrieve cleavages over a windowed region or resolve allelically
             over a known variant
 
@@ -506,10 +506,10 @@ class bamfile(object):
         Raises
         ------
         TypeError
-            Input is neither a :class:`genome_tools.genomic_interval` nor
+            Input is neither a :class:`genome_tools.GenomicInterval` nor
             :class:`pysam.VariantRecord`
         """
-        if isinstance(x, genome_tools.genomic_interval):
+        if isinstance(x, genome_tools.GenomicInterval):
             return self.lookup(x)
         elif isinstance(x, pysam.VariantRecord):
             return self.lookup_allelic(x)

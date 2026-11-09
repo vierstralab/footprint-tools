@@ -4,16 +4,16 @@ cimport numpy as np
 
 ctypedef np.float64_t data_type_t
 
-cpdef data_type_t piecewise_four(x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3, 
+cpdef data_type_t piecewise_four(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2, data_type_t x3,
                                      data_type_t y0, data_type_t y1, data_type_t y2, data_type_t y3,
                                      data_type_t k0, data_type_t k1, data_type_t k2, data_type_t k3)
 
 
-cpdef data_type_t piecewise_three(x, data_type_t x0, data_type_t x1, data_type_t x2,
+cpdef data_type_t piecewise_three(data_type_t x, data_type_t x0, data_type_t x1, data_type_t x2,
                                      data_type_t y0, data_type_t y1, data_type_t y2,
                                      data_type_t k0, data_type_t k1, data_type_t k2)
 
-cdef class dispersion_model:
+cdef class DispersionModel:
     
     cdef np.ndarray _h
     cdef np.ndarray _p
@@ -26,6 +26,8 @@ cdef class dispersion_model:
     cpdef data_type_t fit_mu(self, data_type_t x)
     cpdef data_type_t fit_r(self, data_type_t x)
 
+    cpdef tuple fit_r_p(self, object x)
+
     cpdef data_type_t [:] log_pmf_values(self, data_type_t [:] exp, data_type_t [:] obs)
     cpdef data_type_t [:] pmf_values(self, data_type_t [:] exp, data_type_t [:] obs)
 
@@ -34,4 +36,6 @@ cdef class dispersion_model:
 
     cpdef data_type_t [:] p_values(self, data_type_t [:] exp, data_type_t [:] obs)
     cpdef sample(self, data_type_t [:] x, int times)
-    
+ 
+    cpdef data_type_t[:, :, :] sample_mu(self, data_type_t [:] x, data_type_t [:, :] theta_star, data_type_t [:] theta)
+
