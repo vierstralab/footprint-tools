@@ -12,7 +12,7 @@ are computed from a series of emperically fit negative binomial distribution.
 
 ## Requirements
 
-``footprint-tools`` requires Python 3.6+
+``footprint-tools`` requires Python 3.10+
 
 We also recommend these non-Python analysis tools:
 
@@ -22,15 +22,15 @@ We also recommend these non-Python analysis tools:
 
 ## Installation
 
-To install the latest release, type:
+To install the latest version from GitHub, type:
 ```
-pip install footprint-tools
+pip install git+https://github.com/vierstralab/footprint-tools.git
 ```
 
-If you run into errors, try installing footprint-tools in a conda environment (using the YAML file provided):
+Or install footprint-tools in a conda environment (using the YAML file provided):
 ```
 # Clone repository
-git clone https://github.com/jvierstra/footprint-tools.git
+git clone https://github.com/vierstralab/footprint-tools.git
 
 # Create conda enviroment from config YAML file
 cd footprint-tools
@@ -47,6 +47,10 @@ ftd {commands}
 ## Documentation & usage
 
 User manual, API and examples can be found [here](http://footprint-tools.readthedocs.io)
+
+To run footprint detection on many datasets, use the Nextflow pipeline [nf-footprinting](https://github.com/vierstralab/nf-footprinting).
+
+Differential footprinting is available only from Python for now (`footprint_tools.stats.differential_bayesian`, see [methods](footprint_tools/stats/differential_bayesian/methods.md)); for an example, see [`DiffTest.ipynb`](https://github.com/vierstralab/regulome/blob/HEAD/Figure5.footprints/DiffTest.ipynb) in regulome.
 
 ## Citation
 

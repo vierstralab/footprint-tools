@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 np.seterr(all="ignore")
 
 
-class expected_counts(Dataset):
+class ExpectedCounts(Dataset):
     """Computes observed and expected cleavage counts"""
 
     def __init__(self, interval_file, bam_file, fasta_file, bm, **kwargs):
@@ -143,11 +143,11 @@ class expected_counts(Dataset):
     help="Ignore reads with mapping quality lower than this threshold",
 )
 @optgroup.option(
-    "--keep_dups",
-    default=True,
+    "--dedup",
+    default=False,
     show_default=True,
     is_flag=True,
-    help="Keep duplicate reads",
+    help="Remove duplicate reads",
 )
 @optgroup.option(
     "--keep_qcfail",
@@ -206,7 +206,7 @@ def run(
     fasta_file,
     bias_model_file=None,
     min_qual=1,
-    keep_dups=True,
+    dedup=False,
     keep_qcfail=False,
     bam_offset=(0, -1),
     is_cram=False,
@@ -232,7 +232,7 @@ def run(
 
     proc_kwargs = {
         "min_qual": min_qual,
-        "remove_dups": not keep_dups,
+        "remove_dups": dedup,
         "remove_qcfail": not keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,
@@ -274,7 +274,7 @@ def run(
         )
 
     # Initiate data processor
-    dl = expected_counts(interval_file, bam_file, fasta_file, bm, **proc_kwargs)
+    dl = ExpectedCounts(interval_file, bam_file, fasta_file, bm, **proc_kwargs)
     dl_iter = dl.batch_iter(
         batch_size=batch_size, collate_fn=numpy_collate_concat, num_workers=n_threads
     )

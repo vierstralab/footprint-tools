@@ -43,7 +43,7 @@ pysam.set_verbosity(0)
 required_sample_data_cols = ["id", "tabix_file", "dm_file", "beta_a", "beta_b"]
 
 
-class posterior_stats(Dataset):
+class PosteriorStats(Dataset):
     def __init__(self, interval_file, samples_data, fdr_cutoff):
         self.intervals = pd.read_table(interval_file, header=None, comment="#")
         self.samples_data = samples_data
@@ -145,9 +145,9 @@ class posterior_stats(Dataset):
     type=click.FLOAT,
     default=0.2,
     show_default=True,
-    help="Print only positions where that maximum posterior across "
-    "all samples meets this threshold. Used to control for "
-    "file size.",
+    help="Print only positions where, in at least one sample, the probability "
+    "of no footprint (1 - posterior) is below this value (0.2: posterior > 0.8). "
+    "Used to control for file size.",
 )
 @optgroup.option(
     "--outprefix",
@@ -263,7 +263,7 @@ def run(
         raise click.Abort()
 
     # Create data processor and iterator
-    dl = posterior_stats(interval_file, sample_data, fdr_cutoff)
+    dl = PosteriorStats(interval_file, sample_data, fdr_cutoff)
     dl_iter = dl.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     # filter function to apply when writing posteriors to file

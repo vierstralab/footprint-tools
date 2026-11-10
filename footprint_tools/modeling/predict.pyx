@@ -9,7 +9,6 @@
 cimport numpy as np
 import numpy as np
 
-from genome_tools import genomic_interval
 
 cdef extern from "predict.h":
     struct result:
@@ -119,7 +118,7 @@ class ExpectedPredictor(object):
         
         Parameters
         ----------
-        x : :class:`genome_toools.genomic_interval`
+        x : :class:`genome_tools.GenomicInterval`
             Genomic region to generate predicted cleavages
         
         Returns

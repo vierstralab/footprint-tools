@@ -3,7 +3,7 @@ This sub-module contains functions for performing sliding window functions
 written in native C. 
 """
 
-# Copyright 2015-2021 Jeff Vierstra
+# Copyright 2015-2026 Jeff Vierstra
 
 # cython: boundscheck=False
 # cython: wraparound=False

@@ -48,12 +48,12 @@ in each individual dataset. Please see  :ref:`command_detect` for this task.
 Step 2: Compute the per-dataset footprint priors
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Used the command :ref:`command_learn_bm` to compute the hyperparameters of the Beta prior. 
+Use the command :ref:`command_learn_beta` to compute the hyperparameters of the Beta prior. 
 
 .. code:: bash
 
 	ftd learn_beta \
-		--fdr-cutoff 0.05 --exp-cutoff 10 \
+		--fdr_cutoff 0.05 --exp_cutoff 10 \
 		interval.bedgraph
 
 .. note:: 

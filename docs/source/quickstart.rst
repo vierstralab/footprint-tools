@@ -2,7 +2,7 @@
 Quickstart
 ==========
 
-footprint-tools requires Python is compatible with Python 3.6 or greater
+footprint-tools requires Python 3.10 or greater
 
 
 .. panels::
@@ -12,16 +12,11 @@ footprint-tools requires Python is compatible with Python 3.6 or greater
     Using pip?
     ^^^^^^^^^^
 
-	footprint-tools can be installed via pip from `PyPI <https://pypi.org/project/footprint-tools>`__.
+	footprint-tools can be installed via pip from GitHub.
 
     ++++
 
 	Install using pip::
-	
-		pip install footprint-tools
-
-
-	or for the lastest release::
 
 		pip install git+https://github.com/vierstralab/footprint-tools.git
     
@@ -44,16 +39,15 @@ Dependencies
 - scipy
 - pandas
 - pysam
-- statsmodels
 - pwlf
 - simplejson
-- cython
-- genome_tools
+- genome-tools (>= 3.0.0)
 - tqdm
 - click
 - click-option-group
 - matplotlib
 - yaspin
+- colorlog
 
 We also highly recommend these non-Python analysis tools:
 

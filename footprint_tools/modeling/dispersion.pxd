@@ -1,4 +1,4 @@
-# Copyright 2015-2021 Jeff Vierstra
+# Copyright 2015-2026 Jeff Vierstra
 
 cimport numpy as np
 

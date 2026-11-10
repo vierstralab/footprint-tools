@@ -1,21 +1,15 @@
-# Copyright (C) 2015-2021 Jeff Vierstra (jvierstra@altius.org)
+# Copyright (C) 2015-2026 Jeff Vierstra (jvierstra@altius.org)
 
-import os
-import sys
-import pathlib
+# Package metadata and dependencies are in pyproject.toml; this file only builds
+# the Cython extensions and the bundled hcephes C library.
+
 from glob import glob
 
-from setuptools import find_packages, setup
-from distutils.command.build_clib import build_clib
-from distutils.extension import Extension
-from distutils import log
+from setuptools import Extension, setup
+from setuptools.command.build_clib import build_clib
 from Cython.Distutils import build_ext
 
 import numpy as np
-
-if sys.version_info[0] != 3 or sys.version_info[1] < 6:
-    print("Package requires Python version 3.10+")
-    sys.exit(1)
 
 hcephes_include = "hcephes/include"
 hcephes_src = glob('hcephes/src/**/*.c', recursive=True)
@@ -40,55 +34,9 @@ ext_modules = [Extension(**opts) for opts in modules]
 for e in ext_modules:
     e.cython_directives = {'language_level': "3"} #all are Python-3)
 
-install_requires = [
-    "cython",
-    "numpy>=1.10",
-    "scipy>=0.17",
-    "pandas",
-    "pysam>=0.15",
-    "statsmodels",
-    "genome-tools>=2.0",
-    "pwlf",
-    "simplejson",
-    "tqdm",
-    "click",
-    "click-option-group",
-    "matplotlib",
-    "yaspin",
-    "colorlog",
-]
-
-__version__ = "1.4.1"
-
 setup(
-    name = "footprint_tools",
-    version = __version__,
-    license = "GPL-3.0-or-later",
-    description = "Genomic footprint detection",
-    long_description=(pathlib.Path(__file__).parent / "README.md").read_text(),
-    long_description_content_type="text/markdown",
-    author = "Jeff Vierstra",
-    author_email = "jvierstra@altius.org",
-    url = "https://github.com/jvierstra/footprint-tools",
-    download_url = "https://github.com/jvierstra/footprint-tools/archive/v{}.tar.gz".format(__version__),
-    keywords = ["genomic footprints", "bioinformatics", "chromatin", "transcription factors", "dnase"],
-    zip_safe = False,
-    packages =  find_packages(),
     libraries = [hcehpes_lib],
     ext_modules = ext_modules,
     include_dirs=[np.get_include(), hcephes_include],
-    package_data={'footprint_tools':['footprint_tools/logging.conf']},
     cmdclass = {'build_clib': build_clib, 'build_ext': build_ext},
-    install_requires = install_requires,
-    include_package_data = True,
-    #scripts = scripts,
-    entry_points = {"console_scripts": ["ftd = footprint_tools.__main__:main"]},
-    classifiers=[
-        'Development Status :: 5 - Production/Stable', 
-        'Intended Audience :: Science/Research', 
-        'Topic :: Scientific/Engineering :: Bio-Informatics',
-        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-    ],
 )

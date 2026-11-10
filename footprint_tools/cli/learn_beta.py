@@ -54,7 +54,7 @@ def run(bedgraph_file, fdr_cutoff=0.05, exp_cutoff=10, outfile="beta.txt"):
 
             for line in filehandle:
                 # remove comment lines
-                if line.lstrip()[0] in ["#"]:
+                if not line.strip() or line.lstrip()[0] in ["#"]:
                     continue
 
                 total_lines += 1
@@ -78,7 +78,7 @@ def run(bedgraph_file, fdr_cutoff=0.05, exp_cutoff=10, outfile="beta.txt"):
 
         except IOError as e:
             logger.critical(e)
-            click.Abort()
+            raise click.Abort()
 
         sp.text = "Fitting Beta distribution"
 
@@ -100,4 +100,4 @@ def run(bedgraph_file, fdr_cutoff=0.05, exp_cutoff=10, outfile="beta.txt"):
             print("%0.4f\t%0.4f" % (prior[0], prior[1]), file=f)
     except IOError as e:
         logger.critical(e)
-        click.Abort()
+        raise click.Abort()

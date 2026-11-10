@@ -1,23 +1,20 @@
-name: footprint-tools
+name: footprint-tools-docs
 channels:
 - conda-forge
 - bioconda
-- defaults
 dependencies:
-- python>=3.6
+- python>=3.10
 - pip
-- tqdm
-- cython
 - numpy
 - scipy
 - pandas
 - pysam
-- statsmodels
 - simplejson
 - tqdm
 - click
 - click-option-group
 - matplotlib
+- colorlog
 - bumpversion
 - sphinx
 - nbsphinx
@@ -28,7 +25,7 @@ dependencies:
 - pandoc
 
 - pip:
-  - git+https://github.com/jvierstra/sphinx-click.git
-  - genome-tools==1.0.4
+  - sphinx-click
   - pwlf
   - yaspin
+  - genome-tools @ git+https://github.com/vierstralab/genome-tools.git@v3.0.0

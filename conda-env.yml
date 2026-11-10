@@ -2,25 +2,23 @@ name: footprint-tools
 channels:
 - conda-forge
 - bioconda
-- defaults
 dependencies:
 - python>=3.10
 - pip
-- tqdm
-- cython
+- cython  # build dependency (pip also gets it in an isolated build)
 - numpy
 - scipy
 - pandas
 - pysam
-- statsmodels
 - simplejson
 - tqdm
 - click
 - click-option-group
 - matplotlib
+- colorlog
 
 - pip:
   - pwlf
-  - genome-tools==1.0.4
   - yaspin
+  - genome-tools @ git+https://github.com/vierstralab/genome-tools.git@v3.0.0
   - .

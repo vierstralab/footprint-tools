@@ -257,7 +257,7 @@ class BamFile(object):
 
         Returns
         -------
-        fragment: genomic_interval
+        fragment: GenomicInterval
             Fragment that corresponds to `read`. Start and end coordinates
             correspond to the 5' ends of the paired reads.
         """
@@ -269,14 +269,14 @@ class BamFile(object):
             start = int(read.reference_start) + self.offset[0]
             end = start + tlen
 
-        return genome_tools.genomic_interval(read.reference_name, start, end)
+        return genome_tools.GenomicInterval(read.reference_name, start, end)
 
     def lookup(self, interval):
         """Lookup reads in a defined genomic region
 
         Parameters
         ----------
-        intervals: iterable (genomic_interval)
+        interval: GenomicInterval
 
         Returns
         -------
@@ -288,7 +288,8 @@ class BamFile(object):
         chrom = interval.chrom
         start = interval.start
         end = interval.end
-        flip = True if interval.strand == "-" else False
+        # GenomicInterval has no strand unless one is given
+        flip = getattr(interval, "strand", "+") == "-"
 
         tmp_fw = {}
         tmp_rev = {}

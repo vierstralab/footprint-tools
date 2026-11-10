@@ -11,7 +11,7 @@ def tuple_args(value_type=int):
             items = tuple(map(value_type, value.split(",")))
             assert len(items) == 2
         except:
-            raise click.BadOptionUsage(
+            raise click.BadParameter(
                 f"needs to be a comma-delimited tuple of type {value_type.__name__}"
             )
         return items
@@ -25,7 +25,7 @@ def list_args(value_type=int):
         try:
             items = list(map(value_type, value.split(",")))
         except:
-            raise click.BadOptionUsage(
+            raise click.BadParameter(
                 f"needs to be a comma-delimited list of type {value_type.__name__}"
             )
         return items

@@ -1,3 +1,4 @@
+__pycache__/
 *.py[cod]
 *.so
 *.o
@@ -11,5 +12,7 @@ build/
 
 docs/build/
 .ipynb_checkpoints/
+# CRAM index downloaded when the tutorial notebook runs
+docs/source/tutorials/*.crai
 
 footprint_tools/**/*.c

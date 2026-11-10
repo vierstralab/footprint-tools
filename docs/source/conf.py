@@ -1,8 +1,7 @@
 import os
 import sys
 
-import distutils.util
-
+from importlib.metadata import version as _pkg_version
 from datetime import datetime
 extensions = [
     "sphinx.ext.intersphinx",
@@ -34,7 +33,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'footprint-tools'
 copyright = f'2015-{datetime.now().year}, Jeff Vierstra'
 author = 'Jeff Vierstra'
-version = '1.3.7'
+version = _pkg_version('footprint_tools')  # docs build installs the package
 templates_path = ['_templates']
 source_suffix = {
     ".rst": "restructuredtext",
@@ -46,21 +45,11 @@ pygments_style = 'sphinx'
 html_theme = 'pydata_sphinx_theme'
 html_theme_options = {
     "external_links": [],
-    "github_url": "https://github.com/jvierstra/footprint-tools",
+    "github_url": "https://github.com/vierstralab/footprint-tools",
 }
 
 html_static_path = ['_static']
 html_css_files = ['extra.css']
 
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-_libdir = "../../build/lib.%s-%s.%s" % (distutils.util.get_platform(),
-                                        sys.version_info[0], sys.version_info[1])
-print(_libdir)
-if os.path.exists(_libdir):
-    sys.path.insert(0, os.path.abspath(_libdir))
 
-
-mathjax_path="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"

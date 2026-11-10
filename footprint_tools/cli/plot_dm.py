@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
     default="dm.pdf",
     help="Output file path for plot (suffix determines image format)",
 )
-def run(dispersion_model_file, histograms=[15, 25, 50, 75], outfile="dm.pdf"):
+def run(dispersion_model_file, histograms=[5, 25, 50, 75], outfile="dm.pdf"):
     """Diagnostic plotting of a dispersion model
 
     Using the ``--histogram`` argument specifies the histograms to plot. An arbitry
@@ -45,7 +45,7 @@ def run(dispersion_model_file, histograms=[15, 25, 50, 75], outfile="dm.pdf"):
         dm = load_dispersion_model(dispersion_model_file)
     except IOError as e:
         logger.critical(e)
-        return 1
+        raise click.Abort()
 
     plt_params = {
         "legend.fontsize": "xx-small",

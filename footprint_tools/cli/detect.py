@@ -43,7 +43,12 @@ np.seterr(all="ignore")
 pysam.set_verbosity(0)
 
 
-class deviation_stats(Dataset):
+def win_pval(z):
+    """Windowed p-values (Stouffer's Z, 3 bp half window); module-level so the dataset pickles"""
+    return windowing.stouffers_z(np.ascontiguousarray(z), 3)
+
+
+class DeviationStats(Dataset):
     """Class that computes per-nucleotide cleavage
     deviation statistics
     """
@@ -83,7 +88,7 @@ class deviation_stats(Dataset):
         self.fasta_extractor = None
         self.expected_predictor = None
 
-        self.win_pval_fn = lambda z: windowing.stouffers_z(np.ascontiguousarray(z), 3)
+        self.win_pval_fn = win_pval
 
     def cleanup(self):
         """Needs to be implemented"""
@@ -209,7 +214,7 @@ class deviation_stats(Dataset):
     help="Ignore reads with mapping quality lower than this threshold",
 )
 @optgroup.option(
-    "--keep_dups", default=True, show_default=True, help="Keep duplicate reads"
+    "--dedup", default=False, show_default=True, is_flag=True, help="Remove duplicate reads"
 )
 @optgroup.option(
     "--keep_qcfail", default=False, show_default=True, help="Keep QC-failed reads"
@@ -273,7 +278,7 @@ def run(
     bias_model_file=None,
     dispersion_model_file=None,
     min_qual=1,
-    keep_dups=False,
+    dedup=False,
     keep_qcfail=False,
     bam_offset=(0, -1),
     is_cram=False,
@@ -301,7 +306,7 @@ def run(
     """
     proc_kwargs = {
         "min_qual": min_qual,
-        "remove_dups": not keep_dups,
+        "remove_dups": dedup,
         "remove_qcfail": not keep_qcfail,
         "offset": bam_offset,
         "half_win_width": half_win_width,
@@ -362,8 +367,10 @@ def run(
         output_bedgraph_file = outprefix + ".bedgraph"
         logger.info(f"Writing per-nucleotide stats to {output_bedgraph_file}")
         output_bedgraph_filehandle = open(output_bedgraph_file, "w")
+        # without a dispersion model only exp and obs are written
+        stats_columns = ["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"] if dm else ["exp", "obs"]
         write_output_header(
-            ["exp", "obs", "-log(pval)", "-log(winpval)", "fdr"],
+            stats_columns,
             file=output_bedgraph_filehandle,
             include_name=False,
             extra=args,
@@ -392,7 +399,7 @@ def run(
         raise click.Abort()
 
     # Create data processor and iterator
-    dl = deviation_stats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
+    dl = DeviationStats(interval_file, bam_file, fasta_file, bm, dm, **proc_kwargs)
     dl_iter = dl.batch_iter(batch_size=batch_size, num_workers=n_threads)
 
     with logging_redirect_tqdm():

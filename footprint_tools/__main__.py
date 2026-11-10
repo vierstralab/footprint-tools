@@ -11,18 +11,18 @@ logging.config.fileConfig(os.path.join(os.path.dirname(__file__), "logging.conf"
 logger = logging.getLogger(__name__)
 
 import footprint_tools
-import footprint_tools.cli.learn_bm as learn_bm
+# import footprint_tools.cli.learn_bm as learn_bm  # unfinished, not exposed
 import footprint_tools.cli.learn_dm as learn_dm
 import footprint_tools.cli.detect as detect
 import footprint_tools.cli.learn_beta as learn_beta
 import footprint_tools.cli.plot_dm as plot_dm
 import footprint_tools.cli.post as post
 
-epilog = """See http://github.com/jvierstra/footprint-tools for extended documentation.
+epilog = """See https://github.com/vierstralab/footprint-tools for extended documentation.
 
 Citation: Vierstra, J., Lazar, J., Sandstrom, R. et al. Global reference mapping of human transcription factor footprints. Nature 583, 729–736 (2020)
 
-Written by Jeff Vierstra (jvierstra@altius.org) (2015-2025). Software licensed under GNU General Public License version 3."""
+Written by Jeff Vierstra (jvierstra@altius.org) (2015-2026). Software licensed under GNU General Public License version 3."""
 
 
 @click.group(epilog=epilog)
@@ -40,7 +40,7 @@ def main():
     pass
 
 
-main.add_command(learn_bm.run)
+# main.add_command(learn_bm.run)
 main.add_command(learn_dm.run)
 main.add_command(detect.run)
 main.add_command(learn_beta.run)

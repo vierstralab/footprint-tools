@@ -7,7 +7,7 @@ A Python package for *de novo* detection of genomic footprints from DNase I data
 
 - De novo footprint detection
 - Consensus footprint detection (emperical Bayes)
-- Differential footprinting
+- Differential footprinting (Python API only for now, ``footprint_tools.stats.differential_bayesian``; see `methods <https://github.com/vierstralab/footprint-tools/blob/HEAD/footprint_tools/stats/differential_bayesian/methods.md>`_ and an example in `regulome <https://github.com/vierstralab/regulome/blob/HEAD/Figure5.footprints/DiffTest.ipynb>`_)
 - API for programmatic access to cleavage data directly from sequence alignment files
 
 .. warning::

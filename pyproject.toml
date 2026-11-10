@@ -1,4 +1,53 @@
 [build-system]
-# setup.py imports Cython and numpy to build the extensions
-requires = ["setuptools", "wheel", "cython", "numpy"]
+# setup.py imports Cython and numpy to build the extensions; setuptools>=77 for the SPDX license string
+requires = ["setuptools>=77", "wheel", "cython", "numpy"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "footprint_tools"
+version = "1.4.1"
+description = "DNase I footprint detection"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+authors = [{ name = "Jeff Vierstra", email = "jvierstra@altius.org" }]
+keywords = ["genomic footprints", "bioinformatics", "chromatin", "transcription factors", "dnase"]
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.10",
+    "scipy>=0.17",
+    "pandas",
+    "pysam>=0.15",
+    "genome-tools>=3.0.0",
+    "pwlf",
+    "simplejson",
+    "tqdm",
+    "click",
+    "click-option-group",
+    "matplotlib",
+    "yaspin",
+    "colorlog",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+
+[project.urls]
+Homepage = "https://github.com/vierstralab/footprint-tools"
+Documentation = "https://footprint-tools.readthedocs.io"
+
+[project.scripts]
+ftd = "footprint_tools.__main__:main"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["footprint_tools*"]
+
+[tool.setuptools.package-data]
+footprint_tools = ["logging.conf"]

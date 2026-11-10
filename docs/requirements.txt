@@ -1,2 +1,8 @@
+sphinx
+sphinx-click
+sphinx-panels
+pydata-sphinx-theme
+numpydoc
 nbsphinx
 IPython
+matplotlib

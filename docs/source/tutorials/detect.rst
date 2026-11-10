@@ -140,13 +140,13 @@ binomial has two parameters, mu and r. The command
 :ref:`command_learn_dm` emperically fits :math:`\mu` and :math:`r` from the
 observed cleavage data and then interpolates all values using linear
 regression. :ref:`command_learn_dm` writes a dispersion model in
-JSON format to standard out which can then be used with all follow-on
+JSON format (`--outfile`, default `dm.json`) which can then be used with all follow-on
 analyses.
 
 .. code:: bash
 
   ftd learn_dm \
-    --bias_model_file vierstra_el_al.6-mer.model.txt \
+    --bias_model_file vierstra_et_al.6-mer.model.txt \
     intervals.bed reads.bam genome.fa
 
 .. note::
