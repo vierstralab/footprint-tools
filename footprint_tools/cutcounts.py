@@ -3,7 +3,7 @@ This modules contains classes and functions to compute cleavage counts
 directly from an alignment file.
 """
 
-import genome_tools
+from genome_tools import GenomicInterval
 import pysam
 
 import numpy as np
@@ -37,7 +37,7 @@ class ReadFormatError(Exception):
     pass
 
 
-class BamFile(object):
+class BamFileExtractor(object):
     """Class to access BAM files
 
     Attributes
@@ -62,15 +62,16 @@ class BamFile(object):
         remove_dups=False,
         remove_qcfail=True,
         offset=(0, -1),
-        is_cram=False,
         fasta_reference_filepath=None,
+        variant_5p_proximity=3,
+        **kwargs
     ):
         """Constructor
 
          Parameters
          ----------
          filepath : str
-             Fileath to SAM/BAM file
+             Filepath to a BAM or CRAM file (format is detected from the file)
          min_qual : int, optional
              Filter reads by minimim mapping quality (MAPQ)
          remove_dups : bool, optional
@@ -79,10 +80,13 @@ class BamFile(object):
              Remove reads with QC fail flag (1024) set
          offset : tuple, optional
              Position offsets to apply to the `+` and `-` strands (default =(0, -1))
-         is_cram : bool
-             Alignment file is in CRAM format
         fasta_reference_filepath : str
-             CRAM file reference filepath override
+             Reference FASTA to decode CRAM files with
+        variant_5p_proximity : int, optional
+             In allelic lookups, skip reads whose 5' end is within this many
+             bases of the variant (default = 3)
+        **kwargs
+             Ignored; accepts `is_cram` from older callers
 
          Raises
          ------
@@ -93,12 +97,11 @@ class BamFile(object):
         """
 
         try:
-            if is_cram:
-                self.samfile = pysam.AlignmentFile(
-                    filepath, mode="rc", reference_filename=fasta_reference_filepath
-                )
-            else:
-                self.samfile = pysam.AlignmentFile(filepath, mode="rb")
+            # BAM or CRAM is detected from the file; CRAM is decoded with fasta_reference_filepath
+            self.samfile = pysam.AlignmentFile(
+                filepath,
+                reference_filename=fasta_reference_filepath
+            )
         except Exception:
             raise IOError("Cannot open BAM file: %s" % filepath)
 
@@ -106,6 +109,7 @@ class BamFile(object):
         self.min_qual = min_qual
         self.remove_dups = remove_dups
         self.remove_qcfail = remove_qcfail
+        self.variant_5p_proximity = variant_5p_proximity
 
     def close(self):
         """Closes BAM file"""
@@ -269,7 +273,9 @@ class BamFile(object):
             start = int(read.reference_start) + self.offset[0]
             end = start + tlen
 
-        return genome_tools.GenomicInterval(read.reference_name, start, end)
+        if start > end:
+            start, end = end, start
+        return GenomicInterval(read.reference_name, start, end, is_reverse=read.is_reverse)
 
     def lookup(self, interval):
         """Lookup reads in a defined genomic region
@@ -355,7 +361,7 @@ class BamFile(object):
                 if read.is_reverse
                 else pos - read.reference_start
             )
-            if offset_5p <= 3:
+            if offset_5p <= self.variant_5p_proximity:
                 raise ReadError(ReadError.ERROR_5PROXIMITY)
 
             if read.has_tag("XM"):
@@ -510,9 +516,14 @@ class BamFile(object):
             Input is neither a :class:`genome_tools.GenomicInterval` nor
             :class:`pysam.VariantRecord`
         """
-        if isinstance(x, genome_tools.GenomicInterval):
+        if isinstance(x, GenomicInterval):
             return self.lookup(x)
         elif isinstance(x, pysam.VariantRecord):
             return self.lookup_allelic(x)
         else:
             raise TypeError(f"Query type not supported: {type(x)}")
+
+
+# older names of BamFileExtractor
+BamFile = BamFileExtractor
+bamfile = BamFileExtractor
