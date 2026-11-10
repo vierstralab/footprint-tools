@@ -7,10 +7,10 @@ from multiprocessing import cpu_count
 
 import numpy as np
 import pandas as pd
-import pysam
 
 from genome_tools import GenomicInterval
 from genome_tools.data.footprints import Dataset
+from genome_tools.data.extractors import FastaExtractor
 from genome_tools.data.utils import numpy_collate_concat
 
 from footprint_tools import cutcounts
@@ -19,10 +19,12 @@ from footprint_tools.modeling.predict import ExpectedPredictor
 from footprint_tools.modeling.dispersion import (
     learn_dispersion_model,
     write_dispersion_model,
+    DispersionModelFitError,
 )
 
 from footprint_tools.cli.utils import (
     tuple_args,
+    list_args,
     get_kwargs,
     verify_bam_file,
     verify_fasta_file,
@@ -86,10 +88,10 @@ class ExpectedCounts(Dataset):
         # Open file handlers on first call. This avoids problems when
         # parallel processing data with non-thread safe code (i.e., pysam)
         if not self.counts_extractor:
-            self.counts_extractor = cutcounts.BamFile(
+            self.counts_extractor = cutcounts.BamFileExtractor(
                 self.bam_file, **self.counts_reader_kwargs
             )
-            self.fasta_extractor = pysam.FastaFile(
+            self.fasta_extractor = FastaExtractor(
                 self.fasta_file, **self.fasta_reader_kwargs
             )
             self.expected_predictor = ExpectedPredictor(
@@ -156,6 +158,22 @@ class ExpectedCounts(Dataset):
     is_flag=True,
     help="Keep QC-failed reads",
 )
+@optgroup.group("Model fitting options")
+@optgroup.option(
+    "--r_breaks",
+    type=click.STRING,
+    default="3,7,15,25",
+    show_default=True,
+    callback=list_args(float),
+    help="Initial breakpoints (expected cleavages per base) of the piecewise-linear fit of the dispersion parameter r; exactly 4 values",
+)
+@optgroup.option(
+    "--fit_fraction",
+    type=click.FloatRange(0, 1, min_open=True),
+    default=0.75,
+    show_default=True,
+    help="Fraction of the range of expected cleavages per base used for the piecewise-linear fits",
+)
 @optgroup.group("Output options")
 @optgroup.option(
     "--outfile",
@@ -178,7 +196,7 @@ class ExpectedCounts(Dataset):
     default=False,
     show_default=True,
     is_flag=True,
-    help="Read alignment file is CRAM format",
+    help="Not needed: BAM or CRAM is detected from the file (kept for older scripts)",
 )
 @optgroup.option(
     "--seed",
@@ -214,6 +232,8 @@ def run(
     seed=None,
     n_threads=cpu_count(),
     batch_size=100,
+    r_breaks=[3.0, 7.0, 15.0, 25.0],
+    fit_fraction=0.75,
     outfile="dm.json",
 ):
     """Learn a negative binomial dispersion model
@@ -229,6 +249,9 @@ def run(
 
     Outputs a JSON-formated dispersion model
     """
+
+    if len(r_breaks) != 4:
+        raise click.BadParameter(f"needs exactly 4 values, got {len(r_breaks)}", param_hint="--r_breaks")
 
     proc_kwargs = {
         "min_qual": min_qual,
@@ -294,7 +317,16 @@ def run(
 
     logger.info("Learning dispersion model")
 
-    model = learn_dispersion_model(hist)
+    try:
+        model = learn_dispersion_model(hist, r_breaks=r_breaks, fit_fraction=fit_fraction)
+    except DispersionModelFitError as e:
+        logger.critical(
+            f"Cannot fit the dispersion model from {hist.sum():,} positions: {e}. "
+            "Use regions with higher coverage (e.g. all hotspots of the sample) or a sample with more reads"
+            + (" (duplicate reads were removed with --dedup; try without it)" if dedup else "")
+            + "."
+        )
+        raise click.Abort()
 
     logger.info("Writing dispersion model to {}".format(outfile))
 

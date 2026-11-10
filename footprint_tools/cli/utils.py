@@ -44,9 +44,9 @@ import pysam
 
 
 def verify_bam_file(fn, is_cram=False):
-    """Tries to open a file, raises IOError with problems"""
+    """Tries to open a BAM/CRAM file (format detected from the file), raises IOError with problems"""
     try:
-        pysam.AlignmentFile(fn, "rc" if is_cram else "rb").close()
+        pysam.AlignmentFile(fn).close()
     except IOError:
         raise IOError(f"No such file: {fn}")
     except ValueError:

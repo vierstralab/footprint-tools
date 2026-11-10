@@ -12,6 +12,7 @@ import pysam
 
 from genome_tools import GenomicInterval
 from genome_tools.data.footprints import Dataset
+from genome_tools.data.extractors import FastaExtractor
 
 from footprint_tools import cutcounts
 from footprint_tools.modeling.bias import KmerModel, UniformModel
@@ -103,10 +104,10 @@ class DeviationStats(Dataset):
         # Open file handlers on first call. This avoids problems when
         # parallel processing data with non-thread safe code (i.e., pysam)
         if not self.counts_extractor:
-            self.counts_extractor = cutcounts.BamFile(
+            self.counts_extractor = cutcounts.BamFileExtractor(
                 self.bam_file, **self.counts_reader_kwargs
             )
-            self.fasta_extractor = pysam.FastaFile(
+            self.fasta_extractor = FastaExtractor(
                 self.fasta_file, **self.fasta_reader_kwargs
             )
             self.expected_predictor = ExpectedPredictor(
@@ -249,7 +250,7 @@ class DeviationStats(Dataset):
     default=False,
     show_default=True,
     is_flag=True,
-    help="Read alignment file is CRAM format",
+    help="Not needed: BAM or CRAM is detected from the file (kept for older scripts)",
 )
 @optgroup.option(
     "--seed",

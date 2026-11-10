@@ -9,6 +9,8 @@
 cimport numpy as np
 import numpy as np
 
+from genome_tools import GenomicInterval
+
 
 cdef extern from "predict.h":
     struct result:
@@ -68,9 +70,9 @@ class ExpectedPredictor(object):
     ----------
     bm : :class:`bias.BiasModel`
         Sequence bias model to apply
-    read_func : :class:`cutcounts.bamfile`
+    read_func : :class:`cutcounts.BamFileExtractor`
        Cut-counts reader
-    fasta_func : :class`pysam.FastaFile`
+    fasta_func : :class:`genome_tools.data.extractors.FastaExtractor` or :class:`pysam.FastaFile`
         FASTA-file reader
     half_win_width : int
         Window width to apply bias model (final windows size = 2W+1)
@@ -87,10 +89,10 @@ class ExpectedPredictor(object):
         
         Parameters
         ----------
-        read_func : :class:`cutcounts.bamfile`
-            Description
-        fasta_func : :class:`pysam.FastaFile`
-            Description
+        read_func : :class:`cutcounts.BamFileExtractor`
+            Cut-counts reader
+        fasta_func : :class:`genome_tools.data.extractors.FastaExtractor` or :class:`pysam.FastaFile`
+            FASTA-file reader
         bm : :class:`bias.BiasModel`
             Description
         half_win_width : int, optional
@@ -135,9 +137,14 @@ class ExpectedPredictor(object):
         # Get the raw cleavage counts and FASTA sequence
         raw_counts = self.read_func[pad_interval]
 
-        raw_seq = self.fasta_func.fetch(pad_interval.chrom, 
-                                        pad_interval.start-self.bm.offset(), 
-                                        pad_interval.end+self.bm.offset()).upper()
+        seq_interval = GenomicInterval(pad_interval.chrom,
+                                       pad_interval.start - self.bm.offset(),
+                                       pad_interval.end + self.bm.offset())
+        if hasattr(self.fasta_func, 'fetch'):  # pysam.FastaFile
+            raw_seq = self.fasta_func.fetch(seq_interval.chrom, seq_interval.start, seq_interval.end)
+        else:  # genome_tools FastaExtractor
+            raw_seq = self.fasta_func[seq_interval]
+        raw_seq = raw_seq.upper()
 
         obs_counts = {'+': None, '-': None}
         exp_counts = {'+': None, '-': None}

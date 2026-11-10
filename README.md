@@ -10,6 +10,8 @@ are computed from a series of emperically fit negative binomial distribution.
 > There is a massive bug in the `posterior` footprint caller in versions 1.2.0 to 1.3.7. Please pull the lastest code from the master branch. 
 
 
+Coding agents: read [AGENTS.md](AGENTS.md) first.
+
 ## Requirements
 
 ``footprint-tools`` requires Python 3.10+

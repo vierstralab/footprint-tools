@@ -469,7 +469,12 @@ cdef class DispersionModel:
 
         return sampled_logpmf_vals
 
-def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
+class DispersionModelFitError(ValueError):
+    """Raised when the expected vs. observed histogram has too little data to fit a dispersion model"""
+
+
+def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5),
+                           r_breaks = (3.0, 7.0, 15.0, 25.0), fit_fraction = 0.75):
     """Learn a dispersion model from the expected 
     vs. observed histogram
 
@@ -484,16 +489,28 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     trim : tuple (float)
         Percent of data to trim  from the observed cleavage count 
         (to mitigate outlier effects)
+    r_breaks : tuple (float)
+        Initial inner breakpoints of the piecewise-linear fit of 1/r,
+        in expected cleavages per base (optimized during the fit).
+        Exactly 4 values: `DispersionModel.fit_r` evaluates 5 segments
+    fit_fraction : float
+        Fraction of the range of expected cleavages per base used for the
+        piecewise-linear fits (the highest values have few positions)
 
     Returns
     -------
     model : :class:`dispersion_model`
         A dispersion model learned from observed and expected counts
 
-    Todo
-    ----
-    Add exceptions for failure to fit, etc.
+    Raises
+    ------
+    DispersionModelFitError
+        Coverage too low: expected cleavages per base (with at least `cutoff`
+        positions) do not extend past `r_breaks`, or the fit failed
     """
+    if len(r_breaks) != 4:
+        raise ValueError(f"r_breaks needs exactly 4 values (DispersionModel.fit_r evaluates 5 segments), got {len(r_breaks)}")
+
     size = int(h.shape[0])
     p = np.zeros(size)
     r = np.zeros(size)
@@ -554,8 +571,20 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     x = np.arange(size)
     sele = np.isfinite(mus)
 
+    # the fits run from the lowest fitted expected count to fit_fraction of the highest;
+    # the initial breakpoints of the r fit must lie inside that range
+    min_last_level = max(r_breaks) / fit_fraction
+    if sele.sum() == 0 or np.max(x[sele]) <= min_last_level:
+        needed = int(np.floor(min_last_level)) + 1
+        reached = (f"go up to {np.max(x[sele])} (values seen at >= {cutoff:,} positions)" if sele.sum()
+                   else f"are not seen at >= {cutoff:,} positions for any value")
+        raise DispersionModelFitError(
+            f"coverage is too low: expected cleavages per base {reached}, "
+            f"but the fit needs at least {needed} (set by r_breaks and fit_fraction)"
+        )
+
     first_x = np.min(x[sele])
-    last_x = np.max(x[sele])*0.75
+    last_x = np.max(x[sele])*fit_fraction
 
     # fit mu with a 3 segments
     fit_mu = pwlf.PiecewiseLinFit(x[sele], mus[sele])
@@ -563,7 +592,7 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
 
     # fit r with 5 s segments
     fit_r = pwlf.PiecewiseLinFit(x[sele], 1.0/r[sele])
-    res = optimize.minimize(fit_r.fit_with_breaks_opt, [3.0, 7.0, 15.0, 25.0])
+    res = optimize.minimize(fit_r.fit_with_breaks_opt, list(r_breaks))
     
     x0 = np.zeros(6)
     x0[0] = first_x
@@ -571,6 +600,9 @@ def learn_dispersion_model(h, cutoff = 250, trim = (2.5, 97.5)):
     x0[1:-1] = res.x
 
     res = fit_r.fit_with_breaks_force_points(x0, [1], [1.0/r[1]])
+
+    if fit_mu.fit_breaks is None or fit_r.fit_breaks is None:
+        raise DispersionModelFitError("piecewise-linear fit of the dispersion model failed")
     
     # Create a dispersion model class
     model = DispersionModel()
